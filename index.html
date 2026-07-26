@@ -392,7 +392,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v5.7 — 22/07/2026";
+const APP_VERSION="v5.8 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -530,19 +530,28 @@ async function loadClients(silent){
   if(clientRows.length>0){
     // Une fiche client existe pour cet e-mail → espace client, toujours prioritaire
     const mine=clientRows[0];
+    const mineC=rowToClient(mine);
+    if(programEnded(mineC)){
+      // Programme arrivé à son terme : accès suspendu jusqu'à renouvellement par le coach
+      S.isClient=false; S.notActivated=false; S.accessEnded=true;
+      S.endedName=(mineC.nom||"").split(" ")[0];
+      S.endedDate=mineC.programmeFin||"";
+      S.clients=[]; S.loading=false; render(); return;
+    }
+    S.accessEnded=false;
     S.isClient=true; S.role="client";
     if(!S.clientTab) S.clientTab="programme";
-    S.clients=[rowToClient(mine)]; S.selectedId=mine.id; S.loading=false; render(); return;
+    S.clients=[mineC]; S.selectedId=mine.id; S.loading=false; render(); return;
   }
 
   if(coachRows.length===0){
     // Aucune fiche du tout : compte non activé (inscription sans invitation)
-    S.isClient=false; S.notActivated=true;
+    S.isClient=false; S.notActivated=true; S.accessEnded=false;
     S.clients=[]; S.loading=false; render(); return;
   }
 
   // Espace coach
-  S.isClient=false; S.notActivated=false; S.role="coach";
+  S.isClient=false; S.notActivated=false; S.accessEnded=false; S.role="coach";
   S.clients=coachRows.map(rowToClient);
   S.loading=false; render();
   // Modèles de programmes (silencieux)
@@ -617,11 +626,24 @@ function render(){
   if(!S.session){ root.innerHTML=authScreen(); return; }
   if(S.loading){ root.innerHTML=`<div class="center"><p class="muted">Chargement…</p></div>`; return; }
 
+  if(S.accessEnded){
+    root.innerHTML=`<div class="center"><div class="authcard" style="text-align:center">
+      <img src="${LOGO}" alt="Alex Coaching" class="logo-img">
+      <div style="font-size:40px;margin-bottom:6px">🔒</div>
+      <p class="lead" style="margin-bottom:6px">${S.endedName?esc(S.endedName)+", ton":"Ton"} programme est terminé.</p>
+      <p class="muted" style="margin-bottom:14px">${S.endedDate?`Il s'est achevé le <b style="color:var(--white2)">${frDate(S.endedDate)}</b>. `:""}Ton accès est suspendu en attendant la suite.</p>
+      <p style="font-size:13.5px;color:var(--amber);margin-bottom:18px">📩 Contacte ton coach pour renouveler ton suivi — il réactivera ton espace, avec tout ton historique conservé.</p>
+      <button class="btn g full" data-act="logout">Se déconnecter</button>
+    </div></div>`;
+    return;
+  }
   if(S.notActivated){
     root.innerHTML=`<div class="center"><div class="authcard" style="text-align:center">
       <img src="${LOGO}" alt="Alex Coaching" class="logo-img">
-      <p class="lead" style="margin-bottom:6px">Compte créé, mais pas encore activé.</p>
-      <p class="muted" style="margin-bottom:18px">Votre coach doit associer votre adresse e-mail à votre fiche. Contactez-le, puis reconnectez-vous.</p>
+      <div style="font-size:40px;margin-bottom:6px">🔒</div>
+      <p class="lead" style="margin-bottom:6px">Accès indisponible</p>
+      <p class="muted" style="margin-bottom:14px">Aucun espace n'est associé à cette adresse e-mail : soit votre coach ne l'a pas encore reliée à votre fiche, soit votre suivi a pris fin.</p>
+      <p style="font-size:13.5px;color:var(--amber);margin-bottom:18px">📩 Contactez votre coach, puis reconnectez-vous.</p>
       <button class="btn g full" data-act="logout">Se déconnecter</button>
     </div></div>`;
     return;
@@ -737,6 +759,22 @@ function dashboard(){
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
       </div>`;})()}
     ${(()=>{
+      const ended=cs.filter(c2=>programEnded(c2)&&(c2.clientEmail||"").trim());
+      const soon=cs.filter(c2=>{
+        if(programEnded(c2)||!(c2.programmeFin||"")) return false;
+        const d=(new Date(c2.programmeFin+"T23:59:59").getTime()-Date.now())/(24*3600*1000);
+        return d>=0&&d<=7;
+      });
+      if(!ended.length&&!soon.length) return '';
+      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(176,31,31,.4)">
+        ${ended.length?`<div class="ph" style="color:var(--red);font-size:14px">🔒 Accès suspendu — programme terminé</div>
+          ${ended.map(c2=>`<span class="badge-warn" style="margin-right:6px;background:rgba(176,31,31,.15);color:#FF6B6B">${esc(c2.nom)}</span>`).join("")}
+          <p class="muted" style="font-size:11.5px;margin:6px 0 ${soon.length?"10px":"0"}">Ils ne peuvent plus ouvrir leur espace. Repousse la date de fin dans leur fiche (onglet Programme) pour réactiver.</p>`:""}
+        ${soon.length?`<div class="ph" style="color:var(--amber);font-size:14px">⏳ Programmes qui se terminent sous 7 jours</div>
+          ${soon.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)} · ${frDate(c2.programmeFin)}</span>`).join("")}
+          <p class="muted" style="font-size:11.5px;margin-top:6px">Anticipe le renouvellement avant que leur accès se coupe.</p>`:""}
+      </div>`;})()}
+    ${(()=>{
       const due=cs.filter(bilanDue);
       if(!due.length) return '';
       return `<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.35)">
@@ -797,7 +835,7 @@ function clientRow(c){
   const unreadN=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
   return `<button class="crow" data-act="open" data-id="${c.id}">
     <div class="avatar">${esc(c.nom.slice(0,1))}</div>
-    <div style="flex:1;min-width:0"><div class="nm">${esc(c.nom)} ${invited?'<span title="Accès client activé" style="color:#4CAF50;font-size:12px">●</span>':''} ${unreadN?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;font-weight:700">✉ ${unreadN}</span>`:''}</div><div class="ob">${esc(c.objectif||"—")}</div></div>
+    <div style="flex:1;min-width:0"><div class="nm">${esc(c.nom)} ${programEnded(c)?'<span title="Programme terminé — accès client suspendu" style="background:rgba(176,31,31,.18);color:#FF6B6B;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:700">🔒 Accès suspendu</span>':(invited?'<span title="Accès client activé" style="color:#4CAF50;font-size:12px">●</span>':'')} ${unreadN?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;font-weight:700">✉ ${unreadN}</span>`:''}</div><div class="ob">${esc(c.objectif||"—")}</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
       ${trend!==null?`<span class="trend" style="color:${trend<=0?'#4CAF50':'var(--amber)'}">${trend>0?'+':''}${trend} kg</span>`:""}
       ${(()=>{const r=forfaitRestant(c);return r!==null?`<span style="font-size:11px;color:${r<=2?'var(--red)':'var(--grey2)'};font-weight:700">${r} séance${r>1?'s':''}</span>`:'';})()}
@@ -1012,8 +1050,13 @@ function programme(c,editable){
       </div>
       <p class="muted" style="font-size:12px;margin-top:8px">Copie tous les exercices (le programme existant du client cible sera remplacé).</p>
     </div>`:""}`:"";
+  const endedWarn=(editable&&programEnded(c))?`<div class="panel" style="margin-bottom:12px;border-color:rgba(176,31,31,.45);background:linear-gradient(180deg,rgba(176,31,31,.08),transparent)">
+    <div class="ph" style="color:var(--red);font-size:13.5px">🔒 Accès client suspendu</div>
+    <p style="font-size:13px;color:var(--white2);line-height:1.5">Le programme s'est terminé le <b>${frDate(c.programmeFin)}</b> : ${esc((c.nom||"").split(" ")[0])} ne peut plus ouvrir son espace et voit un message l'invitant à te contacter.</p>
+    <p class="muted" style="font-size:12px;margin-top:6px">Pour réactiver : change la date de fin ci-dessus (son historique est intact).</p>
+  </div>`:"";
   const pdfBtn=prog.length?`<button class="btn g full" style="margin-bottom:12px" data-act="print-prog">🖨 Imprimer / PDF le programme</button>`:"";
-  return progHeader+pdfBtn+list+form;
+  return progHeader+endedWarn+pdfBtn+list+form;
 }
 function progres(c,editable){
   const ms=c.mesures||[];
@@ -1096,6 +1139,14 @@ function adherenceChart(c){
 /* check-in hebdo */
 const CHECKIN_FIELDS=[["energie","Énergie"],["sommeil","Sommeil"],["motivation","Motivation"],["courbatures","Récupération"]];
 
+
+
+function programEnded(c){
+  const f=(c&&(c.programmeFin||c.programme_fin))||"";
+  if(!f) return false;
+  const d=new Date(f+"T23:59:59");
+  return !isNaN(d) && Date.now()>d.getTime();
+}
 
 function bilanDue(c){
   const days=x=>(Date.now()-new Date(x+"T12:00:00").getTime())/(24*3600*1000);
