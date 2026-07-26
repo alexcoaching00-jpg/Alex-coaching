@@ -285,6 +285,42 @@ window.supabase={
         if(d.access_token){_session=d;localStorage.setItem('sb_session',JSON.stringify(d));this._notify('SIGNED_IN',d);return {data:{session:d},error:null};}
         return {data:{session:null},error:null};
       },
+      // Mot de passe oublié : Supabase envoie un e-mail de réinitialisation
+      async resetPasswordForEmail(email,redirectTo){
+        const qs=redirectTo?("?redirect_to="+encodeURIComponent(redirectTo)):"";
+        const r=await fetch(`${base}/auth/v1/recover${qs}`,{method:'POST',headers:{'Content-Type':'application/json','apikey':key},body:JSON.stringify({email})});
+        if(!r.ok){ let d={}; try{d=await r.json();}catch(_){}
+          return {error:{message:d.error_description||d.msg||'Erreur'}}; }
+        return {error:null};
+      },
+      // Lien de connexion / création de compte envoyé par e-mail (invitation automatique)
+      async sendMagicLink(email,redirectTo){
+        const qs=redirectTo?("?redirect_to="+encodeURIComponent(redirectTo)):"";
+        const r=await fetch(`${base}/auth/v1/otp${qs}`,{method:'POST',headers:{'Content-Type':'application/json','apikey':key},body:JSON.stringify({email,create_user:true})});
+        if(!r.ok){ let d={}; try{d=await r.json();}catch(_){}
+          return {error:{message:d.error_description||d.msg||'Erreur'}}; }
+        return {error:null};
+      },
+      // Définir un nouveau mot de passe (après un lien de réinitialisation, ou depuis le compte)
+      async updatePassword(password){
+        if(!_session||!_session.access_token) return {error:{message:'Session expirée — redemande un lien.'}};
+        const r=await fetch(`${base}/auth/v1/user`,{method:'PUT',headers:headers(),body:JSON.stringify({password})});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok) return {error:{message:d.error_description||d.msg||'Erreur'}};
+        return {error:null};
+      },
+      // Établir une session depuis les jetons reçus dans un lien e-mail
+      async setSessionFromTokens(access_token,refresh_token){
+        try{
+          const r=await fetch(`${base}/auth/v1/user`,{headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+access_token}});
+          const u=await r.json();
+          if(!r.ok) return {error:{message:u.msg||'Lien invalide ou expiré'}};
+          _session={access_token,refresh_token,user:u};
+          localStorage.setItem('sb_session',JSON.stringify(_session));
+          this._notify('SIGNED_IN',_session);
+          return {error:null};
+        }catch(e){ return {error:{message:'Lien invalide'}}; }
+      },
       async signOut(){
         await fetch(`${base}/auth/v1/logout`,{method:'POST',headers:headers()}).catch(()=>{});
         _session=null;localStorage.removeItem('sb_session');
@@ -297,11 +333,6 @@ window.supabase={
       async getUser(){
         if(!_session) return {data:{user:null},error:null};
         return {data:{user:_session.user||{id:_session.user_id,email:_session.email}},error:null};
-      },
-      async resetPasswordForEmail(email,opts){
-        const r=await fetch(`${base}/auth/v1/recover`,{method:'POST',headers:{'Content-Type':'application/json','apikey':key},body:JSON.stringify({email,redirectTo:opts&&opts.redirectTo})});
-        const d=await r.json();
-        return r.ok?{error:null}:{error:{message:d.error_description||'Erreur'}};
       },
       onAuthStateChange(fn){
         this._listeners.push(fn);
@@ -392,7 +423,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v5.8 — 22/07/2026";
+const APP_VERSION="v5.9 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -600,6 +631,17 @@ function chart(mesures,target,unit){
     ${dots}${lastLabel}${xlab}</svg>`;
 }
 
+function newPasswordScreen(){
+  return `<div class="center"><div class="authcard" style="text-align:center">
+    <img src="${LOGO}" alt="Alex Coaching" class="logo-img">
+    <p class="lead" style="margin-bottom:6px">Nouveau mot de passe</p>
+    <p class="muted" style="margin-bottom:16px">Choisis ton nouveau mot de passe (6 caractères minimum).</p>
+    ${S.authErr?`<p style="color:#FF6B6B;font-size:13px;margin-bottom:10px">${esc(S.authErr)}</p>`:""}
+    <label class="fld"><span>Nouveau mot de passe</span><input id="np-pw" type="password" autocomplete="new-password" placeholder="••••••••"></label>
+    <label class="fld"><span>Confirmer</span><input id="np-pw2" type="password" autocomplete="new-password" placeholder="••••••••"></label>
+    <button class="btn p full" data-act="np-save" ${S.authBusy?'disabled':''}>${S.authBusy?"Patientez…":"Enregistrer et se connecter"}</button>
+  </div></div>`;
+}
 function authScreen(){
   const isSignup=S.authView==="signup";
   return `<div class="center"><div class="authcard">
@@ -612,6 +654,7 @@ function authScreen(){
     <label class="fld"><span>Mot de passe</span><input id="au-pw" type="password" autocomplete="${isSignup?'new-password':'current-password'}" placeholder="••••••••"></label>
     ${isSignup?`<label class="fld"><span>Confirmer le mot de passe</span><input id="au-pw2" type="password" autocomplete="new-password" placeholder="••••••••"></label>`:""}
     <button class="btn p full" data-act="auth-submit" data-mode="${isSignup?'signup':'login'}" ${S.authBusy?'disabled':''}>${S.authBusy?"Patientez…":(isSignup?"Créer mon accès":"Se connecter")}</button>
+    ${!isSignup?`<div style="text-align:center;margin-top:10px"><button class="link" data-act="forgot-pw" style="font-size:13px">Mot de passe oublié ?</button></div>`:""}
     <div class="switch">${isSignup
       ?`Déjà un compte ? <button data-act="auth-switch" data-to="login">Se connecter</button>`
       :`Première fois ? <button data-act="auth-switch" data-to="signup">Créer mon accès</button>`}
@@ -623,6 +666,7 @@ function authScreen(){
 /* ===== rendu ===== */
 function render(){
   const root=document.getElementById("root");
+  if(S.recoverMode){ root.innerHTML=newPasswordScreen(); return; }
   if(!S.session){ root.innerHTML=authScreen(); return; }
   if(S.loading){ root.innerHTML=`<div class="center"><p class="muted">Chargement…</p></div>`; return; }
 
@@ -813,6 +857,7 @@ function dashboard(){
         <button class="btn g full" data-act="export">↓ Exporter une sauvegarde</button>
         <button class="btn g full" data-act="import-open">↑ Importer une sauvegarde</button>
         <input type="file" id="imp-file" accept=".json,application/json" style="display:none">
+        <button class="btn g full" data-act="change-pw">🔑 Changer mon mot de passe</button>
         <button class="btn g full" data-act="install-help">📲 Installer comme application</button>
         <button class="btn g full" data-act="logout">Se déconnecter</button>
       </div>
@@ -911,7 +956,9 @@ function infosTab(c){
     <div class="panel" style="margin-bottom:14px">
       <div class="ph">Accès client</div>
       <label class="fld"><span>E-mail du client</span><input data-bind="clientEmail" type="email" value="${esc(c.clientEmail||"")}" placeholder="client@exemple.fr" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-      <button class="btn p full" data-act="share-invite">📤 Partager l'invitation</button>
+      <button class="btn p full" data-act="auto-invite">✨ Envoyer l'accès automatiquement</button>
+      <p class="muted" style="font-size:11.5px;margin:6px 0 10px;text-align:center">Le client reçoit un e-mail avec un lien : un clic et son compte est créé, sans mot de passe à choisir.</p>
+      <button class="btn g full" data-act="share-invite">📤 Partager l'invitation (manuel)</button>
       <div style="display:flex;justify-content:center;gap:16px;margin-top:8px">
         <button class="link" style="font-size:13px" data-act="mail-invite">✉️ E-mail</button>
         <button class="link" style="font-size:13px" data-act="copy-invite">📋 Copier</button>
@@ -2402,9 +2449,52 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-act]"); if(!t) return;
   const a=t.dataset.act, c=sel();
   switch(a){
+    case "forgot-pw":{
+      const pre=(val("au-email")||"").trim();
+      const email=(prompt("Ton adresse e-mail — tu recevras un lien pour choisir un nouveau mot de passe :",pre)||"").trim();
+      if(!email) break;
+      toast("Envoi en cours…");
+      sb.auth.resetPasswordForEmail(email,location.origin+location.pathname).then(({error})=>{
+        if(error) alert("Erreur : "+error.message);
+        else alert("C'est envoyé ✉️\n\nOuvre l'e-mail reçu à "+email+" et clique sur le lien pour choisir un nouveau mot de passe.\n(Pense à vérifier tes spams.)");
+      });
+      break; }
+    case "np-save":{
+      const p1=val("np-pw")||"", p2=val("np-pw2")||"";
+      if(p1.length<6){ S.authErr="6 caractères minimum."; render(); break; }
+      if(p1!==p2){ S.authErr="Les deux mots de passe ne correspondent pas."; render(); break; }
+      S.authBusy=true; S.authErr=""; render();
+      sb.auth.updatePassword(p1).then(({error})=>{
+        S.authBusy=false;
+        if(error){ S.authErr=error.message; render(); return; }
+        S.recoverMode=false; S.authErr="";
+        toast("Mot de passe mis à jour ✓");
+        loadData();
+      });
+      break; }
+    case "change-pw":{
+      const p1=(prompt("Nouveau mot de passe (6 caractères minimum) :")||"").trim();
+      if(!p1) break;
+      if(p1.length<6){ alert("6 caractères minimum."); break; }
+      const p2=(prompt("Confirme le nouveau mot de passe :")||"").trim();
+      if(p1!==p2){ alert("Les deux mots de passe ne correspondent pas."); break; }
+      sb.auth.updatePassword(p1).then(({error})=>{
+        alert(error?("Erreur : "+error.message):"Mot de passe modifié ✓");
+      });
+      break; }
     case "auth-switch": S.authView=t.dataset.to; S.authErr=""; render(); break;
     case "auth-submit": doAuth(t.dataset.mode); break;
     case "logout": if(sb) sb.auth.signOut(); break;
+    case "auto-invite":{ if(!c) return;
+      const email=(c.clientEmail||"").trim();
+      if(!email){ alert("Renseigne d'abord l'adresse e-mail du client ci-dessus."); return; }
+      if(!confirm(`Envoyer un e-mail d'accès à ${email} ?\n\nIl recevra un lien : un clic suffit pour créer son compte et ouvrir son espace.`)) break;
+      toast("Envoi en cours…");
+      sb.auth.sendMagicLink(email,location.origin+location.pathname).then(({error})=>{
+        if(error) alert("Envoi impossible : "+error.message+"\n\nTu peux utiliser « Partager l'invitation » à la place.");
+        else alert("E-mail envoyé ✉️\n\n"+email+" va recevoir son lien d'accès (pense à lui dire de vérifier ses spams).");
+      });
+      break; }
     case "share-invite":{ if(!c) return;
       const msg=inviteText(c);
       if(!msg){ alert("Renseigne d'abord l'adresse e-mail du client ci-dessus."); return; }
@@ -2914,6 +3004,27 @@ function bootApp(){
     const mi=location.hash.match(/#invite=([^&]+)/);
     if(mi){ S.inviteEmail=decodeURIComponent(mi[1]); S.authView="signup";
       history.replaceState(null,"",location.pathname+location.search); }
+  }catch(e){}
+  // Lien reçu par e-mail : Supabase renvoie les jetons dans l'ancre de l'URL
+  try{
+    const h=location.hash||"";
+    if(h.includes("access_token=")){
+      const p=new URLSearchParams(h.replace(/^#/,""));
+      const at=p.get("access_token"), rt=p.get("refresh_token"), type=p.get("type");
+      history.replaceState(null,"",location.pathname+location.search);
+      if(at){
+        S.loading=true; render();
+        sb.auth.setSessionFromTokens(at,rt).then(({error})=>{
+          if(error){ S.loading=false; S.authErr=error.message; render(); return; }
+          if(type==="recovery"){ S.recoverMode=true; S.loading=false; render(); }
+          // magiclink / invite / signup : la session est posée, le chargement normal suit
+        });
+        return;
+      }
+    }
+    const errDesc=(location.hash.match(/error_description=([^&]+)/)||[])[1];
+    if(errDesc){ history.replaceState(null,"",location.pathname+location.search);
+      S.authErr=decodeURIComponent(errDesc.replace(/\+/g," ")); }
   }catch(e){}
   try{ const dl=document.getElementById("exos-fr"); if(dl){ const all=[...new Set([].concat(...EXOS_GROUPES.map(g=>g[1]),...EXOS_MAISON.map(g=>g[1])))]; dl.innerHTML=all.map(e=>`<option value="${e}"></option>`).join(""); } }catch(e){}
   const spImg=document.getElementById('splash-img'); if(spImg) spImg.src=LOGO;
