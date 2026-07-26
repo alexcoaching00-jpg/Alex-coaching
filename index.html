@@ -423,7 +423,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v5.9 — 22/07/2026";
+const APP_VERSION="v6.0 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -632,14 +632,17 @@ function chart(mesures,target,unit){
 }
 
 function newPasswordScreen(){
+  const first=!!S.setPwMode;
   return `<div class="center"><div class="authcard" style="text-align:center">
     <img src="${LOGO}" alt="Alex Coaching" class="logo-img">
-    <p class="lead" style="margin-bottom:6px">Nouveau mot de passe</p>
-    <p class="muted" style="margin-bottom:16px">Choisis ton nouveau mot de passe (6 caractères minimum).</p>
+    ${first?`<div style="font-size:34px;margin-bottom:4px">🎉</div>`:""}
+    <p class="lead" style="margin-bottom:6px">${first?"Bienvenue ! Choisis ton mot de passe":"Nouveau mot de passe"}</p>
+    <p class="muted" style="margin-bottom:16px">${first?"Ton compte est créé. Choisis un mot de passe pour pouvoir te reconnecter quand tu veux, sans lien e-mail.":"Choisis ton nouveau mot de passe (6 caractères minimum)."}</p>
     ${S.authErr?`<p style="color:#FF6B6B;font-size:13px;margin-bottom:10px">${esc(S.authErr)}</p>`:""}
-    <label class="fld"><span>Nouveau mot de passe</span><input id="np-pw" type="password" autocomplete="new-password" placeholder="••••••••"></label>
+    <label class="fld"><span>${first?"Mot de passe":"Nouveau mot de passe"}</span><input id="np-pw" type="password" autocomplete="new-password" placeholder="••••••••"></label>
     <label class="fld"><span>Confirmer</span><input id="np-pw2" type="password" autocomplete="new-password" placeholder="••••••••"></label>
-    <button class="btn p full" data-act="np-save" ${S.authBusy?'disabled':''}>${S.authBusy?"Patientez…":"Enregistrer et se connecter"}</button>
+    <button class="btn p full" data-act="np-save" ${S.authBusy?'disabled':''}>${S.authBusy?"Patientez…":(first?"Valider et accéder à mon espace":"Enregistrer et se connecter")}</button>
+    ${first?`<button class="link full" data-act="skip-pw" style="margin-top:10px;font-size:13px">Plus tard</button>`:""}
   </div></div>`;
 }
 function authScreen(){
@@ -666,7 +669,7 @@ function authScreen(){
 /* ===== rendu ===== */
 function render(){
   const root=document.getElementById("root");
-  if(S.recoverMode){ root.innerHTML=newPasswordScreen(); return; }
+  if(S.recoverMode||S.setPwMode){ root.innerHTML=newPasswordScreen(); return; }
   if(!S.session){ root.innerHTML=authScreen(); return; }
   if(S.loading){ root.innerHTML=`<div class="center"><p class="muted">Chargement…</p></div>`; return; }
 
@@ -957,7 +960,7 @@ function infosTab(c){
       <div class="ph">Accès client</div>
       <label class="fld"><span>E-mail du client</span><input data-bind="clientEmail" type="email" value="${esc(c.clientEmail||"")}" placeholder="client@exemple.fr" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <button class="btn p full" data-act="auto-invite">✨ Envoyer l'accès automatiquement</button>
-      <p class="muted" style="font-size:11.5px;margin:6px 0 10px;text-align:center">Le client reçoit un e-mail avec un lien : un clic et son compte est créé, sans mot de passe à choisir.</p>
+      <p class="muted" style="font-size:11.5px;margin:6px 0 10px;text-align:center">Le client reçoit un e-mail avec un lien : un clic, son compte est créé, puis il choisit son mot de passe.</p>
       <button class="btn g full" data-act="share-invite">📤 Partager l'invitation (manuel)</button>
       <div style="display:flex;justify-content:center;gap:16px;margin-top:8px">
         <button class="link" style="font-size:13px" data-act="mail-invite">✉️ E-mail</button>
@@ -2463,14 +2466,20 @@ document.addEventListener("click",e=>{
       const p1=val("np-pw")||"", p2=val("np-pw2")||"";
       if(p1.length<6){ S.authErr="6 caractères minimum."; render(); break; }
       if(p1!==p2){ S.authErr="Les deux mots de passe ne correspondent pas."; render(); break; }
+      const wasFirst=!!S.setPwMode;
       S.authBusy=true; S.authErr=""; render();
       sb.auth.updatePassword(p1).then(({error})=>{
         S.authBusy=false;
         if(error){ S.authErr=error.message; render(); return; }
-        S.recoverMode=false; S.authErr="";
-        toast("Mot de passe mis à jour ✓");
+        S.recoverMode=false; S.setPwMode=false; S.authErr="";
+        toast(wasFirst?"Mot de passe enregistré ✓":"Mot de passe mis à jour ✓");
         loadData();
       });
+      break; }
+    case "skip-pw":{
+      S.setPwMode=false; S.authErr="";
+      toast("Tu pourras le définir plus tard depuis « Mot de passe oublié »");
+      loadData();
       break; }
     case "change-pw":{
       const p1=(prompt("Nouveau mot de passe (6 caractères minimum) :")||"").trim();
@@ -2488,7 +2497,7 @@ document.addEventListener("click",e=>{
     case "auto-invite":{ if(!c) return;
       const email=(c.clientEmail||"").trim();
       if(!email){ alert("Renseigne d'abord l'adresse e-mail du client ci-dessus."); return; }
-      if(!confirm(`Envoyer un e-mail d'accès à ${email} ?\n\nIl recevra un lien : un clic suffit pour créer son compte et ouvrir son espace.`)) break;
+      if(!confirm(`Envoyer un e-mail d'accès à ${email} ?\n\nIl recevra un lien : un clic pour créer son compte, puis il choisira son mot de passe.`)) break;
       toast("Envoi en cours…");
       sb.auth.sendMagicLink(email,location.origin+location.pathname).then(({error})=>{
         if(error) alert("Envoi impossible : "+error.message+"\n\nTu peux utiliser « Partager l'invitation » à la place.");
@@ -3016,8 +3025,9 @@ function bootApp(){
         S.loading=true; render();
         sb.auth.setSessionFromTokens(at,rt).then(({error})=>{
           if(error){ S.loading=false; S.authErr=error.message; render(); return; }
-          if(type==="recovery"){ S.recoverMode=true; S.loading=false; render(); }
-          // magiclink / invite / signup : la session est posée, le chargement normal suit
+          if(type==="recovery"){ S.recoverMode=true; S.loading=false; render(); return; }
+          // Lien de connexion : le compte existe mais n'a pas de mot de passe → on le fait choisir
+          if(type==="magiclink"||type==="invite"||type==="signup"){ S.setPwMode=true; S.loading=false; render(); return; }
         });
         return;
       }
