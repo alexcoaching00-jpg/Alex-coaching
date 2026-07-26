@@ -392,7 +392,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v5.6 — 22/07/2026";
+const APP_VERSION="v5.7 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -736,6 +736,14 @@ function dashboard(){
         ${stale.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
       </div>`;})()}
+    ${(()=>{
+      const due=cs.filter(bilanDue);
+      if(!due.length) return '';
+      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.35)">
+        <div class="ph" style="color:var(--amber);font-size:14px">📏 Bilans à refaire (5+ semaines)</div>
+        ${due.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
+        <p class="muted" style="font-size:11.5px;margin-top:6px">Un bilan régulier montre les progrès au client — c'est ce qui donne envie de continuer.</p>
+      </div>`;})()}
     ${inactifs.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.3)">
       <div class="ph" style="color:#F0B429;font-size:14px">⚠ ${inactifs.length} client${inactifs.length>1?'s':''} inactif${inactifs.length>1?'s':''} (+14 jours)</div>
       ${inactifs.map(c=>`<span class="badge-warn" style="margin-right:6px;margin-top:4px">${esc(c.nom)}</span>`).join("")}
@@ -886,6 +894,32 @@ function infosTab(c){
          <button class="btn" style="flex:1;background:var(--danger);color:#fff" data-act="del-confirm">Supprimer</button></div></div>`
       : `<button class="btn dg full" data-act="del-open">Supprimer ce client</button>`}`;
 }
+
+/* ===== RECORDS PERSONNELS (calculés depuis l'historique de charges déjà saisi) ===== */
+function chargeNum(str){
+  const t2=String(str||"").replace(",",".");
+  const kg=t2.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo)/i);   // "12 reps à 40 kg" -> 40
+  if(kg) return parseFloat(kg[1]);
+  const m=t2.match(/(\d+(?:\.\d+)?)/);
+  return m?parseFloat(m[1]):null;
+}
+function exoPR(e){
+  const h=(e.historique||[]).map(x=>({...x,n:chargeNum(x.charge)})).filter(x=>x.n!==null);
+  if(!h.length) return null;
+  let best=h[0]; h.forEach(x=>{ if(x.n>=best.n) best=x; });
+  return best;
+}
+function isNewPR(e){
+  const h=(e.historique||[]).map(x=>chargeNum(x.charge)).filter(v=>v!==null);
+  if(h.length<2) return false;
+  return h[h.length-1]>Math.max(...h.slice(0,-1));
+}
+function prBadge(e){
+  const pr=exoPR(e); if(!pr) return "";
+  const isLast=(e.historique||[]).length && (e.historique[e.historique.length-1].charge===pr.charge);
+  return `<div class="exd" style="color:#F0B429;font-size:12px;font-weight:700">🏆 Record : ${esc(pr.charge)} <span style="color:var(--grey2);font-weight:400">(${frDate(pr.date)})</span>${isLast?' <span style="color:#4CAF50">· actuel</span>':""}</div>`;
+}
+
 function programme(c,editable){
   const prog=c.program||[];
   const progHeader=(()=>{
@@ -919,6 +953,7 @@ function programme(c,editable){
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
       ${last3.length?`<div class="exd" style="color:#4CAF50;font-size:12px">Charges : ${last3.map(h=>`${esc(h.charge)} <span style="color:var(--grey2)">(${frDate(h.date)})</span>`).join(" → ")}</div>`:""}
+      ${prBadge(e)}
       <div style="display:flex;gap:14px;align-items:center;margin-top:5px;flex-wrap:wrap">
         <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
         <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
@@ -977,7 +1012,8 @@ function programme(c,editable){
       </div>
       <p class="muted" style="font-size:12px;margin-top:8px">Copie tous les exercices (le programme existant du client cible sera remplacé).</p>
     </div>`:""}`:"";
-  return progHeader+list+form;
+  const pdfBtn=prog.length?`<button class="btn g full" style="margin-bottom:12px" data-act="print-prog">🖨 Imprimer / PDF le programme</button>`:"";
+  return progHeader+pdfBtn+list+form;
 }
 function progres(c,editable){
   const ms=c.mesures||[];
@@ -1059,6 +1095,16 @@ function adherenceChart(c){
 }
 /* check-in hebdo */
 const CHECKIN_FIELDS=[["energie","Énergie"],["sommeil","Sommeil"],["motivation","Motivation"],["courbatures","Récupération"]];
+
+
+function bilanDue(c){
+  const days=x=>(Date.now()-new Date(x+"T12:00:00").getTime())/(24*3600*1000);
+  const b=(c.bilans||[]);
+  if(b.length){ const d=days(b[b.length-1].date); return isNaN(d)?false:d>=35; }
+  if(!c.dateDebut) return false;
+  const d0=days(c.dateDebut);
+  return !isNaN(d0)&&d0>=35;
+}
 
 function checkinStale(c){
   if(!(c.clientEmail||"").trim()) return false;
@@ -2482,6 +2528,8 @@ document.addEventListener("click",e=>{
         if(data){ S.templates.push({...copy,...data}); toast("Programme dupliqué"); render(); }
       });
       break; }
+    case "print-prog":{ if(!c||!(c.program||[]).length) break;
+      printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false}); break; }
     case "tpl-pdf":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(t2) printProgram(t2); break; }
     case "tpl-del2":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
       if(!confirm(`Supprimer « ${t2.nom} » ?`)) break;
@@ -2550,7 +2598,7 @@ document.addEventListener("click",e=>{
     case "wk-charge":{ if(!WK.on) break;
       const ex=WK.exos[WK.idx];
       const v=prompt(`Charge du jour pour « ${ex.nom} » ?`, ex.historique&&ex.historique.length?ex.historique[ex.historique.length-1].charge:"");
-      if(v&&v.trim()){ ex.historique=ex.historique||[]; ex.historique.push({date:today(),charge:v.trim()}); if(ex.historique.length>20)ex.historique=ex.historique.slice(-20); save(); wkRender(); }
+      if(v&&v.trim()){ ex.historique=ex.historique||[]; ex.historique.push({date:today(),charge:v.trim()}); if(ex.historique.length>20)ex.historique=ex.historique.slice(-20); if(isNewPR(ex)){ confetti(); toast("🏆 Nouveau record !"); } save(); wkRender(); }
       break; }
     case "log-charge":{ if(!c) return;
       const ex=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex) return;
@@ -2560,6 +2608,7 @@ document.addEventListener("click",e=>{
       ex.historique.push({date:today(),charge:v.trim()});
       // garder les 20 dernières entrées max
       if(ex.historique.length>20) ex.historique=ex.historique.slice(-20);
+      if(isNewPR(ex)){ confetti(); toast("🏆 Nouveau record sur "+ex.nom+" !"); }
       save(); render(); break; }
     case "add-me":{ if(!c) return; const p=parseFloat(String(val("me-poids")).replace(",",".")); if(isNaN(p)) return;
       const taille=parseFloat(String(val("me-taille")).replace(",","."));
