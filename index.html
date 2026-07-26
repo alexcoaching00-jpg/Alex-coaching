@@ -392,7 +392,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v5.4 — 22/07/2026";
+const APP_VERSION="v5.6 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -444,13 +444,13 @@ const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
 const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,checkins:c.checkins||[],paiements:c.paiements||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
 
 const timers={};
-function lightRow(c){const r=clientToRow(c);delete r.messages;delete r.photos;delete r.bilans;delete r.checkins;delete r.paiements;return r;}
+function lightRow(c){const r=clientToRow(c);delete r.messages;delete r.photos;delete r.bilans;delete r.paiements;return r;}
 let SCHEMA_WARNED=false;
 function schemaHint(error){
   if(SCHEMA_WARNED||!error||!error.message) return;
@@ -488,7 +488,7 @@ function isTypingOrRecording(){
   if(ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"||ae.tagName==="SELECT")) return true;
   // Un formulaire libre (exercice, paiement, check-in…) contient du texte pas encore validé
   try{
-    const pending=[...document.querySelectorAll("input:not([data-bind]):not([type=file]):not([type=range]),textarea:not([data-bind])")]
+    const pending=[...document.querySelectorAll("input:not([data-bind]):not([type=file]):not([type=range]):not([data-exofilter]),textarea:not([data-bind])")]
       .some(el=>!el.closest(".authcard")&&el.id!=="cl-search"&&el.value&&el.value.trim());
     if(pending) return true;
   }catch(e){}
@@ -924,7 +924,7 @@ function programme(c,editable){
         <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(e.repos)}</button>`:""}
       </div></div>
-      ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
+      ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
   };
   // Grouper par séance (bloc)
   const blocs={};
@@ -1831,40 +1831,70 @@ function exoThumb(e){
 
 /* ===== BASE D'EXERCICES (par groupe musculaire) ===== */
 const EXOS_GROUPES=[
-["Jambes — Quadriceps",["Squat barre","Squat gobelet","Front squat","Squat sumo","Squat bulgare","Box squat","Presse à cuisses","Hack squat machine","Leg extension","Fentes marchées","Fentes arrières","Fentes latérales","Step-ups sur banc","Sissy squat","Squat pistol assisté","Jump squat"]],
-["Jambes — Ischios / Fessiers",["Soulevé de terre","Soulevé de terre roumain","Soulevé de terre sumo","Soulevé de terre jambes tendues","Hip thrust","Pont fessier","Pont fessier unilatéral","Leg curl allongé","Leg curl assis","Leg curl debout","Nordic curl","Good morning","Kickback poulie","Abduction machine","Adduction machine","Hyperextensions (banc lombaire)","Kettlebell swing","Pull-through poulie"]],
-["Mollets",["Mollets debout","Mollets assis","Mollets à la presse","Mollets unilatéral"]],
-["Pectoraux",["Développé couché","Développé couché haltères","Développé incliné barre","Développé incliné haltères","Développé décliné","Développé machine convergente","Écarté couché haltères","Écarté incliné haltères","Écarté à la poulie (crossover)","Pec deck","Pompes","Pompes lestées","Pompes déclinées","Pompes prise serrée","Dips pectoraux"]],
-["Dos",["Tractions","Tractions assistées","Tractions supination (chin-up)","Tirage vertical poulie","Tirage vertical prise serrée","Rowing barre","Rowing haltère unilatéral","Rowing poulie basse","Rowing T-bar","Tirage horizontal machine","Pull-over poulie","Pull-over haltère","Shrugs haltères","Shrugs barre","Rack pull","Face pull","Oiseau (reverse fly)","Superman","Extension au banc lombaire"]],
-["Épaules",["Développé militaire","Développé haltères assis","Développé Arnold","Élévations latérales","Élévations latérales poulie","Élévations frontales","Oiseau buste penché","Reverse pec deck","Tirage menton","Développé unilatéral haltère","Pompes piquées (pike push-up)"]],
-["Biceps",["Curl barre","Curl barre EZ","Curl haltères","Curl marteau","Curl pupitre","Curl incliné","Curl concentration","Curl poulie basse","Curl 21s"]],
-["Triceps",["Extension triceps poulie (pushdown)","Extension corde à la poulie","Barre au front","Extension nuque haltère","Kickback triceps","Dips triceps sur banc","Dips barres parallèles","Développé couché prise serrée"]],
-["Abdos / Gainage",["Gainage planche","Gainage latéral","Planche dynamique","Crunch","Crunch à la poulie","Relevés de jambes suspendu","Relevés de jambes au sol","Mountain climbers","Russian twist","Roulette abdos (ab wheel)","Dead bug","Bird dog","Hollow hold","Pallof press","Toes to bar","V-ups","Sit-ups"]],
-["Cardio / Fonctionnel",["Burpees","Marche du fermier","Suitcase carry","Overhead carry","Poussée de traîneau (sled)","Battle ropes","Wall balls","Thruster","Clean haltères","Snatch kettlebell","Box jump","Sprint","Rameur","Assault bike","Vélo (ergomètre)","SkiErg","Tapis de course incliné","Corde à sauter","Montées d'escaliers (stepmill)","Turkish get-up"]],
-["Mobilité / Étirements",["Étirement ischios","Étirement quadriceps","Étirement fessiers (pigeon)","Ouverture de hanches 90/90","Mobilité épaules au bâton","Cat-cow","Chien tête en bas","Auto-massage foam roller"]]
+["Jambes — Quadriceps",["Squat barre","Squat gobelet","Front squat","Squat sumo","Squat bulgare","Box squat","Squat au smith machine","Overhead squat","Presse à cuisses","Presse horizontale","Hack squat machine","Leg extension","Leg extension unilatéral","Fentes marchées","Fentes arrières","Fentes avant","Fentes latérales","Fentes à la barre","Step-ups sur banc","Sissy squat","Squat pistol assisté","Jump squat","Split squat","Zercher squat","Belt squat","Squat isométrique (wall sit lesté)"]],
+["Jambes — Ischios / Fessiers",["Soulevé de terre","Soulevé de terre roumain","Soulevé de terre sumo","Soulevé de terre jambes tendues","Soulevé de terre unilatéral","Soulevé de terre trap bar","Hip thrust barre","Hip thrust machine","Hip thrust unilatéral","Pont fessier","Pont fessier lesté","Leg curl allongé","Leg curl assis","Leg curl debout","Leg curl unilatéral","Nordic curl","Good morning","Kickback poulie","Abduction machine","Adduction machine","Abduction élastique debout","Hyperextensions (banc lombaire)","Hyperextensions lestées","Reverse hyper","Kettlebell swing","Pull-through poulie","Glute bridge march","Frog pump","Cable pull-through unilatéral"]],
+["Mollets",["Mollets debout machine","Mollets assis machine","Mollets à la presse","Mollets unilatéral haltère","Mollets barre debout","Mollets sur step","Donkey calf raise","Sauts à la corde (mollets)"]],
+["Pectoraux",["Développé couché barre","Développé couché haltères","Développé incliné barre","Développé incliné haltères","Développé décliné barre","Développé décliné haltères","Développé machine convergente","Développé au smith machine","Développé prise serrée","Écarté couché haltères","Écarté incliné haltères","Écarté décliné haltères","Écarté à la poulie (crossover)","Écarté poulie basse","Écarté poulie haute","Pec deck","Pompes","Pompes lestées","Pompes déclinées","Pompes inclinées","Pompes prise serrée","Dips pectoraux","Pull-over haltère (pectoraux)","Squeeze press haltères","Landmine press"]],
+["Dos",["Tractions pronation","Tractions supination (chin-up)","Tractions prise neutre","Tractions assistées machine","Tractions lestées","Tirage vertical poulie","Tirage vertical prise serrée","Tirage vertical prise inversée","Tirage nuque (prudence)","Rowing barre","Rowing barre prise inversée","Rowing haltère unilatéral","Rowing poulie basse","Rowing T-bar","Rowing machine assise","Rowing Pendlay","Rowing Meadows","Tirage horizontal machine","Pull-over poulie haute","Pull-over haltère","Shrugs haltères","Shrugs barre","Shrugs poulie","Rack pull","Face pull","Oiseau (reverse fly) haltères","Reverse pec deck","Superman","Extension au banc lombaire","Seal row","Inverted row (barre basse)","Straight-arm pulldown"]],
+["Épaules",["Développé militaire barre","Développé militaire haltères","Développé haltères assis","Développé Arnold","Développé au smith machine","Développé machine épaules","Élévations latérales haltères","Élévations latérales poulie","Élévations latérales machine","Élévations latérales penché (lean-away)","Élévations frontales haltères","Élévations frontales barre","Élévations frontales poulie","Oiseau buste penché","Reverse fly poulie","Tirage menton barre","Tirage menton poulie","Développé unilatéral haltère","Pompes piquées (pike push-up)","Rotation externe élastique","Face pull épaules","Landmine press épaules","Cuban press","Handstand push-up (avancé)"]],
+["Biceps",["Curl barre droite","Curl barre EZ","Curl haltères alterné","Curl haltères simultané","Curl marteau","Curl marteau à la corde","Curl pupitre (Larry Scott)","Curl incliné haltères","Curl concentration","Curl poulie basse","Curl poulie haute (double biceps)","Curl 21s","Curl spider","Curl prise inversée (reverse curl)","Curl à l'élastique","Drag curl","Zottman curl"]],
+["Triceps",["Extension triceps poulie (pushdown)","Extension corde à la poulie","Extension poulie prise inversée","Barre au front (skull crusher)","Barre au front haltères","Extension nuque haltère","Extension nuque poulie","Extension nuque barre EZ","Kickback triceps haltère","Kickback poulie","Dips triceps sur banc","Dips barres parallèles","Développé couché prise serrée","JM press","Pompes diamant","Extension triceps machine","Overhead extension unilatéral"]],
+["Avant-bras / Grip",["Curl poignets barre","Curl poignets inversé","Marche du fermier","Suitcase carry","Plate pinch","Barre suspendue (dead hang)","Rouleau de poignet (wrist roller)","Curl inversé avant-bras","Grip machine / hand gripper"]],
+["Abdos / Gainage",["Gainage planche","Gainage latéral","Planche dynamique (shoulder taps)","Planche avec extension","Crunch au sol","Crunch à la poulie","Crunch machine","Crunch inversé","Relevés de jambes suspendu","Relevés de jambes au sol","Relevés de genoux suspendu","Toes to bar","Mountain climbers","Russian twist","Russian twist lesté","Roulette abdos (ab wheel)","Dead bug","Bird dog","Hollow hold","Pallof press","V-ups","Sit-ups","Sit-ups lestés","Woodchopper poulie haute","Woodchopper poulie basse","Dragon flag (avancé)","L-sit","Windshield wipers","Side bend haltère","Gainage sur ballon"]],
+["Cardio / Conditionnement",["Burpees","Poussée de traîneau (sled push)","Traction de traîneau (sled pull)","Battle ropes","Wall balls","Thruster barre","Thruster haltères","Box jump","Broad jump","Sprint","Sprint en côte","Rameur (ergomètre)","Assault bike","Vélo (ergomètre)","SkiErg","Tapis de course","Tapis de course incliné","Corde à sauter","Corde à sauter double-unders","Montées d'escaliers (stepmill)","Elliptique","Bear crawl","Farmer walk conditionnement","Prowler","Jumping jacks","Shuttle run (navettes)","Turkish get-up"]],
+["Haltérophilie / Explosivité",["Clean (épaulé)","Power clean","Hang clean","Clean haltères","Snatch (arraché)","Power snatch","Hang snatch","Snatch kettlebell","Jerk (épaulé-jeté)","Push press","Push jerk","High pull","Muscle-up (avancé)","Medicine ball slam","Medicine ball chest pass","Rotational throw medicine ball","Kettlebell clean & press","Kettlebell snatch"]],
+["Mobilité / Étirements",["Étirement ischios","Étirement quadriceps","Étirement fessiers (pigeon)","Étirement psoas (fente basse)","Étirement adducteurs (grenouille)","Étirement mollets au mur","Étirement pectoraux au montant","Étirement dorsaux suspendu","Ouverture de hanches 90/90","Mobilité épaules au bâton","Dislocations à l'élastique","Cat-cow (chat-vache)","Chien tête en bas","Thoracic rotation (quadrupédie)","World's greatest stretch","Étirement triceps derrière la tête","Auto-massage foam roller dos","Auto-massage foam roller quadriceps","Auto-massage balle sous le pied","Respiration diaphragmatique"]]
 ];
 const EXOS_MAISON=[
-["Jambes / Fessiers",["Squat poids du corps","Squat sauté","Squat sumo poids du corps","Fentes marchées","Fentes arrières","Fentes bulgares (chaise)","Chaise contre le mur (wall sit)","Step-ups sur marche/escalier","Pont fessier","Pont fessier unilatéral","Hip thrust surélevé (canapé)","Donkey kicks","Squat pulse","Montées d'escaliers"]],
-["Pectoraux / Bras",["Pompes classiques","Pompes genoux","Pompes surélevées (canapé/chaise)","Pompes déclinées (pieds surélevés)","Pompes diamant","Pompes archer","Dips entre deux chaises","Extension triceps au sol","Curl biceps élastique","Curl biceps bouteilles d'eau"]],
-["Dos",["Superman","Extension dorsale au sol","Rowing élastique","Tirage élastique porte","Serviette isométrique (row)","Reverse snow angels"]],
-["Épaules",["Élévations latérales bouteilles d'eau","Développé militaire élastique","Pompes piquées (pike push-up)","Élévations frontales sac lesté","Rotation externe élastique"]],
-["Abdos / Gainage",["Gainage planche","Gainage latéral","Planche dynamique","Crunch classique","Crunch bicyclette","Relevés de jambes au sol","Mountain climbers","Russian twist","Dead bug","Bird dog","Hollow hold","Superman abdos","Toe touches"]],
-["Cardio / HIIT maison",["Jumping jacks","Burpees","Montées de genoux (high knees)","Talons-fesses","Squat jump","Corde à sauter","Mountain climbers rapides","Skater jumps","Shadow boxing","Montées d'escaliers rapides","Sprint sur place"]],
-["Mobilité / Étirements",["Étirement ischios debout","Étirement quadriceps","Étirement fessiers (pigeon au sol)","Ouverture de hanches 90/90","Chat-vache (cat-cow)","Chien tête en bas","Rotation du buste","Cercles de bras","Auto-massage avec bouteille"]]
+["Jambes / Fessiers",["Squat poids du corps","Squat sauté","Squat sumo poids du corps","Squat tempo (3s descente)","Squat pulse","Squat bulgare (chaise/canapé)","Fentes marchées","Fentes arrières","Fentes avant","Fentes latérales","Fentes sautées","Chaise contre le mur (wall sit)","Step-ups sur marche","Montées d'escaliers","Pont fessier","Pont fessier unilatéral","Pont fessier surélevé (canapé)","Hip thrust au canapé","Donkey kicks","Fire hydrants","Abduction couchée (clamshell)","Good morning poids du corps","Soulevé de terre unilatéral (sac lesté)","Squat avec sac à dos lesté","Mollets sur marche","Mollets unilatéral","Pistol squat assisté (chaise)","Sissy squat maison","Chaise + élévation talons"]],
+["Pectoraux / Bras",["Pompes classiques","Pompes genoux","Pompes surélevées (canapé/chaise)","Pompes déclinées (pieds surélevés)","Pompes diamant","Pompes larges","Pompes archer","Pompes tempo (3s)","Pompes explosives","Pompes hindoues","Dips entre deux chaises","Dips sur le canapé","Extension triceps au sol","Extension triceps sur chaise","Curl biceps bouteilles d'eau","Curl biceps sac lesté","Curl marteau bouteilles","Isométrie serviette (biceps)","Pompes pieds sur ballon"]],
+["Dos",["Superman","Superman alterné","Extension dorsale au sol","Rowing serviette (isométrie)","Rowing sac lesté","Rowing bouteilles d'eau","Rowing sous une table (inverted row)","Reverse snow angels","Y-T-W au sol","Bird dog","Tractions à une porte robuste (si barre)","Pull-over bouteille au sol"]],
+["Épaules",["Élévations latérales bouteilles d'eau","Élévations frontales bouteilles","Élévations frontales sac lesté","Pompes piquées (pike push-up)","Pompes piquées surélevées","Développé militaire bouteilles","Rotation externe serviette","Cercles de bras","Handstand contre le mur (avancé)","Y raises au sol"]],
+["Abdos / Gainage",["Gainage planche","Gainage planche sur les mains","Gainage latéral","Gainage latéral avec rotation","Planche dynamique (shoulder taps)","Planche + touche épaule","Crunch classique","Crunch bicyclette","Crunch inversé","Relevés de jambes au sol","Relevés de jambes sur chaise","Mountain climbers","Mountain climbers croisés","Russian twist","Russian twist avec bouteille","Dead bug","Hollow hold","Hollow rock","Toe touches","V-ups","Sit-ups","Flutter kicks","Scissor kicks","Plank jacks","Heel taps","Gainage sur les coudes 60s"]],
+["Cardio / HIIT maison",["Jumping jacks","Burpees","Burpees sans pompe","Montées de genoux (high knees)","Talons-fesses","Squat jump","Fentes sautées alternées","Corde à sauter","Corde à sauter sur place (sans corde)","Mountain climbers rapides","Skater jumps","Shadow boxing","Sprint sur place","Montées d'escaliers rapides","Star jumps","Tuck jumps","Bear crawl","Crab walk","Inchworm","Plank to squat"]],
+["Élastique",["Squat élastique","Rowing élastique","Tirage élastique porte","Développé militaire élastique","Élévations latérales élastique","Curl biceps élastique","Extension triceps élastique","Abduction hanches élastique","Pull-apart élastique","Good morning élastique","Hip thrust élastique","Face pull élastique","Monster walk élastique","Développé couché élastique au sol","Deadlift élastique"]],
+["Mobilité / Étirements",["Étirement ischios debout","Étirement ischios au sol","Étirement quadriceps","Étirement fessiers (pigeon au sol)","Étirement psoas (fente basse)","Étirement mollets au mur","Étirement pectoraux à l'angle du mur","Ouverture de hanches 90/90","Cat-cow (chat-vache)","Chien tête en bas","Rotation du buste au sol","Cercles de bras","Cercles de hanches","Étirement nuque latéral","World's greatest stretch","Auto-massage avec bouteille","Respiration diaphragmatique","Posture de l'enfant"]]
 ];
+
+function recentExos(){ try{ return JSON.parse(localStorage.getItem("exo_recents")||"[]"); }catch(e){ return []; } }
+function pushRecentExo(nom){
+  nom=(nom||"").trim(); if(!nom) return;
+  try{
+    let l=recentExos().filter(x=>x.toLowerCase()!==nom.toLowerCase());
+    l.unshift(nom);
+    localStorage.setItem("exo_recents",JSON.stringify(l.slice(0,12)));
+  }catch(e){}
+}
+function pickerOptionsHtml(mode,filter){
+  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES;
+  const q=(filter||"").toLowerCase().trim();
+  let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
+  if(!q){
+    const rec=recentExos();
+    if(rec.length) html+=`<optgroup label="⭐ Récemment utilisés">${rec.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("")}</optgroup>`;
+  }
+  groups.forEach(([g,list])=>{
+    const f=q?list.filter(e=>e.toLowerCase().includes(q)):list;
+    if(f.length) html+=`<optgroup label="${g}">${f.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("")}</optgroup>`;
+  });
+  return html;
+}
+function pickerCount(mode,filter){
+  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES;
+  const q=(filter||"").toLowerCase().trim();
+  return groups.reduce((t2,g)=>t2+(q?g[1].filter(e=>e.toLowerCase().includes(q)).length:g[1].length),0);
+}
 function exoPicker(targetId){
   const mode=S.exoMode||"salle";
-  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES;
-  const count=groups.reduce((t2,g)=>t2+g[1].length,0);
   return `<div class="exopicker" style="margin-bottom:10px">
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <button type="button" class="chip ${mode==="salle"?"on":""}" data-act="exo-mode" data-mode="salle">🏋️ Salle</button>
       <button type="button" class="chip ${mode==="maison"?"on":""}" data-act="exo-mode" data-mode="maison">🏠 Maison</button>
     </div>
-    <label class="fld" style="margin-bottom:0"><span>Choisir dans la liste (<span class="exopicker-count">${count}</span> exercices)</span>
-    <select data-pick="${targetId}"><option value="">— Parcourir par groupe musculaire —</option>
-    ${groups.map(([g,list])=>`<optgroup label="${g}">${list.map(e=>`<option value="${e}">${e}</option>`).join("")}</optgroup>`).join("")}
-    </select></label>
+    <label class="fld" style="margin-bottom:8px"><span>Rechercher un exercice</span>
+      <input type="text" data-exofilter="${targetId}" placeholder="🔎 Ex. squat, fessier, gainage…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <label class="fld" style="margin-bottom:0"><span>Choisir dans la liste (<span class="exopicker-count">${pickerCount(mode,"")}</span> exercices)</span>
+    <select data-pick="${targetId}">${pickerOptionsHtml(mode,"")}</select></label>
   </div>`;
 }
 
@@ -1882,7 +1912,7 @@ function tplExoCard(e,i,editing){
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
       <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
     </div>
-    ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
+    ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="tpl-dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
   </div></div>`;
 }
 function tplEditor(){
@@ -2343,7 +2373,7 @@ document.addEventListener("click",e=>{
     case "del-confirm": deleteSelected(); break;
     case "add-ex":{ if(!c) return; const nom=val("ex-nom").trim(); if(!nom) return;
       const bloc=val("ex-bloc")||"";
-      S.lastBloc=bloc;
+      S.lastBloc=bloc; pushRecentExo(nom);
       c.program=c.program||[];
       const draft=S.exDraft;
       const payload={nom,series:+val("ex-series")||3,reps:val("ex-reps"),charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",video:(val("ex-video")||"").trim()};
@@ -2356,6 +2386,15 @@ document.addEventListener("click",e=>{
       }
       S.exDraft=null;
       save(); render(); break; }
+    case "dup-ex":{ if(!c) break;
+      const idx=(c.program||[]).findIndex(x=>x.id===t.dataset.id); if(idx<0) break;
+      const copy={...c.program[idx],id:uid(),historique:[]};
+      c.program.splice(idx+1,0,copy); save(); render(); toast("Exercice dupliqué"); break; }
+    case "tpl-dup-ex":{ if(!S.tplEdit) break;
+      S.tplEdit.nom=val("tpl-nom");
+      const idx2=S.tplEdit.program.findIndex(x=>x.id===t.dataset.id); if(idx2<0) break;
+      S.tplEdit.program.splice(idx2+1,0,{...S.tplEdit.program[idx2],id:uid(),historique:[]});
+      render(); toast("Exercice dupliqué"); break; }
     case "ex-up": if(c&&swapExInBloc(c.program,t.dataset.id,-1)){ save(); render(); } break;
     case "ex-down": if(c&&swapExInBloc(c.program,t.dataset.id,1)){ save(); render(); } break;
     case "edit-ex":{ if(!c) return;
@@ -2374,7 +2413,7 @@ document.addEventListener("click",e=>{
       const nom=val("tex-nom").trim(); if(!nom) break;
       const keepId=(S.tplEdit.draft&&S.tplEdit.draft.id)||uid();
       const tbloc=val("tex-bloc")||"";
-      S.tplEdit.lastBloc=tbloc;
+      S.tplEdit.lastBloc=tbloc; pushRecentExo(nom);
       S.tplEdit.program.push({id:keepId,nom,series:+val("tex-series")||3,reps:val("tex-reps"),charge:val("tex-charge"),repos:val("tex-repos"),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",video:(val("tex-video")||"").trim(),historique:[]});
       S.tplEdit.draft=null;
       const keepNom=val("tpl-nom"); S.tplEdit.nom=keepNom;
@@ -2485,10 +2524,11 @@ document.addEventListener("click",e=>{
       S.exoMode=t.dataset.mode;
       const wrap=t.closest(".exopicker"); if(!wrap) break;
       wrap.querySelectorAll('[data-act="exo-mode"]').forEach(b=>b.classList.toggle("on",b.dataset.mode===S.exoMode));
+      const fEl=wrap.querySelector("[data-exofilter]");
+      const q=fEl?fEl.value:"";
       const sel2=wrap.querySelector("select");
-      const groups2=S.exoMode==="maison"?EXOS_MAISON:EXOS_GROUPES;
-      if(sel2) sel2.innerHTML=`<option value="">— Parcourir par groupe musculaire —</option>`+groups2.map(([g,list])=>`<optgroup label="${g}">${list.map(e=>`<option value="${e}">${e}</option>`).join("")}</optgroup>`).join("");
-      const cnt=wrap.querySelector(".exopicker-count"); if(cnt) cnt.textContent=groups2.reduce((t2,g)=>t2+g[1].length,0);
+      if(sel2) sel2.innerHTML=pickerOptionsHtml(S.exoMode,q);
+      const cnt=wrap.querySelector(".exopicker-count"); if(cnt) cnt.textContent=pickerCount(S.exoMode,q);
       break; }
     case "timer": startTimer(t.dataset.id, +t.dataset.secs||60, t.dataset.exo||""); break;
     case "tmr-cancel": stopTimer(); break;
@@ -2539,7 +2579,6 @@ document.addEventListener("click",e=>{
       c.checkins=c.checkins||[]; c.checkins.push(entry);
       if(c.checkins.length>30) c.checkins=c.checkins.slice(-30);
       patchField(c,"checkins",err=>toast(err?"Erreur d'envoi":"Check-in envoyé — merci !"));
-      // Prévenir le coach dans la conversation
       const moy=((entry.energie+entry.sommeil+entry.motivation+entry.courbatures)/4).toFixed(1);
       c.messages=c.messages||[];
       c.messages.push({from:"client",text:`📋 Check-in : énergie ${entry.energie}/5 · sommeil ${entry.sommeil}/5 · motivation ${entry.motivation}/5 · récup ${entry.courbatures}/5 (moy. ${moy})${entry.note?` — « ${entry.note} »`:""}`,date:new Date().toISOString(),lu:false});
@@ -2625,6 +2664,15 @@ document.addEventListener("click",e=>{
   }
 });
 document.addEventListener("input",e=>{
+  const ef=e.target.closest("[data-exofilter]");
+  if(ef){
+    const wrap=ef.closest(".exopicker"); if(!wrap) return;
+    const mode=S.exoMode||"salle", q=ef.value;
+    const sel2=wrap.querySelector("select");
+    if(sel2) sel2.innerHTML=pickerOptionsHtml(mode,q);
+    const cnt=wrap.querySelector(".exopicker-count"); if(cnt) cnt.textContent=pickerCount(mode,q);
+    return;
+  }
   const ci=e.target.closest("[data-ci]");
   if(ci){ const lab=document.getElementById("ci-v-"+ci.dataset.ci); if(lab) lab.textContent=ci.value; return; }
   if(e.target.id==="cl-search"){
