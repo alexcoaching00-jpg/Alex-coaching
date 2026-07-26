@@ -423,7 +423,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.0 — 22/07/2026";
+const APP_VERSION="v6.1 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -474,8 +474,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -957,6 +957,12 @@ function infosTab(c){
         </div></div>`).join(""):""}`;})()}
     </div>
     <div class="panel" style="margin-bottom:14px">
+      <div class="ph">🔒 Notes privées (invisibles du client)</div>
+      <label class="fld" style="margin-bottom:6px"><span>Observations, blessures, points d'attention</span>
+        <textarea data-bind="notesPrivees" rows="3" placeholder="Ex. Épaule droite sensible — éviter développé militaire lourd. Motivée mais tendance à sauter les jambes." style="width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:12px;color:var(--white);padding:10px 12px;font-size:16px;font-family:inherit;resize:vertical">${esc(c.notesPrivees||"")}</textarea></label>
+      <p class="muted" style="font-size:11.5px">Visible seulement par toi, jamais dans l'espace client.</p>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
       <div class="ph">Accès client</div>
       <label class="fld"><span>E-mail du client</span><input data-bind="clientEmail" type="email" value="${esc(c.clientEmail||"")}" placeholder="client@exemple.fr" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <button class="btn p full" data-act="auto-invite">✨ Envoyer l'accès automatiquement</button>
@@ -981,6 +987,33 @@ function infosTab(c){
          <div class="r2"><button class="btn g" style="flex:1" data-act="del-cancel">Annuler</button>
          <button class="btn" style="flex:1;background:var(--danger);color:#fff" data-act="del-confirm">Supprimer</button></div></div>`
       : `<button class="btn dg full" data-act="del-open">Supprimer ce client</button>`}`;
+}
+
+
+/* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
+function monthRecap(c){
+  const now=new Date(), m=now.getMonth(), y=now.getFullYear();
+  const inMonth=d=>{ const x=new Date(d+"T12:00:00"); return !isNaN(x)&&x.getMonth()===m&&x.getFullYear()===y; };
+  const seances=(c.seances||[]).filter(s2=>s2.fait&&s2.date&&inMonth(s2.date)).length;
+  const ms=(c.mesures||[]).filter(x=>typeof x.poids==="number");
+  const first=ms.length?ms[0]:null, last=ms.length?ms[ms.length-1]:null;
+  const dPoids=(first&&last&&first!==last)?+(last.poids-first.poids).toFixed(1):null;
+  const tPts=ms.filter(x=>typeof x.taille==="number");
+  const dTaille=(tPts.length>=2)?+(tPts[tPts.length-1].taille-tPts[0].taille).toFixed(1):null;
+  const prs=(c.program||[]).map(e=>({nom:e.nom,pr:exoPR(e)})).filter(x=>x.pr&&inMonth(x.pr.date));
+  const stk=streakWeeks(c);
+  return {seances,dPoids,dTaille,prs,stk,mois:now.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})};
+}
+function monthRecapText(c){
+  const r=monthRecap(c), p=(c.nom||"").split(" ")[0];
+  let t=`Bilan du mois — ${r.mois} 💪\n\nSalut ${p} !\n\n`;
+  t+=`✅ ${r.seances} séance${r.seances>1?"s":""} ce mois-ci\n`;
+  if(r.stk>=2) t+=`🔥 ${r.stk} semaines d'affilée sans lâcher\n`;
+  if(r.dPoids!==null) t+=`⚖️ Poids : ${r.dPoids>0?"+":""}${String(r.dPoids).replace(".",",")} kg depuis le début\n`;
+  if(r.dTaille!==null) t+=`📏 Tour de taille : ${r.dTaille>0?"+":""}${String(r.dTaille).replace(".",",")} cm\n`;
+  if(r.prs.length){ t+=`\n🏆 Nouveaux records :\n`; r.prs.forEach(x=>{ t+=`   • ${x.nom} : ${x.pr.charge}\n`; }); }
+  t+=`\nContinue comme ça, on avance !`;
+  return t;
 }
 
 /* ===== RECORDS PERSONNELS (calculés depuis l'historique de charges déjà saisi) ===== */
@@ -1266,7 +1299,8 @@ function seancesTab(c,editable){
     : `<p class="muted">Aucune séance enregistrée.</p>`;
   const adh=adherenceChart(c);
   const ci=S.isClient?checkinClientForm(c):checkinCoachHistory(c);
-  return (S.isClient?ci:"")+adh+form+(S.isClient?"":ci)+rows;
+  const recapBtn=(!S.isClient&&(c.seances||[]).length)?`<button class="btn g full" style="margin-bottom:12px" data-act="send-recap">📊 Envoyer le bilan du mois au client</button>`:"";
+  return (S.isClient?ci:"")+adh+recapBtn+form+(S.isClient?"":ci)+rows;
 }
 function clientSpace(c){
   if(!c)return `<p class="muted" style="text-align:center;margin-top:40px">Sélectionnez un client en haut de l'écran.</p>`;
@@ -1281,6 +1315,18 @@ function clientSpace(c){
       ${r!==null?`<span>Séances restantes : <b>${r}</b></span>`:''}
       ${rdv&&rdv>=new Date(Date.now()-3600*1000)?`<span>Prochain RDV : <b>${rdv.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} ${rdv.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b></span>`:''}
     </div>`:''}
+    ${(()=>{
+      const JOURS3=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+      const jour=JOURS3[new Date().getDay()];
+      const exos=(c.program||[]).filter(e=>(e.bloc||"")===jour);
+      const dejaFait=(c.seances||[]).some(s2=>s2.fait&&s2.date===today());
+      if(!exos.length) return "";
+      return `<div style="margin-top:12px;background:rgba(0,0,0,.28);border-radius:14px;padding:12px 14px;text-align:left">
+        <div style="font-size:11px;letter-spacing:.14em;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:2px">Aujourd'hui · ${jour}</div>
+        <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:8px">${exos.length} exercice${exos.length>1?"s":""} au programme${dejaFait?" · ✅ fait":""}</div>
+        ${dejaFait?`<div style="font-size:13px;color:rgba(255,255,255,.85)">Séance validée, bravo ! 💪</div>`
+          :`<button class="btn p full" data-act="start-wk" data-jour="${esc(jour)}" style="padding:12px">▶ Commencer la séance</button>`}
+      </div>`;})()}
     <div style="margin-top:10px;font-size:12.5px;font-style:italic;color:rgba(255,255,255,.75)">« ${quoteOfDay()} »</div></div>`;
   let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
   return banner+inner;
@@ -2678,6 +2724,13 @@ document.addEventListener("click",e=>{
         if(data){ S.templates.push({...copy,...data}); toast("Programme dupliqué"); render(); }
       });
       break; }
+    case "send-recap":{ if(!c) return;
+      const txt=monthRecapText(c);
+      if(!confirm("Envoyer ce bilan dans la messagerie du client ?\n\n"+txt)) break;
+      c.messages=c.messages||[];
+      c.messages.push({from:"coach",text:txt,date:new Date().toISOString(),lu:true});
+      patchField(c,"messages",err=>toast(err?"Erreur d'envoi":"Bilan envoyé ✓"));
+      render(); break; }
     case "print-prog":{ if(!c||!(c.program||[]).length) break;
       printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false}); break; }
     case "tpl-pdf":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(t2) printProgram(t2); break; }
@@ -3042,7 +3095,15 @@ function bootApp(){
   render();
   sb.auth.onAuthStateChange((_evt,session)=>{
     S.session=session||null;
-    if(session){ loadClients(); } else { S.clients=[]; S.isClient=false; render(); }
+    if(session){ loadClients(); }
+    else {
+      // Déconnexion : on repart d'un état propre, sinon un écran de blocage
+      // (accès suspendu, choix de mot de passe…) resterait affiché
+      S.clients=[]; S.isClient=false; S.role="coach";
+      S.recoverMode=false; S.setPwMode=false; S.accessEnded=false; S.notActivated=false;
+      S.authErr=""; S.authBusy=false; S.selectedId=null; S.view="dashboard"; S.q="";
+      render();
+    }
   });
   // Rafraîchit automatiquement les messages toutes les 8 s quand on est dans l'onglet Messages
   setInterval(()=>{
