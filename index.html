@@ -392,7 +392,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v4.9 — 19/07/2026";
+const APP_VERSION="v5.4 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -924,7 +924,7 @@ function programme(c,editable){
         <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(e.repos)}</button>`:""}
       </div></div>
-      ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
+      ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
   };
   // Grouper par séance (bloc)
   const blocs={};
@@ -1209,6 +1209,8 @@ function wkStartRest(secs){
   if(WK.restInt) clearInterval(WK.restInt);
   WK.rest=secs; WK.restEnd=Date.now()+secs*1000; // horloge réelle
   wkRender();
+  const exNext=WK.exos[WK.idx];
+  schedulePush("⏱ Repos terminé",exNext?("Série suivante : "+exNext.nom):"C'est reparti !",secs);
   WK.restInt=setInterval(()=>{
     WK.rest=Math.max(0,Math.round((WK.restEnd-Date.now())/1000));
     const el=document.getElementById("wk-rest-n");
@@ -1363,7 +1365,13 @@ function unlockAudio(){
       try{ if(ALARM_EL){ const v0=ALARM_EL.volume; ALARM_EL.volume=0; ALARM_EL.play().then(()=>{ ALARM_EL.pause(); ALARM_EL.currentTime=0; ALARM_EL.volume=v0; }).catch(()=>{}); } }catch(e){}
     });
   }
-  try{ if(window.Notification && Notification.permission==="default") Notification.requestPermission(); }catch(e){}
+  try{
+    if(window.Notification && Notification.permission==="default"){
+      Notification.requestPermission().then(p=>{ if(p==="granted") subscribeToPush(); });
+    } else if(window.Notification && Notification.permission==="granted"){
+      subscribeToPush();
+    }
+  }catch(e){}
 }
 function beep(){ alarm(1); }
 function notifyRing(title,body){
@@ -1457,6 +1465,7 @@ function startTimer(exId,secs,label){
   stopTimer();
   TIMER.exId=exId; TIMER.total=secs; TIMER.label=label||"";
   TIMER.end=Date.now()+secs*1000; // horloge réelle : fiable même écran verrouillé
+  schedulePush("⏱ Repos terminé",TIMER.label||"C'est reparti !",secs);
   const paintPill=left=>{ const bb=document.getElementById("tmr-"+exId);
     if(bb){ bb.textContent="⏱ "+Math.floor(left/60)+":"+String(left%60).padStart(2,"0"); bb.classList.add("run"); } };
   paintPill(secs);
@@ -1873,7 +1882,7 @@ function tplExoCard(e,i,editing){
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
       <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
     </div>
-    ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
+    ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
   </div></div>`;
 }
 function tplEditor(){
@@ -2225,6 +2234,18 @@ async function importBackupData(arr){
   return {added,skipped,failed};
 }
 
+
+function swapExInBloc(arr,id,dir){
+  const item=arr.find(e=>e.id===id); if(!item) return false;
+  const bloc=item.bloc||"";
+  const idxs=arr.map((e,i)=>({e,i})).filter(x=>(x.e.bloc||"")===bloc).map(x=>x.i);
+  const pos=idxs.findIndex(i=>arr[i].id===id); if(pos<0) return false;
+  const swapPos=pos+dir; if(swapPos<0||swapPos>=idxs.length) return false;
+  const a=idxs[pos], b=idxs[swapPos];
+  const tmp=arr[a]; arr[a]=arr[b]; arr[b]=tmp;
+  return true;
+}
+
 function baseRow(c){
   // Colonnes présentes depuis l'origine — insertion toujours acceptée
   return {nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,date_debut:c.dateDebut||null,program:c.program||[],mesures:c.mesures||[],seances:c.seances||[]};
@@ -2335,6 +2356,8 @@ document.addEventListener("click",e=>{
       }
       S.exDraft=null;
       save(); render(); break; }
+    case "ex-up": if(c&&swapExInBloc(c.program,t.dataset.id,-1)){ save(); render(); } break;
+    case "ex-down": if(c&&swapExInBloc(c.program,t.dataset.id,1)){ save(); render(); } break;
     case "edit-ex":{ if(!c) return;
       const ex2=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex2) break;
       S.exDraft={...ex2};
@@ -2359,6 +2382,8 @@ document.addEventListener("click",e=>{
     case "tpl-del-ex":{ if(!S.tplEdit) break;
       S.tplEdit.nom=val("tpl-nom");
       S.tplEdit.program.splice(+t.dataset.idx,1); render(); break; }
+    case "tpl-ex-up": if(S.tplEdit&&swapExInBloc(S.tplEdit.program,t.dataset.id,-1)){ S.tplEdit.nom=val("tpl-nom"); render(); } break;
+    case "tpl-ex-down": if(S.tplEdit&&swapExInBloc(S.tplEdit.program,t.dataset.id,1)){ S.tplEdit.nom=val("tpl-nom"); render(); } break;
     case "tpl-edit-ex":{ if(!S.tplEdit) break;
       S.tplEdit.nom=val("tpl-nom");
       const ex2=S.tplEdit.program.splice(+t.dataset.idx,1)[0];
@@ -2527,8 +2552,9 @@ document.addEventListener("click",e=>{
       ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:340px;width:100%">
         <h3 style="font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;color:var(--white);margin-bottom:12px">📲 Installer l'appli</h3>
         <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:10px"><b style="color:var(--red)">iPhone / iPad</b> — Dans Safari : bouton <b>Partager</b> (carré avec flèche) → <b>« Sur l'écran d'accueil »</b> → Ajouter.</p>
-        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:14px"><b style="color:var(--red)">Android</b> — Dans Chrome : menu <b>⋮</b> → <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »).</p>
-        <p style="font-size:12.5px;color:var(--grey);margin-bottom:16px">L'appli s'ouvre alors en plein écran, avec le logo Alex Coaching, comme une vraie application.</p>
+        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:10px"><b style="color:var(--red)">Android (téléphone/tablette)</b> — Dans Chrome : menu <b>⋮</b> → <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »).</p>
+        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:14px"><b style="color:var(--red)">PC (Chrome / Edge)</b> — Une petite icône <b>⊕ Installer</b> apparaît à droite de la barre d'adresse : clique dessus. Sinon : menu <b>⋮</b> → <b>« Installer Alex Coaching… »</b>.</p>
+        <p style="font-size:12.5px;color:var(--grey);margin-bottom:16px">L'appli s'ouvre alors dans sa propre fenêtre, sans barre d'adresse ni onglets — comme une vraie application installée.</p>
         <button class="btn p full" data-close-install>Compris</button>
       </div>`;
       ov.addEventListener("click",ev=>{ if(ev.target===ov||ev.target.closest("[data-close-install]")) ov.remove(); });
@@ -2678,6 +2704,48 @@ function setupPWA(){
     // Favicon = logo
     const fav=document.createElement("link"); fav.rel="icon"; fav.href=LOGO; document.head.appendChild(fav);
     // Manifest : fichier manifest.json réel (icônes fiables sur l'écran d'accueil)
+    // Service worker : active le vrai bouton "Installer" natif (Android/Chrome) + résistance hors-ligne
+    if("serviceWorker" in navigator){
+      window.addEventListener("load",()=>{ navigator.serviceWorker.register("./sw.js").catch(()=>{}); });
+    }
+  }catch(e){}
+}
+/* Note : la capture de l'invite native "Installer" a été retirée à la demande —
+   le bouton "Installer comme application" affiche à nouveau le guide manuel.
+   Le service worker reste actif : il est nécessaire aux notifications push. */
+
+/* ===== NOTIFICATIONS PUSH (arrivent même appli fermée / téléphone verrouillé) ===== */
+const VAPID_PUBLIC_KEY="BEbeggfphArywGs2yMlEvdrsFq1bmznF4DqXETjcg6GFM1t_bjk2d-NsIoch2rdO_yXyP3mSbnoGtAPmT9iUSgs";
+function urlB64ToUint8Array(base64String){
+  const padding="=".repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+let PUSH_SUBSCRIBED=false;
+async function subscribeToPush(){
+  if(PUSH_SUBSCRIBED||!sb||!S.session) return;
+  try{
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)) return;
+    if(!("Notification" in window)||Notification.permission!=="granted") return;
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
+    }
+    const j=sub.toJSON();
+    const {data:existing}=await sb.from("push_subscriptions").select("id").eq("endpoint",j.endpoint);
+    if(!existing||!existing.length){
+      await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth});
+    }
+    PUSH_SUBSCRIBED=true;
+  }catch(e){}
+}
+function schedulePush(title,body,secs){
+  try{
+    if(!sb||!S.session) return;
+    const sendAt=new Date(Date.now()+secs*1000).toISOString();
+    sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt}).then(()=>{});
   }catch(e){}
 }
 function updateOnlineBar(){
