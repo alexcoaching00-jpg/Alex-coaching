@@ -423,7 +423,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.2 — 22/07/2026";
+const APP_VERSION="v6.3 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1029,6 +1029,32 @@ function findExoEverywhere(q){
   return out.slice(0,40);
 }
 
+
+
+/* Mini-courbe de progression des charges d'un exercice */
+function exoSpark(e){
+  const h=(e.historique||[]).map(x=>({d:x.date,n:chargeNum(x.charge)})).filter(x=>x.n!==null);
+  if(h.length<2) return "";
+  const W=260,H=54,pad=6;
+  const min=Math.min(...h.map(x=>x.n)), max=Math.max(...h.map(x=>x.n));
+  const span=(max-min)||1;
+  const px=i=>pad+(i/(h.length-1))*(W-2*pad);
+  const py=v=>H-pad-((v-min)/span)*(H-2*pad-10);
+  const pts=h.map((x,i)=>`${px(i).toFixed(1)},${py(x.n).toFixed(1)}`).join(" ");
+  const dots=h.map((x,i)=>`<circle cx="${px(i).toFixed(1)}" cy="${py(x.n).toFixed(1)}" r="3" fill="${x.n>=max?'#F0B429':'#B01F1F'}"/>`).join("");
+  const gain=+(h[h.length-1].n-h[0].n).toFixed(1);
+  return `<div style="margin-top:8px;background:var(--ink2);border-radius:10px;padding:8px 10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+      <span style="font-size:11px;color:var(--grey2);text-transform:uppercase;letter-spacing:.06em">Progression · ${h.length} relevés</span>
+      <span style="font-size:12.5px;font-weight:700;color:${gain>0?'#4CAF50':gain<0?'#FF6B6B':'var(--grey)'}">${gain>0?"+":""}${String(gain).replace(".",",")}</span>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+      <polyline points="${pts}" fill="none" stroke="#B01F1F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+    </svg>
+  </div>`;
+}
+
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
   const now=new Date(), m=now.getMonth(), y=now.getFullYear();
@@ -1114,6 +1140,7 @@ function programme(c,editable){
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
       ${last3.length?`<div class="exd" style="color:#4CAF50;font-size:12px">Charges : ${last3.map(h=>`${esc(h.charge)} <span style="color:var(--grey2)">(${frDate(h.date)})</span>`).join(" → ")}</div>`:""}
       ${prBadge(e)}
+      ${((e.historique||[]).length>=2)?`<button class="link" style="font-size:12px;padding:0;margin-top:2px" data-act="toggle-spark" data-id="${e.id}">${S.sparkOpen===e.id?"▾ Masquer la courbe":"▸ Voir la progression"}</button>${S.sparkOpen===e.id?exoSpark(e):""}`:""}
       <div style="display:flex;gap:14px;align-items:center;margin-top:5px;flex-wrap:wrap">
         <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
         <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
@@ -1519,6 +1546,16 @@ function wkRender(){
       <div style="display:flex;justify-content:center;gap:18px;margin-top:14px">
         <a class="link" style="font-size:13px;text-decoration:none" href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener">▶️ Voir la technique</a>
         <button class="link" data-act="wk-charge" style="font-size:13px">+ Noter la charge</button>
+      </div>
+      ${(()=>{
+        const base=chargeNum(ex.charge);
+        if(base===null) return "";
+        return `<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px">
+          <button class="chip" data-act="wk-charge-adj" data-delta="-2.5">− 2,5 kg</button>
+          <span style="font-size:12.5px;color:var(--grey)">ajuster</span>
+          <button class="chip" data-act="wk-charge-adj" data-delta="2.5">+ 2,5 kg</button>
+        </div>`;})()}
+      <div style="display:none">
       </div>
     </div>
     <button class="btn p full" data-act="wk-done" style="padding:16px;font-size:17px">✓ Série faite${parseRepos(ex.repos)?` — repos ${esc(ex.repos)}`:""}</button>
@@ -2692,6 +2729,7 @@ document.addEventListener("click",e=>{
       const idx2=S.tplEdit.program.findIndex(x=>x.id===t.dataset.id); if(idx2<0) break;
       S.tplEdit.program.splice(idx2+1,0,{...S.tplEdit.program[idx2],id:uid(),historique:[]});
       render(); toast("Exercice dupliqué"); break; }
+    case "toggle-spark": S.sparkOpen=(S.sparkOpen===t.dataset.id)?null:t.dataset.id; render(); break;
     case "ex-up": if(c&&swapExInBloc(c.program,t.dataset.id,-1)){ save(); render(); } break;
     case "ex-down": if(c&&swapExInBloc(c.program,t.dataset.id,1)){ save(); render(); } break;
     case "edit-ex":{ if(!c) return;
@@ -2853,6 +2891,15 @@ document.addEventListener("click",e=>{
     case "wk-close-force": closeWorkout(true); break;
     case "wk-prev": if(WK.on){ if(WK.serie>1){WK.serie--;} else if(WK.idx>0){WK.idx--; WK.serie=WK.exos[WK.idx].series||1;} wkSkipRest(); } break;
     case "wk-next": if(WK.on&&WK.idx<WK.exos.length-1){ WK.idx++; WK.serie=1; wkSkipRest(); } break;
+    case "wk-charge-adj":{ if(!WK.on) break;
+      const ex3=WK.exos[WK.idx]; if(!ex3) break;
+      const cur=chargeNum(ex3.charge); if(cur===null) break;
+      const nv=Math.max(0,+(cur+parseFloat(t.dataset.delta)).toFixed(1));
+      const unit=/kg/i.test(ex3.charge||"")?" kg":"";
+      ex3.charge=String(nv).replace(".",",")+unit;
+      // répercuter sur la fiche du client
+      const cc=WK.c; if(cc&&cc.program){ const src=cc.program.find(x=>x.id===ex3.id); if(src) src.charge=ex3.charge; }
+      save(); wkRender(); toast("Charge ajustée : "+ex3.charge); break; }
     case "wk-charge":{ if(!WK.on) break;
       const ex=WK.exos[WK.idx];
       const v=prompt(`Charge du jour pour « ${ex.nom} » ?`, ex.historique&&ex.historique.length?ex.historique[ex.historique.length-1].charge:"");
