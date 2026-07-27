@@ -423,7 +423,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.1 — 22/07/2026";
+const APP_VERSION="v6.2 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -520,7 +520,7 @@ function isTypingOrRecording(){
   // Un formulaire libre (exercice, paiement, check-in…) contient du texte pas encore validé
   try{
     const pending=[...document.querySelectorAll("input:not([data-bind]):not([type=file]):not([type=range]):not([data-exofilter]),textarea:not([data-bind])")]
-      .some(el=>!el.closest(".authcard")&&el.id!=="cl-search"&&el.value&&el.value.trim());
+      .some(el=>!el.closest(".authcard")&&el.id!=="cl-search"&&el.id!=="exo-find"&&el.value&&el.value.trim());
     if(pending) return true;
   }catch(e){}
   return false;
@@ -806,6 +806,14 @@ function dashboard(){
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
       </div>`;})()}
     ${(()=>{
+      const old2=cs.filter(c2=>c2.prochainRdv&&new Date(c2.prochainRdv)<new Date(Date.now()-24*3600*1000));
+      if(!old2.length) return '';
+      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.3)">
+        <div class="ph" style="color:#F0B429;font-size:14px">📅 RDV passés à replanifier</div>
+        ${old2.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)} · ${frDate(c2.prochainRdv.slice(0,10))}</span>`).join("")}
+        <p class="muted" style="font-size:11.5px;margin-top:6px">Ouvre leur fiche : un bouton « +1 semaine » suffit à reprogrammer.</p>
+      </div>`;})()}
+    ${(()=>{
       const ended=cs.filter(c2=>programEnded(c2)&&(c2.clientEmail||"").trim());
       const soon=cs.filter(c2=>{
         if(programEnded(c2)||!(c2.programmeFin||"")) return false;
@@ -928,7 +936,13 @@ function infosTab(c){
     <label class="fld"><span>Niveau</span><select data-bind="niveau">${opt(NIVEAUX,c.niveau)}</select></label></div>
     <div class="r2">
       <label class="fld"><span>Date de début</span><input type="date" data-bind="dateDebut" value="${esc(c.dateDebut||"")}"></label>
-      <label class="fld"><span>Prochain RDV</span><input type="datetime-local" data-bind="prochainRdv" value="${esc(c.prochainRdv||"")}"></label>
+      <label class="fld" style="margin-bottom:6px"><span>Prochain RDV</span><input type="datetime-local" data-bind="prochainRdv" value="${esc(c.prochainRdv||"")}"></label>
+      ${c.prochainRdv?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="chip" data-act="rdv-plus" data-days="7">+1 semaine</button>
+        <button class="chip" data-act="rdv-plus" data-days="3">+3 jours</button>
+        <button class="chip" data-act="rdv-plus" data-days="14">+2 semaines</button>
+        <button class="chip" data-act="rdv-clear">Effacer</button>
+      </div>${(new Date(c.prochainRdv)<new Date(Date.now()-2*3600*1000))?`<p style="font-size:12.5px;color:#FF6B6B;margin:-6px 0 12px">⚠ Ce RDV est passé — replanifie-le ou efface-le.</p>`:""}`:""}
     </div>
     <label class="fld"><span>Forfait (nombre de séances achetées)</span><input type="number" min="0" data-bind-num="forfaitTotal" value="${c.forfaitTotal||''}" placeholder="Ex. 10"></label>
     ${(()=>{const r=forfaitRestant(c);if(r===null)return'';
@@ -989,6 +1003,31 @@ function infosTab(c){
       : `<button class="btn dg full" data-act="del-open">Supprimer ce client</button>`}`;
 }
 
+
+
+const MSG_TYPES=[
+  ["👏 Félicitations","Bravo pour ta séance ! Tu progresses bien, continue comme ça 💪"],
+  ["📅 Confirmer RDV","Salut ! Je te confirme notre séance. À très vite 💪"],
+  ["🔔 Rappel séance","Petit rappel : on se voit bientôt pour ta séance. Pense à bien t'hydrater avant !"],
+  ["💧 Conseil hydratation","Pense à boire régulièrement dans la journée (1,5 à 2 L), surtout les jours d'entraînement."],
+  ["😴 Récupération","Le repos fait partie de l'entraînement : vise 7-8 h de sommeil, c'est là que le corps se reconstruit."],
+  ["🤕 Courbatures","Des courbatures c'est normal après une nouvelle séance. Bouge un peu, hydrate-toi, ça passe en 48 h. Si c'est une douleur vive, préviens-moi."],
+  ["📊 Demander des nouvelles","Salut ! Comment tu te sens cette semaine ? Énergie, sommeil, motivation ?"],
+  ["🔄 Reprise","Ça fait un moment qu'on ne s'est pas vus — on reprend quand tu veux, dis-moi tes dispos !"]
+];
+
+
+/* Où ai-je programmé cet exercice ? (recherche sur tous les clients) */
+function findExoEverywhere(q){
+  const s2=(q||"").toLowerCase().trim(); if(s2.length<2) return [];
+  const out=[];
+  (S.clients||[]).forEach(c2=>{
+    (c2.program||[]).forEach(e=>{
+      if((e.nom||"").toLowerCase().includes(s2)) out.push({client:c2,exo:e});
+    });
+  });
+  return out.slice(0,40);
+}
 
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
@@ -1772,6 +1811,7 @@ function messagesTab(c,isCoach){
   return `<div class="msg-list" id="msg-list">${rows}</div>
     <div class="msg-input">
       <textarea id="msg-text" placeholder="Écrire un message…" rows="1"></textarea>
+      ${!S.isClient?`<button class="link" data-act="msg-tpl" style="font-size:12.5px;padding:2px 0">⚡ Message type</button>`:""}
       <button class="btn g" data-act="pick-msg-photo" title="Envoyer une photo" style="padding:10px 12px;font-size:16px;flex-shrink:0">📷</button>
       <input type="file" id="msg-photo" accept="image/*" data-role="${role}" style="display:none">
       <button class="btn g" id="rec-btn" data-act="rec-voice" data-role="${role}" title="Message vocal" style="padding:10px 12px;font-size:16px;flex-shrink:0">🎤</button>
@@ -2189,6 +2229,21 @@ function programmesView(){
   }).join("");
   return `
     <div class="sec-head"><h2>Mes programmes</h2><button class="link" data-act="tpl-new">+ Nouveau</button></div>
+    <label class="fld" style="margin-bottom:6px"><input id="exo-find" placeholder="🔎 Chercher un exercice chez mes clients…" value="${esc(S.exoFind||"")}"></label>
+    ${(()=>{
+      const res=findExoEverywhere(S.exoFind);
+      if(!(S.exoFind||"").trim()) return "";
+      if(!res.length) return `<p class="muted" style="margin-bottom:12px">Aucun client n'a cet exercice à son programme.</p>`;
+      return `<div class="panel" style="margin-bottom:14px">
+        <div class="ph" style="font-size:13px">${res.length} résultat${res.length>1?"s":""}</div>
+        ${res.map(({client,exo})=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--white)">${esc(exo.nom)}</div>
+            <div class="md" style="margin-left:0">${esc(client.nom)}${exo.bloc?` · ${esc(exo.bloc.length<=2?"Séance "+exo.bloc:exo.bloc)}`:""} · ${exo.series}×${esc(exo.reps||"—")}${exo.charge?` · ${esc(exo.charge)}`:""}</div>
+          </div>
+          <button class="link" style="font-size:12.5px;white-space:nowrap" data-act="open" data-id="${client.id}">Ouvrir ›</button>
+        </div>`).join("")}
+      </div>`;})()}
     ${tps.length?cards:`<div class="panel" style="text-align:center;padding:26px 18px">
       <div style="font-size:38px;margin-bottom:8px">▤</div>
       <p style="font-size:15px;color:var(--white);font-weight:700;margin-bottom:4px">Votre bibliothèque de programmes</p>
@@ -2899,6 +2954,37 @@ document.addEventListener("click",e=>{
       c.paiements.splice(+t.dataset.idx,1);
       patchField(c,"paiements",()=>{});
       render(); break; }
+    case "msg-tpl":{
+      const ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px";
+      ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:420px;width:100%;max-height:75vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0">⚡ Messages types</h3>
+          <button class="x" data-close-tpl style="font-size:22px">×</button>
+        </div>
+        ${MSG_TYPES.map((mt,i)=>`<button class="btn g full" style="margin-bottom:8px;text-align:left;padding:12px 14px" data-tpl-i="${i}">
+          <div style="font-size:14px;font-weight:700;color:var(--white)">${mt[0]}</div>
+          <div style="font-size:12px;color:var(--grey);margin-top:2px;white-space:normal;line-height:1.4">${esc(mt[1].slice(0,70))}${mt[1].length>70?"…":""}</div>
+        </button>`).join("")}
+      </div>`;
+      ov.addEventListener("click",ev=>{
+        if(ev.target===ov||ev.target.closest("[data-close-tpl]")){ ov.remove(); return; }
+        const btn=ev.target.closest("[data-tpl-i]");
+        if(btn){
+          const ta=document.getElementById("msg-text");
+          if(ta){ ta.value=MSG_TYPES[+btn.dataset.tplI][1]; ta.focus(); }
+          ov.remove();
+        }
+      });
+      document.body.appendChild(ov);
+      break; }
+    case "rdv-plus":{ if(!c) break;
+      const base=c.prochainRdv?new Date(c.prochainRdv):new Date();
+      const d=new Date(base.getTime()+(+t.dataset.days||7)*24*3600*1000);
+      const p2=n2=>String(n2).padStart(2,"0");
+      c.prochainRdv=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+      save(); render(); toast("RDV replanifié au "+frDate(c.prochainRdv.slice(0,10))); break; }
+    case "rdv-clear":{ if(!c) break; c.prochainRdv=""; save(); render(); break; }
     case "rdv-remind":{ const c2=S.clients.find(x=>x.id===t.dataset.id); if(!c2||!c2.prochainRdv) break;
       const d=new Date(c2.prochainRdv);
       const quand=d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
@@ -2927,6 +3013,12 @@ document.addEventListener("input",e=>{
   }
   const ci=e.target.closest("[data-ci]");
   if(ci){ const lab=document.getElementById("ci-v-"+ci.dataset.ci); if(lab) lab.textContent=ci.value; return; }
+  if(e.target.id==="exo-find"){
+    S.exoFind=e.target.value; const pos=e.target.selectionStart; render();
+    const el3=document.getElementById("exo-find");
+    if(el3){ el3.focus(); try{el3.setSelectionRange(pos,pos);}catch(_){} }
+    return;
+  }
   if(e.target.id==="cl-search"){
     S.q=e.target.value; const pos=e.target.selectionStart; render();
     const el2=document.getElementById("cl-search");
