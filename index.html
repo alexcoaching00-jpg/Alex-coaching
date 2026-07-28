@@ -428,7 +428,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.7 — 22/07/2026";
+const APP_VERSION="v6.8 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1197,7 +1197,7 @@ function programme(c,editable){
       ${(()=>{const th=exoThumb(e);
         return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
         :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 4px">${exoIcon(e.nom,26)}</span>`;})()}
-      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}</div>
+      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:10px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
       <div class="exd">${e.series} × ${esc(e.reps)}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
@@ -1239,6 +1239,8 @@ function programme(c,editable){
       <label class="fld"><span>Repos</span><input id="ex-repos" placeholder="60 s" value="${esc(dEx.repos||"")}"></label></div>
       <div class="r2"><label class="fld"><span>Jour</span><select id="ex-bloc"><option value="">—</option>${["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche","A","B","C"].map(j=>`<option value="${j}" ${(dEx.bloc||S.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
       <label class="fld"><span>RIR cible</span><select id="ex-rir"><option value="">—</option>${["0-1","1-2","2-3","3-4"].map(r2=>`<option ${dEx.rir===r2?"selected":""}>${r2}</option>`).join("")}</select></label></div>
+      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="ex-ss">${["","A","B","C","D"].map(v=>`<option value="${v}" ${(dEx.ss||"")===v?"selected":""}>${v?("Superset "+v):"— Aucun —"}</option>`).join("")}</select></label>
+      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="ex-ss"><option value="">Non (exercice seul)</option>${["A","B","C","D","E","F"].map(g=>`<option value="${g}" ${dEx.ss===g?"selected":""}>Superset ${g}</option>`).join("")}</select></label>
       <label class="fld"><span>Consigne (optionnel)</span><input id="ex-note" placeholder="Amplitude contrôlée…" value="${esc(dEx.note||"")}"></label>
       <label class="fld"><span>Équivalence si trop difficile (optionnel)</span><input id="ex-alt" placeholder="Ex. Squat gobelet → Presse à cuisses" value="${esc(dEx.alt||"")}"></label>
       <label class="fld"><span>Lien vidéo (optionnel — sinon recherche YouTube auto)</span><input id="ex-video" type="url" autocapitalize="off" placeholder="https://youtube.com/…" value="${esc(dEx.video||"")}"></label>
@@ -1519,10 +1521,45 @@ function closeWorkout(force){
   wakeOff();
   const ov=document.getElementById("wk"); if(ov) ov.remove();
 }
+/* Superset : liste des exercices du même groupe, dans l'ordre */
+function ssPartners(ex){
+  if(!ex||!ex.ss) return [];
+  return WK.exos.filter(x=>x.ss===ex.ss);
+}
 function wkSerieDone(){
   const ex=WK.exos[WK.idx];
   const lastSerie=WK.serie>=(ex.series||1);
   const lastExo=WK.idx>=WK.exos.length-1;
+
+  // Superset : enchaîner l'exercice suivant du groupe SANS repos
+  if(ex.ss){
+    const grp=ssPartners(ex);
+    const posInGrp=grp.findIndex(x=>x.id===ex.id);
+    if(posInGrp>=0&&posInGrp<grp.length-1){
+      const nextEx=grp[posInGrp+1];
+      const ni=WK.exos.findIndex(x=>x.id===nextEx.id);
+      if(ni>=0){ WK.idx=ni; wkRender(); return; }   // même série, pas de repos
+    }
+    // Dernier du superset : on revient au 1er du groupe pour la série suivante
+    if(posInGrp===grp.length-1){
+      const first=grp[0];
+      const fi=WK.exos.findIndex(x=>x.id===first.id);
+      const serieCourante=WK.serie;
+      const maxSeries=Math.max(...grp.map(x=>x.series||1));
+      if(serieCourante<maxSeries){
+        WK.idx=fi>=0?fi:WK.idx; WK.serie=serieCourante+1;
+        wkStartRest(parseRepos(ex.repos)||60);
+        return;
+      }
+      // superset terminé : passer à l'exercice suivant hors du groupe
+      const after=WK.exos.findIndex((x,i)=>i>WK.idx&&x.ss!==ex.ss);
+      if(after<0){ wkFinish(); return; }
+      WK.idx=after; WK.serie=1;
+      wkStartRest(parseRepos(ex.repos)||60);
+      return;
+    }
+  }
+
   if(lastSerie&&lastExo){ wkFinish(); return; }
   if(lastSerie){ WK.idx++; WK.serie=1; } else { WK.serie++; }
   const secs=parseRepos(ex.repos)||60;
@@ -1624,7 +1661,16 @@ function wkRender(){
       <div style="display:none">
       </div>
     </div>
-    <button class="btn p full" data-act="wk-done" style="padding:16px;font-size:17px">✓ Série faite${parseRepos(ex.repos)?` — repos ${esc(ex.repos)}`:""}</button>
+    ${(()=>{ if(!ex.ss) return "";
+      const grp=ssPartners(ex); const pos=grp.findIndex(x=>x.id===ex.id);
+      const next=grp[pos+1];
+      return `<div style="background:rgba(184,134,47,.15);border:1px solid rgba(184,134,47,.45);border-radius:12px;padding:8px 12px;margin-bottom:10px;text-align:center;font-size:13px;color:var(--amber)">
+        🔗 Superset ${esc(ex.ss)} · ${pos+1}/${grp.length}${next?` — enchaîne sans repos avec <b>${esc(next.nom)}</b>`:" — repos après cette série"}
+      </div>`;})()}
+    <button class="btn p full" data-act="wk-done" style="padding:16px;font-size:17px">${(()=>{
+      if(ex.ss){ const grp=ssPartners(ex); const pos=grp.findIndex(x=>x.id===ex.id);
+        if(pos<grp.length-1) return "✓ Fait — enchaîner ›"; }
+      return "✓ Série faite"+(parseRepos(ex.repos)?` — repos ${esc(ex.repos)}`:"");})()}</button>
     <div style="display:flex;justify-content:space-between;width:100%;margin-top:10px">
       <button class="link" data-act="wk-prev" ${WK.idx===0&&WK.serie===1?'style="visibility:hidden"':''}>‹ Précédent</button>
       <button class="link" data-act="wk-next" ${WK.idx>=WK.exos.length-1?'style="visibility:hidden"':''}>Exercice suivant ›</button>
@@ -2352,7 +2398,7 @@ function tplExoCard(e,i,editing){
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>
         ${e.bloc?`<span class="tag am" style="font-size:10px">${esc(e.bloc)}</span>`:""}
-        ${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}
+        ${e.ss?`<span class="tag" style="font-size:10px;background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4)">🔗 SS ${esc(e.ss)}</span>`:""}${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}
       </div>
       <div class="exd">${e.series} × ${esc(e.reps||"—")}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
@@ -2410,10 +2456,15 @@ function tplEditor(){
         <label class="fld"><span>Jour / séance</span><select id="tex-bloc"><option value="">—</option>${JOURS2.map(j=>`<option value="${j}" ${(d.bloc||t.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
         <label class="fld"><span>RIR cible</span><select id="tex-rir"><option value="">—</option>${["0-1","1-2","2-3","3-4"].map(r2=>`<option ${d.rir===r2?"selected":""}>${r2}</option>`).join("")}</select></label>
       </div>
+      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="tex-ss">${["","A","B","C","D"].map(v=>`<option value="${v}" ${(d.ss||"")===v?"selected":""}>${v?("Superset "+v):"— Aucun —"}</option>`).join("")}</select></label>
+      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="tex-ss"><option value="">Non (exercice seul)</option>${["A","B","C","D","E","F"].map(g=>`<option value="${g}" ${d.ss===g?"selected":""}>Superset ${g}</option>`).join("")}</select></label>
       <label class="fld"><span>Consigne (optionnel)</span><input id="tex-note" placeholder="Amplitude contrôlée…" value="${esc(d.note||"")}"></label>
       <label class="fld"><span>Équivalence si trop difficile (optionnel)</span><input id="tex-alt" placeholder="Presse à cuisses" value="${esc(d.alt||"")}"></label>
       <label class="fld"><span>Lien vidéo (optionnel — sinon recherche YouTube auto)</span><input id="tex-video" type="url" autocapitalize="off" placeholder="https://youtube.com/…" value="${esc(d.video||"")}"></label>
-      <button class="btn g full" data-act="tpl-add-ex">${d.nom?"✔ Valider la modification":"+ Ajouter l'exercice"}</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn g full" data-act="tpl-add-ex">${d.nom?"✔ Valider la modification":"+ Ajouter l'exercice"}</button>
+        ${d.nom?`<button class="btn g" style="flex:0 0 auto;padding:0 18px" data-act="tpl-edit-cancel">Annuler</button>`:""}
+      </div>
     </div>
     <button class="btn p full" data-act="tpl-editor-save">💾 Enregistrer le programme</button>`;
 }
@@ -2900,7 +2951,7 @@ document.addEventListener("click",e=>{
       S.lastBloc=bloc; pushRecentExo(nom);
       c.program=c.program||[];
       const draft=S.exDraft;
-      const payload={nom,series:+val("ex-series")||3,reps:val("ex-reps"),charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",video:(val("ex-video")||"").trim()};
+      const payload={nom,series:+val("ex-series")||3,reps:val("ex-reps"),charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
       if(draft&&draft.id){
         const idx=c.program.findIndex(x=>x.id===draft.id);
         if(idx>=0) c.program[idx]={...c.program[idx],...payload};
@@ -2936,10 +2987,14 @@ document.addEventListener("click",e=>{
     case "tpl-editor-cancel": S.tplEdit=null; render(); break;
     case "tpl-add-ex":{ if(!S.tplEdit) break;
       const nom=val("tex-nom").trim(); if(!nom) break;
-      const keepId=(S.tplEdit.draft&&S.tplEdit.draft.id)||uid();
+      const draftT=S.tplEdit.draft;
+      const keepId=(draftT&&draftT.id)||uid();
       const tbloc=val("tex-bloc")||"";
       S.tplEdit.lastBloc=tbloc; pushRecentExo(nom);
-      S.tplEdit.program.push({id:keepId,nom,series:+val("tex-series")||3,reps:val("tex-reps"),charge:val("tex-charge"),repos:val("tex-repos"),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",video:(val("tex-video")||"").trim(),historique:[]});
+      const payloadT={nom,series:+val("tex-series")||3,reps:val("tex-reps"),charge:val("tex-charge"),repos:val("tex-repos"),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim()};
+      const idxT=(draftT&&draftT.id)?S.tplEdit.program.findIndex(x=>x.id===draftT.id):-1;
+      if(idxT>=0) S.tplEdit.program[idxT]={...S.tplEdit.program[idxT],...payloadT};
+      else S.tplEdit.program.push({id:keepId,...payloadT,historique:[]});
       S.tplEdit.draft=null;
       const keepNom=val("tpl-nom"); S.tplEdit.nom=keepNom;
       render(); break; }
@@ -2950,11 +3005,12 @@ document.addEventListener("click",e=>{
     case "tpl-ex-down": if(S.tplEdit&&swapExInBloc(S.tplEdit.program,t.dataset.id,1)){ S.tplEdit.nom=val("tpl-nom"); render(); } break;
     case "tpl-edit-ex":{ if(!S.tplEdit) break;
       S.tplEdit.nom=val("tpl-nom");
-      const ex2=S.tplEdit.program.splice(+t.dataset.idx,1)[0];
+      const ex2=S.tplEdit.program[+t.dataset.idx];   // non destructif
       if(ex2) S.tplEdit.draft={...ex2};
       render();
       const f2=document.getElementById("tex-nom"); if(f2) f2.scrollIntoView({behavior:"smooth",block:"center"});
       break; }
+    case "tpl-edit-cancel": if(S.tplEdit){ S.tplEdit.nom=val("tpl-nom"); S.tplEdit.draft=null; render(); } break;
     case "tpl-add-here":{ if(!S.tplEdit) break;
       S.tplEdit.nom=val("tpl-nom");
       S.tplEdit.draft={bloc:t.dataset.bloc};
