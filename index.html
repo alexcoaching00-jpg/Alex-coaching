@@ -170,6 +170,11 @@
   .pstat.delta .pv{color:#4CAF50}.pstat.delta.up .pv{color:var(--amber)}
   .pstat.target .pv{color:var(--red)}
   .tmr{background:var(--ink2);border:1px solid #4A3B32;color:var(--amber);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter'}
+  .exo-results{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--ink2);margin-bottom:10px}
+  .exo-hit{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);color:var(--white);padding:10px 12px;font-size:14px;cursor:pointer;font-family:inherit}
+  .exo-hit:last-child{border-bottom:none}
+  .exo-hit:active{background:rgba(176,31,31,.25)}
+  .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
   .chip{background:var(--ink2);border:1px solid var(--line);color:var(--grey);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
   .chip.on{background:var(--red);border-color:var(--red);color:#fff}
   .tmr.run{background:var(--red);border-color:var(--red);color:#fff;animation:tpulse 1s ease-in-out infinite}
@@ -423,7 +428,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.5 — 22/07/2026";
+const APP_VERSION="v6.6 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2202,6 +2207,11 @@ function pushRecentExo(nom){
     localStorage.setItem("exo_recents",JSON.stringify(l.slice(0,12)));
   }catch(e){}
 }
+
+function normTxt(str){
+  return String(str||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+}
+
 function elasticGroup(){
   const g=EXOS_MAISON.find(x=>x[0]==="Élastique");
   return g?[["Élastique (accessoire)",g[1]]]:[];
@@ -2209,23 +2219,52 @@ function elasticGroup(){
 function pickerOptionsHtml(mode,filter){
   // Le groupe Élastique est utile dans les deux modes : en salle comme à la maison
   const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
-  const q=(filter||"").toLowerCase().trim();
+  const q=normTxt(filter);
   let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
   if(!q){
     const rec=recentExos();
     if(rec.length) html+=`<optgroup label="⭐ Récemment utilisés">${rec.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("")}</optgroup>`;
   }
   groups.forEach(([g,list])=>{
-    const f=q?list.filter(e=>e.toLowerCase().includes(q)):list;
+    const f=q?list.filter(e=>normTxt(e).includes(q)):list;
     if(f.length) html+=`<optgroup label="${g}">${f.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("")}</optgroup>`;
   });
   return html;
 }
 function pickerCount(mode,filter){
   const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
-  const q=(filter||"").toLowerCase().trim();
-  return groups.reduce((t2,g)=>t2+(q?g[1].filter(e=>e.toLowerCase().includes(q)).length:g[1].length),0);
+  const q=normTxt(filter);
+  return groups.reduce((t2,g)=>t2+(q?g[1].filter(e=>normTxt(e).includes(q)).length:g[1].length),0);
 }
+/* Résultats à plat, cliquables directement */
+function pickerResults(mode,filter){
+  const q=normTxt(filter); if(!q) return [];
+  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
+  const out=[];
+  groups.forEach(([g,list])=>list.forEach(e=>{ if(normTxt(e).includes(q)) out.push({nom:e,grp:g}); }));
+  return out.slice(0,60);
+}
+
+function renderExoResults(wrap){
+  if(!wrap) return;
+  const fEl=wrap.querySelector("[data-exofilter]");
+  const box=wrap.querySelector(".exo-results");
+  const browse=wrap.querySelector(".exo-browse");
+  if(!fEl||!box) return;
+  const q=fEl.value, mode=S.exoMode||"salle";
+  const hits=pickerResults(mode,q);
+  if(!normTxt(q)){
+    box.style.display="none"; box.innerHTML="";
+    if(browse) browse.style.display="";
+    return;
+  }
+  if(browse) browse.style.display="none";
+  box.style.display="block";
+  box.innerHTML=hits.length
+    ? hits.map(h=>`<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}">${esc(h.nom)}<span class="g">${esc(h.grp)}</span></button>`).join("")
+    : `<div style="padding:12px;font-size:13.5px;color:var(--grey)">Aucun exercice trouvé. Tu peux quand même le saisir librement dans le champ ci-dessous.</div>`;
+}
+
 function exoPicker(targetId){
   const mode=S.exoMode||"salle";
   return `<div class="exopicker" style="margin-bottom:10px">
@@ -2234,8 +2273,9 @@ function exoPicker(targetId){
       <button type="button" class="chip ${mode==="maison"?"on":""}" data-act="exo-mode" data-mode="maison">🏠 Maison</button>
     </div>
     <label class="fld" style="margin-bottom:8px"><span>Rechercher un exercice</span>
-      <input type="text" data-exofilter="${targetId}" placeholder="🔎 Ex. squat, fessier, gainage…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-    <label class="fld" style="margin-bottom:0"><span>Choisir dans la liste (<span class="exopicker-count">${pickerCount(mode,"")}</span> exercices)</span>
+      <input type="text" data-exofilter="${targetId}" placeholder="🔎 Ex. squat, fessier, elastique…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <div class="exo-results" style="display:none"></div>
+    <label class="fld exo-browse" style="margin-bottom:0"><span>Choisir dans la liste (<span class="exopicker-count">${pickerCount(mode,"")}</span> exercices)</span>
     <select data-pick="${targetId}">${pickerOptionsHtml(mode,"")}</select></label>
   </div>`;
 }
@@ -2659,6 +2699,18 @@ function deleteSelected(){
 /* ===== events ===== */
 document.addEventListener("click",e=>{
   unlockAudio();
+  const hit=e.target.closest("[data-exohit]");
+  if(hit){
+    const inp=document.getElementById(hit.dataset.target);
+    if(inp){ inp.value=hit.dataset.exohit; }
+    const wrap=hit.closest(".exopicker");
+    if(wrap){ const f2=wrap.querySelector("[data-exofilter]"); if(f2) f2.value=""; renderExoResults(wrap);
+      const sel3=wrap.querySelector("select"); if(sel3) sel3.innerHTML=pickerOptionsHtml(S.exoMode||"salle","");
+      const cnt2=wrap.querySelector(".exopicker-count"); if(cnt2) cnt2.textContent=pickerCount(S.exoMode||"salle",""); }
+    toast("Exercice sélectionné : "+hit.dataset.exohit);
+    return;
+  }
+
   const t=e.target.closest("[data-act]"); if(!t) return;
   const a=t.dataset.act, c=sel();
   switch(a){
@@ -2945,6 +2997,7 @@ document.addEventListener("click",e=>{
       const sel2=wrap.querySelector("select");
       if(sel2) sel2.innerHTML=pickerOptionsHtml(S.exoMode,q);
       const cnt=wrap.querySelector(".exopicker-count"); if(cnt) cnt.textContent=pickerCount(S.exoMode,q);
+      renderExoResults(wrap);
       break; }
     case "timer": startTimer(t.dataset.id, +t.dataset.secs||60, t.dataset.exo||""); break;
     case "tmr-cancel": stopTimer(); break;
@@ -3128,6 +3181,7 @@ document.addEventListener("input",e=>{
     const sel2=wrap.querySelector("select");
     if(sel2) sel2.innerHTML=pickerOptionsHtml(mode,q);
     const cnt=wrap.querySelector(".exopicker-count"); if(cnt) cnt.textContent=pickerCount(mode,q);
+    renderExoResults(wrap);
     return;
   }
   const ci=e.target.closest("[data-ci]");
