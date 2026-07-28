@@ -423,7 +423,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.3 — 22/07/2026";
+const APP_VERSION="v6.5 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1940,31 +1940,81 @@ function nutriReperes(obj){
 
 /* ===== JOURNÉES TYPES (base 2000 kcal, grammages auto-ajustés) ===== */
 const ALIMENTS={
-  oat:{n:"Flocons d'avoine",k:370},lait:{n:"Lait demi-écrémé",k:46,ml:true},banane:{n:"Banane",k:90},
-  miel:{n:"Miel",k:300},pain:{n:"Pain complet",k:250},oeuf:{n:"Œuf",k:78,u:true},avocat:{n:"Avocat",k:160},
-  pomme:{n:"Pomme",k:52},skyr:{n:"Skyr nature",k:60},yaourt:{n:"Yaourt nature",k:60},
-  friuts_r:{n:"Fruits rouges",k:45},amandes:{n:"Amandes",k:600},pb:{n:"Beurre de cacahuète",k:590},
-  poulet:{n:"Blanc de poulet",k:110},steak5:{n:"Steak haché 5%",k:130},thon:{n:"Thon au naturel",k:110},
-  saumon:{n:"Saumon",k:200},poisson:{n:"Poisson blanc (cabillaud…)",k:82},
-  riz:{n:"Riz (poids cru)",k:350},pates:{n:"Pâtes complètes (poids cru)",k:350},quinoa:{n:"Quinoa (poids cru)",k:368},
-  pdt:{n:"Pommes de terre",k:80},legumes:{n:"Légumes verts",k:30},huile:{n:"Huile d'olive",k:900},whey:{n:"Whey protéine (shaker)",k:390},caseine:{n:"Caséine (shaker)",k:370}
+  /* Féculents & céréales */
+  oat:{n:"Flocons d'avoine",k:370},riz:{n:"Riz (poids cru)",k:350},riz_c:{n:"Riz complet (poids cru)",k:355},
+  pates:{n:"Pâtes complètes (poids cru)",k:350},quinoa:{n:"Quinoa (poids cru)",k:368},semoule:{n:"Semoule (poids cru)",k:350},
+  boulgour:{n:"Boulgour (poids cru)",k:342},sarrasin:{n:"Sarrasin (poids cru)",k:343},pdt:{n:"Pommes de terre",k:80},
+  patate_d:{n:"Patate douce",k:86},pain:{n:"Pain complet",k:250},pain_cpl:{n:"Pain aux céréales",k:265},
+  wasa:{n:"Pain suédois / Wasa",k:340},galette_r:{n:"Galette de riz",k:387},muesli:{n:"Muesli sans sucre ajouté",k:380},
+  /* Légumineuses */
+  lentilles:{n:"Lentilles (poids cru)",k:335},pois_ch:{n:"Pois chiches (poids cru)",k:364},
+  haricots_r:{n:"Haricots rouges (poids cru)",k:333},pois_cass:{n:"Pois cassés (poids cru)",k:341},
+  /* Viandes & poissons */
+  poulet:{n:"Blanc de poulet",k:110},dinde:{n:"Escalope de dinde",k:105},steak5:{n:"Steak haché 5%",k:130},
+  boeuf:{n:"Bœuf maigre (rumsteck)",k:145},porc_f:{n:"Filet mignon de porc",k:145},jambon:{n:"Jambon blanc dégraissé",k:110},
+  saumon:{n:"Saumon",k:200},thon:{n:"Thon au naturel",k:110},poisson:{n:"Poisson blanc (cabillaud…)",k:82},
+  colin:{n:"Colin / merlu",k:90},maquereau:{n:"Maquereau",k:205},sardines:{n:"Sardines à l'huile (égouttées)",k:220},
+  crevettes:{n:"Crevettes",k:99},oeuf:{n:"Œuf",k:78,u:true},blanc_oeuf:{n:"Blanc d'œuf",k:17,u:true},
+  /* Végétal */
+  tofu:{n:"Tofu ferme",k:145},tempeh:{n:"Tempeh",k:190},steak_veg:{n:"Steak de soja",k:170},
+  /* Produits laitiers */
+  lait:{n:"Lait demi-écrémé",k:46,ml:true},lait_veg:{n:"Boisson végétale non sucrée",k:25,ml:true},
+  skyr:{n:"Skyr nature",k:60},fromage_b:{n:"Fromage blanc 0%",k:47},yaourt:{n:"Yaourt nature",k:60},
+  yaourt_g:{n:"Yaourt grec",k:97},cottage:{n:"Cottage cheese",k:98},mozza:{n:"Mozzarella light",k:170},
+  parmesan:{n:"Parmesan",k:392},comte:{n:"Comté / emmental",k:400},
+  /* Fruits */
+  banane:{n:"Banane",k:90},pomme:{n:"Pomme",k:52},poire:{n:"Poire",k:57},orange:{n:"Orange",k:47},
+  kiwi:{n:"Kiwi",k:61},ananas:{n:"Ananas frais",k:50},mangue:{n:"Mangue",k:60},raisin:{n:"Raisin",k:69},
+  friuts_r:{n:"Fruits rouges",k:45},pasteque:{n:"Pastèque",k:30},clementine:{n:"Clémentine",k:47},
+  fruits_sec:{n:"Abricots secs",k:241},dattes:{n:"Dattes",k:282},compote:{n:"Compote sans sucre ajouté",k:45},
+  /* Légumes */
+  legumes:{n:"Légumes verts",k:30},brocoli:{n:"Brocoli",k:34},courgette:{n:"Courgette",k:17},
+  haricots_v:{n:"Haricots verts",k:31},epinards:{n:"Épinards",k:23},carotte:{n:"Carotte",k:41},
+  tomate:{n:"Tomate",k:18},poivron:{n:"Poivron",k:26},salade:{n:"Salade verte",k:15},
+  champignons:{n:"Champignons",k:22},chou_f:{n:"Chou-fleur",k:25},betterave:{n:"Betterave cuite",k:43},
+  /* Lipides & oléagineux */
+  huile:{n:"Huile d'olive",k:900},huile_colza:{n:"Huile de colza",k:900},beurre:{n:"Beurre",k:750},
+  avocat:{n:"Avocat",k:160},amandes:{n:"Amandes",k:600},noix:{n:"Noix",k:654},noisettes:{n:"Noisettes",k:628},
+  cajou:{n:"Noix de cajou",k:553},pb:{n:"Beurre de cacahuète",k:590},purée_am:{n:"Purée d'amande",k:620},
+  graines_ch:{n:"Graines de chia",k:486},graines_lin:{n:"Graines de lin moulues",k:534},graines_c:{n:"Graines de courge",k:559},
+  olives:{n:"Olives",k:145},
+  /* Sucrants & divers */
+  miel:{n:"Miel",k:300},sirop_er:{n:"Sirop d'érable",k:260},cacao:{n:"Cacao non sucré",k:230},
+  choco_n:{n:"Chocolat noir 70%",k:580},confiture:{n:"Confiture allégée",k:180},
+  /* Compléments */
+  whey:{n:"Whey protéine (shaker)",k:390},caseine:{n:"Caséine (shaker)",k:370}
 };
 const MENUS=[
- {nom:"Journée type 1",repas:[
+ {nom:"Journée type 1 — Classique",repas:[
    {t:"Petit-déjeuner",items:[["oat",80],["lait",200],["banane",100],["miel",10]]},
    {t:"Déjeuner",items:[["poulet",150],["riz",90],["legumes",200],["huile",15]]},
    {t:"Collation",items:[["skyr",150],["amandes",20]]},
    {t:"Dîner",items:[["saumon",130],["pdt",250],["legumes",200],["huile",10]]}]},
- {nom:"Journée type 2",repas:[
+ {nom:"Journée type 2 — Salée le matin",repas:[
    {t:"Petit-déjeuner",items:[["pain",90],["oeuf",2],["avocat",50],["pomme",150]]},
    {t:"Déjeuner",items:[["steak5",150],["pates",90],["legumes",200],["huile",10]]},
    {t:"Collation",items:[["yaourt",125],["friuts_r",100],["amandes",15]]},
    {t:"Dîner",items:[["poisson",180],["quinoa",80],["legumes",200],["huile",10]]}]},
- {nom:"Journée type 3",repas:[
+ {nom:"Journée type 3 — Riche en protéines",repas:[
    {t:"Petit-déjeuner",items:[["skyr",200],["oat",60],["friuts_r",100],["miel",15],["amandes",10]]},
    {t:"Déjeuner",items:[["thon",140],["riz",90],["legumes",200],["huile",15]]},
    {t:"Collation",items:[["pain",40],["pb",20]]},
-   {t:"Dîner",items:[["poulet",150],["pdt",300],["legumes",200],["huile",15]]}]}
+   {t:"Dîner",items:[["poulet",150],["pdt",300],["legumes",200],["huile",15]]}]},
+ {nom:"Journée type 4 — Végétarienne",repas:[
+   {t:"Petit-déjeuner",items:[["fromage_b",200],["muesli",60],["banane",100],["purée_am",15]]},
+   {t:"Déjeuner",items:[["tofu",180],["boulgour",90],["brocoli",200],["huile_colza",15]]},
+   {t:"Collation",items:[["yaourt_g",150],["noix",20],["compote",100]]},
+   {t:"Dîner",items:[["lentilles",90],["patate_d",200],["epinards",200],["huile",10]]}]},
+ {nom:"Journée type 5 — Méditerranéenne",repas:[
+   {t:"Petit-déjeuner",items:[["pain_cpl",80],["oeuf",2],["tomate",100],["olives",20]]},
+   {t:"Déjeuner",items:[["dinde",160],["semoule",90],["poivron",150],["huile",15]]},
+   {t:"Collation",items:[["yaourt",125],["noisettes",20],["orange",150]]},
+   {t:"Dîner",items:[["maquereau",120],["pois_ch",80],["courgette",200],["huile",10]]}]},
+ {nom:"Journée type 6 — Express (peu de cuisine)",repas:[
+   {t:"Petit-déjeuner",items:[["skyr",200],["galette_r",30],["pb",20],["banane",100]]},
+   {t:"Déjeuner",items:[["thon",140],["haricots_r",80],["salade",150],["huile",15],["wasa",30]]},
+   {t:"Collation",items:[["cottage",150],["fruits_sec",30]]},
+   {t:"Dîner",items:[["crevettes",180],["riz_c",90],["haricots_v",200],["huile",10]]}]}
 ];
 function nutriMenu(c){
   const info=nutriInfo(c); if(!info) return null;
@@ -2021,7 +2071,24 @@ function nutritionTab(c,editable){
       ${!ninfo?`<p class="muted" style="font-size:12.5px">Renseigne sexe, âge, activité et objectif + un poids et une taille (onglet Bilan) : le plan se calcule automatiquement.</p>`:""}
     </div>`:"";
   if(!ninfo){
-    return form+(!editable?`<p class="muted">Votre plan nutritionnel apparaîtra ici dès que votre coach aura complété votre profil.</p>`:"");
+    if(!editable) return form+`<p class="muted">Votre plan nutritionnel apparaîtra ici dès que votre coach aura complété votre profil.</p>`;
+    // Dire précisément ce qui manque pour générer le plan
+    const ms2=(c.mesures||[]).filter(m=>typeof m.poids==="number");
+    const manque=[];
+    if(!n.sexe) manque.push("le sexe");
+    if(!n.age) manque.push("l'âge");
+    if(!n.activite) manque.push("le niveau d'activité");
+    if(!n.objectif) manque.push("l'objectif");
+    if(!ms2.length) manque.push("un poids (à saisir dans l'onglet Bilan)");
+    if(!c.tailleCm) manque.push("la taille (onglet Bilan)");
+    return form+`<div class="panel" style="border-color:rgba(184,134,47,.4)">
+      <div class="ph" style="color:var(--amber);font-size:13.5px">🍽 Plan alimentaire non généré</div>
+      <p style="font-size:13.5px;color:var(--white2);line-height:1.6;margin-bottom:6px">Il manque encore ${manque.length>1?"ces informations":"cette information"} :</p>
+      <ul style="margin:0 0 8px 18px;padding:0;font-size:13.5px;color:var(--white2);line-height:1.7">
+        ${manque.map(m2=>`<li>${m2}</li>`).join("")}
+      </ul>
+      <p class="muted" style="font-size:12px">Dès que c'est complété, les journées types et les grammages s'affichent automatiquement.</p>
+    </div>`;
   }
   const deltaTxt=ninfo.delta===0?"Maintien calorique":(ninfo.delta<0?`Déficit ${Math.abs(ninfo.delta)} kcal/j ≈ −${String(ninfo.rate).replace(".",",")} kg/sem`:`Surplus +${ninfo.delta} kcal/j ≈ +${String(ninfo.rate).replace(".",",")} kg/sem`);
   const kcalCard=`
@@ -2122,7 +2189,7 @@ const EXOS_MAISON=[
 ["Épaules",["Élévations latérales bouteilles d'eau","Élévations frontales bouteilles","Élévations frontales sac lesté","Pompes piquées (pike push-up)","Pompes piquées surélevées","Développé militaire bouteilles","Rotation externe serviette","Cercles de bras","Handstand contre le mur (avancé)","Y raises au sol"]],
 ["Abdos / Gainage",["Gainage planche","Gainage planche sur les mains","Gainage latéral","Gainage latéral avec rotation","Planche dynamique (shoulder taps)","Planche + touche épaule","Crunch classique","Crunch bicyclette","Crunch inversé","Relevés de jambes au sol","Relevés de jambes sur chaise","Mountain climbers","Mountain climbers croisés","Russian twist","Russian twist avec bouteille","Dead bug","Hollow hold","Hollow rock","Toe touches","V-ups","Sit-ups","Flutter kicks","Scissor kicks","Plank jacks","Heel taps","Gainage sur les coudes 60s"]],
 ["Cardio / HIIT maison",["Jumping jacks","Burpees","Burpees sans pompe","Montées de genoux (high knees)","Talons-fesses","Squat jump","Fentes sautées alternées","Corde à sauter","Corde à sauter sur place (sans corde)","Mountain climbers rapides","Skater jumps","Shadow boxing","Sprint sur place","Montées d'escaliers rapides","Star jumps","Tuck jumps","Bear crawl","Crab walk","Inchworm","Plank to squat"]],
-["Élastique",["Squat élastique","Rowing élastique","Tirage élastique porte","Développé militaire élastique","Élévations latérales élastique","Curl biceps élastique","Extension triceps élastique","Abduction hanches élastique","Pull-apart élastique","Good morning élastique","Hip thrust élastique","Face pull élastique","Monster walk élastique","Développé couché élastique au sol","Deadlift élastique"]],
+["Élastique",["Squat élastique","Squat sumo élastique","Front squat élastique","Fentes élastique","Fentes bulgares élastique","Soulevé de terre élastique","Soulevé de terre roumain élastique","Good morning élastique","Hip thrust élastique","Pont fessier élastique","Kickback fessier élastique","Abduction hanches élastique (debout)","Abduction hanches élastique (au sol)","Monster walk élastique","Marche latérale élastique","Clamshell élastique","Leg curl élastique","Leg extension élastique","Mollets élastique","Squat jump élastique","Pull-through élastique","Rowing élastique assis","Rowing élastique debout","Rowing unilatéral élastique","Tirage vertical élastique (porte haute)","Tirage horizontal élastique","Pull-apart élastique","Face pull élastique","Straight-arm pulldown élastique","Pull-over élastique","Superman élastique","Shrugs élastique","Traction assistée à l'élastique","Développé couché élastique au sol","Développé incliné élastique","Écarté élastique debout","Écarté élastique au sol","Pompes avec élastique dans le dos","Chest press élastique (ancrage arrière)","Développé militaire élastique","Élévations latérales élastique","Élévations frontales élastique","Oiseau élastique (buste penché)","Rotation externe élastique","Rotation interne élastique","Tirage menton élastique","Y-raise élastique","Around the world élastique","Curl biceps élastique","Curl marteau élastique","Curl concentration élastique","Curl 21s élastique","Extension triceps élastique (au-dessus de la tête)","Pushdown triceps élastique","Kickback triceps élastique","Extension triceps élastique allongé","Pallof press élastique","Woodchopper élastique (haut vers bas)","Woodchopper élastique (bas vers haut)","Crunch élastique","Relevé de jambes élastique","Rotation buste élastique","Anti-rotation élastique","Gainage avec traction élastique","Dead bug élastique","Sprint résisté élastique","Fentes sautées élastique","Swing élastique","Thruster élastique","Broad jump résisté élastique","Activation fessiers élastique (mini-band)","Dislocations élastique (mobilité épaules)","Étirement assisté élastique ischios","Ouverture pectoraux élastique","Échauffement rotateurs élastique"]],
 ["Mobilité / Étirements",["Étirement ischios debout","Étirement ischios au sol","Étirement quadriceps","Étirement fessiers (pigeon au sol)","Étirement psoas (fente basse)","Étirement mollets au mur","Étirement pectoraux à l'angle du mur","Ouverture de hanches 90/90","Cat-cow (chat-vache)","Chien tête en bas","Rotation du buste au sol","Cercles de bras","Cercles de hanches","Étirement nuque latéral","World's greatest stretch","Auto-massage avec bouteille","Respiration diaphragmatique","Posture de l'enfant"]]
 ];
 
@@ -2135,8 +2202,13 @@ function pushRecentExo(nom){
     localStorage.setItem("exo_recents",JSON.stringify(l.slice(0,12)));
   }catch(e){}
 }
+function elasticGroup(){
+  const g=EXOS_MAISON.find(x=>x[0]==="Élastique");
+  return g?[["Élastique (accessoire)",g[1]]]:[];
+}
 function pickerOptionsHtml(mode,filter){
-  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES;
+  // Le groupe Élastique est utile dans les deux modes : en salle comme à la maison
+  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
   const q=(filter||"").toLowerCase().trim();
   let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
   if(!q){
@@ -2150,7 +2222,7 @@ function pickerOptionsHtml(mode,filter){
   return html;
 }
 function pickerCount(mode,filter){
-  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES;
+  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
   const q=(filter||"").toLowerCase().trim();
   return groups.reduce((t2,g)=>t2+(q?g[1].filter(e=>e.toLowerCase().includes(q)).length:g[1].length),0);
 }
