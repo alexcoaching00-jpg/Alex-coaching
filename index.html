@@ -428,7 +428,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.6 — 22/07/2026";
+const APP_VERSION="v6.7 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1060,6 +1060,60 @@ function exoSpark(e){
   </div>`;
 }
 
+
+/* ===== PICTOGRAMME AUTOMATIQUE PAR EXERCICE =====
+   Déduit la zone musculaire + le matériel depuis le nom, et dessine une silhouette
+   avec la zone ciblée en rouge. Fonctionne hors ligne, sans image externe. */
+const ZONES=[
+  ["pecs",["développé couché","développé inclin","développé déclin","écarté","pec deck","pompe","dips pector","chest press","squeeze press","pull-over halt"]],
+  ["dos",["traction","tirage","rowing","pull-apart","face pull","superman","seal row","inverted row","pulldown","rack pull","shrug","chin-up","lombaire","hyperextension","extension dorsale","extension au banc"]],
+  ["epaules",["militaire","élévations lat","élévations front","oiseau","reverse fly","reverse pec","arnold","tirage menton","pike push","handstand","rotation externe","rotation interne","cuban","y-raise","y raise","around the world","dislocation","épaule"]],
+  ["biceps",["curl"]],
+  ["triceps",["triceps","barre au front","skull","pushdown","kickback tri","prise serrée","jm press","pompes diamant","dips tri"]],
+  ["abdos",["gainage","planche","crunch","abdo","relevé de jambe","relevé de genou","mountain climber","russian twist","ab wheel","roulette","dead bug","bird dog","hollow","pallof","v-up","sit-up","toes to bar","windshield","side bend","woodchopper","anti-rotation","flutter","scissor","heel tap","l-sit","dragon flag","plank"]],
+  ["jambes",["squat","fente","presse","leg extension","leg curl","soulevé de terre","hip thrust","pont fessier","good morning","mollet","step-up","step up","kickback fess","abduction","adduction","nordic","sissy","pistol","box jump","wall sit","chaise contre","donkey","clamshell","monster walk","marche latérale","fire hydrant","glute","frog pump","swing","calf","split squat","zercher","belt squat","hack","pull-through","broad jump","jump squat"]],
+  ["cardio",["burpee","corde à sauter","rameur","vélo","tapis","skierg","assault","elliptique","sprint","jumping jack","high knee","montées de genoux","talons-fesses","escalier","stepmill","shadow boxing","skater","star jump","tuck jump","bear crawl","crab walk","inchworm","battle rope","wall ball","thruster","traîneau","sled","prowler","navette","shuttle","medicine ball","clean","snatch","jerk","push press","muscle-up","turkish","carry","marche du fermier","suitcase","plank jack"]],
+  ["mobilite",["étirement","mobilité","cat-cow","chat-vache","chien tête","pigeon","90/90","foam roller","auto-massage","respiration","posture de l'enfant","cercles de","rotation du buste","world's greatest","snow angel"]]
+];
+function exoZone(nom){
+  const n=normTxt(nom);
+  for(const [z,keys] of ZONES){ for(const k of keys){ if(n.includes(normTxt(k))) return z; } }
+  return "full";
+}
+function exoGear(nom){
+  const n=normTxt(nom);
+  if(n.includes("elastique")||n.includes("mini-band")) return "elastique";
+  if(n.includes("halter")||n.includes("kettlebell")||n.includes("bouteille")) return "halteres";
+  if(n.includes("barre")||n.includes("smith")) return "barre";
+  if(n.includes("poulie")||n.includes("machine")||n.includes("presse")||n.includes("pec deck")) return "machine";
+  return "";
+}
+const ZONE_LABEL={pecs:"Pectoraux",dos:"Dos",epaules:"Épaules",biceps:"Biceps",triceps:"Triceps",abdos:"Abdos",jambes:"Jambes",cardio:"Cardio",mobilite:"Mobilité",full:"Global"};
+/* Silhouette : les parties de la zone ciblée passent en rouge */
+function exoIcon(nom,size){
+  size=size||44;
+  const z=exoZone(nom), gear=exoGear(nom);
+  const on="#B01F1F", off="#4A3B32";
+  const c=k=>(z===k||z==="full")?on:off;
+  const cardio=(z==="cardio"), mob=(z==="mobilite");
+  return `<svg viewBox="0 0 40 56" width="${size}" height="${size*1.4}" style="display:block;flex:0 0 auto" aria-hidden="true">
+    <circle cx="20" cy="7" r="5" fill="${(cardio||mob)?on:"#6B5F55"}"/>
+    <rect x="14" y="13" width="12" height="13" rx="3" fill="${c('pecs')}"/>
+    <rect x="14" y="24" width="12" height="7" rx="2" fill="${c('abdos')}"/>
+    <rect x="15" y="13" width="10" height="4" rx="2" fill="${z==='dos'?on:'none'}"/>
+    <circle cx="11" cy="15" r="3.4" fill="${c('epaules')}"/><circle cx="29" cy="15" r="3.4" fill="${c('epaules')}"/>
+    <rect x="7.6" y="18" width="4.6" height="8" rx="2.3" fill="${c('biceps')}"/><rect x="27.8" y="18" width="4.6" height="8" rx="2.3" fill="${c('biceps')}"/>
+    <rect x="7.6" y="26" width="4.6" height="8" rx="2.3" fill="${c('triceps')}"/><rect x="27.8" y="26" width="4.6" height="8" rx="2.3" fill="${c('triceps')}"/>
+    <rect x="14.4" y="31" width="4.8" height="11" rx="2.4" fill="${c('jambes')}"/><rect x="20.8" y="31" width="4.8" height="11" rx="2.4" fill="${c('jambes')}"/>
+    <rect x="14.8" y="42" width="4" height="10" rx="2" fill="${c('jambes')}"/><rect x="21.2" y="42" width="4" height="10" rx="2" fill="${c('jambes')}"/>
+    ${gear==="barre"?`<rect x="2" y="20" width="36" height="2.4" rx="1.2" fill="#B8862F"/><rect x="2" y="17" width="3" height="8" rx="1.2" fill="#B8862F"/><rect x="35" y="17" width="3" height="8" rx="1.2" fill="#B8862F"/>`:""}
+    ${gear==="halteres"?`<rect x="4" y="30" width="7" height="3" rx="1.5" fill="#B8862F"/><rect x="29" y="30" width="7" height="3" rx="1.5" fill="#B8862F"/>`:""}
+    ${gear==="elastique"?`<path d="M4 46 Q20 38 36 46" stroke="#B8862F" stroke-width="2.2" fill="none" stroke-linecap="round"/>`:""}
+    ${gear==="machine"?`<rect x="2" y="12" width="3" height="34" rx="1.5" fill="#B8862F"/><rect x="35" y="12" width="3" height="34" rx="1.5" fill="#B8862F"/>`:""}
+    ${cardio?`<path d="M31 44 l4 4 M35 44 l-4 4" stroke="${on}" stroke-width="2" stroke-linecap="round"/>`:""}
+  </svg>`;
+}
+
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
   const now=new Date(), m=now.getMonth(), y=now.getFullYear();
@@ -1138,8 +1192,12 @@ function programme(c,editable){
   const exCard=(e,i)=>{
     const hist=(e.historique||[]);
     const last3=hist.slice(-3);
-    return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between">
-      <div style="flex:1"><div style="display:flex;align-items:center;gap:8px"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}</div>
+    return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
+      ${(()=>{const th=exoThumb(e);
+        return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
+        :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 4px">${exoIcon(e.nom,26)}</span>`;})()}
+      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}</div>
       <div class="exd">${e.series} × ${esc(e.reps)}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
@@ -1151,6 +1209,7 @@ function programme(c,editable){
         <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(e.repos)}</button>`:""}
       </div></div>
+      </div>
       ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
   };
   // Grouper par séance (bloc)
@@ -1540,7 +1599,9 @@ function wkRender(){
     </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;width:100%">
       <h2 style="font-family:'Bebas Neue';font-size:34px;letter-spacing:.04em;color:var(--white);line-height:1.1;margin-bottom:6px">${esc(ex.nom)}</h2>
-      ${(()=>{ const th=exoThumb(ex); return th?`<a href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener" style="display:block;margin:2px auto 10px;max-width:220px"><img src="${th}" alt="" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.style.display='none'"></a>`:""; })()}
+      ${(()=>{ const th=exoThumb(ex);
+        if(th) return `<a href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener" style="display:block;margin:2px auto 10px;max-width:220px"><img src="${th}" alt="" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.style.display='none'"></a>`;
+        return `<div style="display:flex;flex-direction:column;align-items:center;margin:2px 0 10px">${exoIcon(ex.nom,52)}<span style="font-size:11px;color:var(--grey2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px">${esc(ZONE_LABEL[exoZone(ex.nom)]||"")}</span></div>`; })()}
       ${ex.rir?`<span class="tag ink" style="align-self:center;margin-bottom:12px">RIR ${esc(ex.rir)}</span>`:""}
       <div style="margin:8px 0 6px">${dots}</div>
       <p style="color:var(--amber);font-family:'Bebas Neue';font-size:22px;letter-spacing:.08em">SÉRIE ${WK.serie} / ${total}</p>
@@ -2261,7 +2322,7 @@ function renderExoResults(wrap){
   if(browse) browse.style.display="none";
   box.style.display="block";
   box.innerHTML=hits.length
-    ? hits.map(h=>`<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}">${esc(h.nom)}<span class="g">${esc(h.grp)}</span></button>`).join("")
+    ? hits.map(h=>`<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:center;gap:10px"><span style="flex:0 0 auto">${exoIcon(h.nom,20)}</span><span style="flex:1;min-width:0">${esc(h.nom)}<span class="g">${esc(h.grp)}</span></span></button>`).join("")
     : `<div style="padding:12px;font-size:13.5px;color:var(--grey)">Aucun exercice trouvé. Tu peux quand même le saisir librement dans le champ ci-dessous.</div>`;
 }
 
@@ -2282,8 +2343,12 @@ function exoPicker(targetId){
 
 /* ===== BIBLIOTHÈQUE DE PROGRAMMES ===== */
 function tplExoCard(e,i,editing){
-  return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between">
-    <div style="flex:1">
+  return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
+    ${(()=>{const th=exoThumb(e);
+      return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
+      :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 4px">${exoIcon(e.nom,26)}</span>`;})()}
+    <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>
         ${e.bloc?`<span class="tag am" style="font-size:10px">${esc(e.bloc)}</span>`:""}
@@ -2293,6 +2358,7 @@ function tplExoCard(e,i,editing){
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
       <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
+    </div>
     </div>
     ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="tpl-dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
   </div></div>`;
