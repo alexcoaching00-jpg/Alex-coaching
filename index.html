@@ -428,7 +428,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.8 — 22/07/2026";
+const APP_VERSION="v6.9 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -479,7 +479,7 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
 const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
@@ -3052,6 +3052,7 @@ document.addEventListener("click",e=>{
       if(!target) break;
       if(!confirm(`Envoyer « ${t2.nom} » à ${target.nom} ?\nSon programme actuel sera remplacé.`)) break;
       target.program=(t2.program||[]).map(e=>({...e,id:uid(),historique:[]}));
+      pushTo(target.clientEmail,"🏋️ Nouveau programme","Ton coach vient de mettre à jour ton programme");
       sb.from("clients").update(lightRow(target)).eq("id",target.id).then(({error})=>{
         toast(error?"Erreur d'envoi":"Programme envoyé à "+target.nom);
       });
@@ -3069,6 +3070,7 @@ document.addEventListener("click",e=>{
       c.messages=c.messages||[];
       c.messages.push({from:"coach",text:txt,date:new Date().toISOString(),lu:true});
       patchField(c,"messages",err=>toast(err?"Erreur d'envoi":"Bilan envoyé ✓"));
+      pushTo(c.clientEmail,"📊 Ton bilan du mois","Ton coach t'a envoyé ton récapitulatif");
       render(); break; }
     case "print-prog":{ if(!c||!(c.program||[]).length) break;
       printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false}); break; }
@@ -3215,6 +3217,9 @@ document.addEventListener("click",e=>{
       c.messages.push({from:role,text:txt,date:new Date().toISOString(),lu:role==="coach"});
       // Patch ciblé : uniquement le champ messages (fiable même avec de longs textes)
       patchField(c,"messages",err=>toast(err?"Erreur envoi":"Message envoyé"));
+      // Notification au destinataire
+      if(role==="coach"){ pushTo(c.clientEmail,"💬 Message de ton coach",txt); }
+      else { pushTo(coachEmail(),"💬 "+((c.nom||"Client").split(" ")[0])+" t'a écrit",txt); }
       render();
       setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},50);
       break; }
@@ -3284,6 +3289,7 @@ document.addEventListener("click",e=>{
       const quand=d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
       c2.messages=c2.messages||[];
       c2.messages.push({from:"coach",text:`🔔 Rappel : notre séance est prévue ${quand}. À très vite ! 💪`,date:new Date().toISOString(),lu:true});
+      pushTo(c2.clientEmail,"🔔 Rappel de séance",`Séance prévue ${quand}`);
       patchField(c2,"messages",err=>toast(err?"Erreur":"Rappel envoyé à "+c2.nom));
       break; }
     case "import-open":{ const f=document.getElementById("imp-file"); if(f){ f.value=""; f.click(); } break; }
@@ -3423,7 +3429,8 @@ async function subscribeToPush(){
     const j=sub.toJSON();
     const {data:existing}=await sb.from("push_subscriptions").select("id").eq("endpoint",j.endpoint);
     if(!existing||!existing.length){
-      await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth});
+      const myMail=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
+      await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:myMail});
     }
     PUSH_SUBSCRIBED=true;
   }catch(e){}
@@ -3431,9 +3438,22 @@ async function subscribeToPush(){
 function schedulePush(title,body,secs){
   try{
     if(!sb||!S.session) return;
+    const me=((S.session.user&&S.session.user.email)||"").toLowerCase();
     const sendAt=new Date(Date.now()+secs*1000).toISOString();
-    sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt}).then(()=>{});
+    sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt,target_email:me}).then(()=>{});
   }catch(e){}
+}
+/* Notification vers une AUTRE personne (le client, ou le coach) */
+function pushTo(email,title,body){
+  try{
+    if(!sb||!S.session) return;
+    const mail=(email||"").trim().toLowerCase(); if(!mail) return;
+    sb.from("scheduled_pushes").insert({title,body:(body||"").slice(0,140),send_at:new Date().toISOString(),target_email:mail}).then(()=>{});
+  }catch(e){}
+}
+/* Adresse du coach (propriétaire du compte) — utile pour notifier le coach */
+function coachEmail(){
+  try{ return S.isClient?((S.clients[0]&&S.clients[0].coachEmail)||""):((S.session.user&&S.session.user.email)||""); }catch(e){ return ""; }
 }
 function updateOnlineBar(){
   const b=document.getElementById("offbar");
