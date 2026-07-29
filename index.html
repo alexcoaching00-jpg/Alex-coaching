@@ -226,7 +226,7 @@
   .msg.client{align-self:flex-start;background:var(--ink2);color:var(--white2);border-bottom-left-radius:4px}
   .msg .mt{font-size:10px;opacity:.6;margin-top:3px;text-align:right}
   .msg-input{display:flex;gap:8px;align-items:flex-end}
-  .msg-input textarea{flex:1;border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:16px;background:var(--ink2);color:var(--white);outline:none;font-family:'Inter';resize:none;min-height:42px;max-height:100px}
+  .msg-input textarea{flex:1 1 auto;min-width:0;width:100%;background:var(--ink2);border:1px solid var(--line);border-radius:12px;color:var(--white);padding:11px 12px;font-size:16px;font-family:inherit;resize:none;max-height:140px;line-height:1.4}
   .msg-input textarea:focus{border-color:var(--red)}
   /* objectif chiffré */
   .obj-bar{background:var(--ink2);border-radius:999px;height:8px;margin:8px 0 4px;overflow:hidden}
@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v7.3 — 22/07/2026";
+const APP_VERSION="v7.4 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2206,13 +2206,15 @@ function messagesTab(c,isCoach){
     : `<p class="muted" style="text-align:center;padding:20px 0">Aucun message.</p>`;
   const role=isCoach?'coach':'client';
   return `<div class="msg-list" id="msg-list">${rows}</div>
-    <div class="msg-input">
-      <textarea id="msg-text" placeholder="Écrire un message…" rows="1"></textarea>
-      ${!S.isClient?`<button class="link" data-act="msg-tpl" style="font-size:12.5px;padding:2px 0">⚡ Message type</button>`:""}
-      <button class="btn g" data-act="pick-msg-photo" title="Envoyer une photo" style="padding:10px 12px;font-size:16px;flex-shrink:0">📷</button>
-      <input type="file" id="msg-photo" accept="image/*" data-role="${role}" style="display:none">
-      <button class="btn g" id="rec-btn" data-act="rec-voice" data-role="${role}" title="Message vocal" style="padding:10px 12px;font-size:16px;flex-shrink:0">🎤</button>
-      <button class="btn p" data-act="send-msg" data-role="${role}" style="padding:10px 14px;font-size:18px;flex-shrink:0">➤</button>
+    ${!S.isClient?`<div style="text-align:right;margin-bottom:6px"><button class="link" data-act="msg-tpl" style="font-size:12.5px;padding:2px 0">⚡ Message type</button></div>`:""}
+    <div class="msg-input" style="display:block">
+      <textarea id="msg-text" placeholder="Écrire un message…" rows="2" style="width:100%;display:block;margin-bottom:8px"></textarea>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn g" data-act="pick-msg-photo" title="Envoyer une photo" style="padding:11px 14px;font-size:17px;flex:0 0 auto">📷</button>
+        <input type="file" id="msg-photo" accept="image/*" data-role="${role}" style="display:none">
+        <button class="btn g" id="rec-btn" data-act="rec-voice" data-role="${role}" title="Message vocal" style="padding:11px 14px;font-size:17px;flex:0 0 auto">🎤</button>
+        <button class="btn p" data-act="send-msg" data-role="${role}" style="flex:1;padding:12px;font-size:15px;font-weight:700">Envoyer ➤</button>
+      </div>
     </div>
     <p class="muted" style="font-size:11px;margin-top:6px;text-align:center">🎤 : appuyez pour enregistrer un vocal (60 s max), réappuyez pour envoyer.</p>`;
 }
