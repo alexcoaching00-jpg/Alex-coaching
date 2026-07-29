@@ -175,6 +175,7 @@
   .exo-hit:last-child{border-bottom:none}
   .exo-hit:active{background:rgba(176,31,31,.25)}
   .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
+  .tabsel select{font-size:16px;font-weight:700;color:var(--white);background-color:var(--ink2);border-color:#5A4A3F;padding:14px 38px 14px 14px}
   .chip{background:var(--ink2);border:1px solid var(--line);color:var(--grey);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
   .chip.on{background:var(--red);border-color:var(--red);color:#fff}
   .tmr.run{background:var(--red);border-color:var(--red);color:#fff;animation:tpulse 1s ease-in-out infinite}
@@ -428,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v7.1 — 22/07/2026";
+const APP_VERSION="v7.3 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -479,8 +480,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -525,7 +526,7 @@ function isTypingOrRecording(){
   // Un formulaire libre (exercice, paiement, check-in…) contient du texte pas encore validé
   try{
     const pending=[...document.querySelectorAll("input:not([data-bind]):not([type=file]):not([type=range]):not([data-exofilter]),textarea:not([data-bind])")]
-      .some(el=>!el.closest(".authcard")&&el.id!=="cl-search"&&el.id!=="exo-find"&&el.value&&el.value.trim());
+      .some(el=>!el.closest(".authcard")&&el.id!=="cl-search"&&el.id!=="exo-find"&&el.id!=="rm-charge"&&el.id!=="rm-reps"&&el.value&&el.value.trim());
     if(pending) return true;
   }catch(e){}
   return false;
@@ -708,7 +709,13 @@ function render(){
       <button data-act="logout" style="border:none;background:var(--ink2);color:#E8DCD0;border-radius:999px;padding:6px 12px;font-family:'Archivo';font-weight:700;font-size:12px;cursor:pointer">Quitter</button></div>
       ${S.clients.length>0?`<div class="pick"><label>Vous êtes</label><select data-act="pick-client">${S.clients.map(cl=>`<option value="${cl.id}" ${cl.id===S.selectedId?'selected':''}>${esc(cl.nom)}</option>`).join("")}</select></div>`:`<p class="sub">Espace client</p>`}</header>`;
     const body=clientSpace(cc);
-    const nav=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutri","🍎"],["faq","Aide","?"]].map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
+    const nav=(()=>{
+      const principaux=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"]];
+      const autres=["bilan","nutrition","tests","faq"];
+      const dansAutres=autres.includes(S.clientTab);
+      return principaux.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("")
+        +`<button data-act="client-plus" class="${dansAutres?'on':''}"><span class="ic">⋯</span>Plus</button>`;
+    })();
     root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div></div>`;
     return;
   }
@@ -726,7 +733,13 @@ function render(){
   if(S.role==="coach"){
     nav=[["dashboard","Accueil","◆"],["clients","Clients","☰"],["programmes","Programmes","▤"]].map(([k,l,i])=>`<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':(k==='programmes'&&S.view==='programmes')?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
   }else{
-    nav=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutri","🍎"],["faq","Aide","?"]].map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
+    nav=(()=>{
+      const principaux=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"]];
+      const autres=["bilan","nutrition","tests","faq"];
+      const dansAutres=autres.includes(S.clientTab);
+      return principaux.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("")
+        +`<button data-act="client-plus" class="${dansAutres?'on':''}"><span class="ic">⋯</span>Plus</button>`;
+    })();
   }
   if(S.showAdd) modal=addModal();
   root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
@@ -873,6 +886,11 @@ function dashboard(){
         <button class="btn g full" data-act="export">↓ Exporter une sauvegarde</button>
         <button class="btn g full" data-act="import-open">↑ Importer une sauvegarde</button>
         <input type="file" id="imp-file" accept=".json,application/json" style="display:none">
+        ${(()=>{const ci=coachInfos();return `<div style="margin-bottom:12px"><div class="ph" style="font-size:13px">🧾 Mes coordonnées (reçus)</div>
+          <label class="fld" style="margin-bottom:8px"><span>Nom / raison sociale</span><input data-coach="nom" value="${esc(ci.nom||"")}" placeholder="Alexis — Alex Coaching"></label>
+          <label class="fld" style="margin-bottom:8px"><span>Adresse</span><input data-coach="adresse" value="${esc(ci.adresse||"")}" placeholder="Rue, code postal, ville"></label>
+          <label class="fld" style="margin-bottom:8px"><span>SIRET</span><input data-coach="siret" value="${esc(ci.siret||"")}" placeholder="123 456 789 00012"></label>
+          <label class="fld" style="margin-bottom:0"><span>N° carte professionnelle</span><input data-coach="carte" value="${esc(ci.carte||"")}" placeholder="0559..."></label></div>`;})()}
         <button class="btn g full" data-act="see-faq">❓ Voir la FAQ client</button>
         <button class="btn g full" data-act="change-pw">🔑 Changer mon mot de passe</button>
         <button class="btn g full" data-act="install-help">📲 Installer comme application</button>
@@ -912,14 +930,18 @@ function emptyClients(){
 }
 function detail(c){
   if(!c)return"";
-  const tabs=[["infos","Infos"],["programme","Prog."],["progres","Progrès"],["seances","Séances"],["messages","Msg"],["bilan","Bilan"],["nutrition","Nutri."]];
-  const unreadTab=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length>0;
-  const tabbar=tabs.map(([k,l])=>`<button data-act="dtab" data-dtab="${k}" class="${S.detailTab===k?'on':''}">${l}${k==='messages'&&unreadTab?'<span class="unread"></span>':''}</button>`).join("");
-  let inner=S.detailTab==="infos"?infosTab(c):S.detailTab==="programme"?programme(c,true):S.detailTab==="progres"?progres(c,true):S.detailTab==="messages"?messagesTab(c,true):S.detailTab==="bilan"?bilanTab(c,true):S.detailTab==="nutrition"?nutritionTab(c,true):seancesTab(c,true);
+  const tabs=[["infos","👤 Infos client"],["programme","▤ Programme"],["progres","◔ Progrès"],["seances","✓ Séances"],["messages","✉ Messagerie"],["bilan","◫ Bilan & mesures"],["nutrition","🍎 Nutrition"],["tests","📋 Tests physiques"]];
+  const unreadN=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
+  const cur=tabs.find(t2=>t2[0]===S.detailTab)||tabs[0];
+  const tabbar=`<label class="fld tabsel" style="margin-bottom:14px">
+    <span>Section${unreadN?` · <span style="color:var(--red)">${unreadN} message${unreadN>1?"s":""} non lu${unreadN>1?"s":""}</span>`:""}</span>
+    <select data-dsel>${tabs.map(([k,l])=>`<option value="${k}" ${S.detailTab===k?"selected":""}>${l}${k==='messages'&&unreadN?` (${unreadN})`:""}</option>`).join("")}</select>
+  </label>`;
+  let inner=S.detailTab==="infos"?infosTab(c):S.detailTab==="programme"?programme(c,true):S.detailTab==="progres"?progres(c,true):S.detailTab==="messages"?messagesTab(c,true):S.detailTab==="bilan"?bilanTab(c,true):S.detailTab==="tests"?testsTab(c,true):S.detailTab==="nutrition"?nutritionTab(c,true):seancesTab(c,true);
   return `<button class="back" data-act="back">‹ Clients</button>
     <div class="dhead"><div class="avatar" style="width:46px;height:46px;font-size:18px">${esc(c.nom.slice(0,1))}</div>
     <div><h2>${esc(c.nom)}</h2><div class="mini"><span class="tag ${c.formule==='Petit groupe'?'am':'em'}">${esc(c.formule)}</span><span class="tag ink">${esc(c.niveau)}</span></div></div></div>
-    <div class="tabbar">${tabbar}</div>${inner}`;
+    ${tabbar}${inner}`;
 }
 function infosTab(c){
   const opt=(arr,v)=>arr.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join("");
@@ -973,7 +995,7 @@ function infosTab(c){
         <button class="btn g full" style="margin-top:10px" data-act="pay-add">+ Enregistrer le paiement</button>
         ${ps.length?[...ps].reverse().map((p2,ri)=>`<div class="mrow" style="margin-top:8px"><div style="flex:1;display:flex;justify-content:space-between;align-items:center">
           <span class="md" style="margin-left:0">${frDate(p2.date)}${p2.note?` · ${esc(p2.note)}`:""}</span>
-          <span style="display:flex;align-items:center;gap:8px"><b style="color:#4CAF50">${(+p2.montant||0).toFixed(0)} €</b><button class="x" data-act="pay-del" data-idx="${ps.length-1-ri}">×</button></span>
+          <span style="display:flex;align-items:center;gap:8px"><b style="color:#4CAF50">${(+p2.montant||0).toFixed(0)} €</b><button class="x" style="font-size:13px" data-act="pay-recu" data-idx="${ps.length-1-ri}" title="Reçu">🧾</button><button class="x" data-act="pay-del" data-idx="${ps.length-1-ri}">×</button></span>
         </div></div>`).join(""):""}`;})()}
     </div>
     <div class="panel" style="margin-bottom:14px">
@@ -1161,6 +1183,181 @@ function faqTab(){
       </div>`;}).join("")}`).join("")}`;
 }
 
+
+/* ===== 1RM ESTIMÉ (Epley / Brzycki) ===== */
+function rm1Epley(charge,reps){ return reps<=1?charge:charge*(1+reps/30); }
+function rm1Brzycki(charge,reps){ const d=1.0278-0.0278*reps; return (reps<=1||d<=0)?charge:charge/d; }
+function rm1Estime(charge,reps){
+  const c=parseFloat(String(charge).replace(",",".")), r=parseInt(reps);
+  if(!c||!r||r<1||r>12) return null;
+  const e=rm1Epley(c,r), b=rm1Brzycki(c,r);
+  return {epley:Math.round(e*2)/2, brzycki:Math.round(b*2)/2, moy:Math.round((e+b)/2*2)/2};
+}
+const PCT_1RM=[[100,1],[95,2],[90,4],[85,6],[80,8],[75,10],[70,12],[65,15],[60,20]];
+function rm1Panel(){
+  const c=parseFloat(String(S.rmCharge||"").replace(",",".")), r=parseInt(S.rmReps||"");
+  const res=rm1Estime(S.rmCharge,S.rmReps);
+  return `<div class="panel" style="margin-bottom:14px">
+    <div class="ph">🏋️ Calculateur de 1RM</div>
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px">Estime la charge maximale sur 1 répétition sans faire tester un maxi — plus sûr, surtout chez un débutant.</p>
+    <div class="r2">
+      <label class="fld" style="margin-bottom:8px"><span>Charge soulevée (kg)</span><input id="rm-charge" inputmode="decimal" placeholder="60" value="${esc(S.rmCharge||"")}"></label>
+      <label class="fld" style="margin-bottom:8px"><span>Répétitions (1 à 12)</span><input id="rm-reps" inputmode="numeric" placeholder="8" value="${esc(S.rmReps||"")}"></label>
+    </div>
+    ${res?`
+      <div class="pstats" style="margin-bottom:10px">
+        <div class="pstat"><div class="pv">${String(res.epley).replace(".",",")}</div><div class="pl">Epley</div></div>
+        <div class="pstat"><div class="pv">${String(res.brzycki).replace(".",",")}</div><div class="pl">Brzycki</div></div>
+        <div class="pstat target"><div class="pv">${String(res.moy).replace(".",",")}</div><div class="pl">1RM retenu (kg)</div></div>
+      </div>
+      <div class="ph" style="font-size:13px">Charges de travail correspondantes</div>
+      ${PCT_1RM.map(([p,rr])=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)">
+        <span style="color:var(--grey)">${p} % <span style="color:var(--grey2)">· ~${rr} rép.</span></span>
+        <b style="color:${p>=90?"var(--red)":p>=75?"var(--amber)":"#4CAF50"}">${String(Math.round(res.moy*p/100*2)/2).replace(".",",")} kg</b>
+      </div>`).join("")}
+      <p class="muted" style="font-size:11px;margin-top:8px">Estimation valable jusqu'à 12 répétitions ; au-delà, l'écart devient important. Ne remplace pas un test encadré.</p>
+    `:`<p class="muted" style="font-size:12.5px">Saisis une charge et un nombre de répétitions (1 à 12).</p>`}
+  </div>`;
+}
+
+
+/* ===== TESTS DE CONDITION PHYSIQUE ===== */
+const TESTS=[
+ {id:"ruffier",nom:"Ruffier-Dickson",unite:"indice",desc:"30 flexions en 45 s. Pouls repos (P0), juste après (P1), après 1 min (P2).",
+  champs:[["p0","Pouls repos"],["p1","Pouls après effort"],["p2","Pouls après 1 min"]],
+  calc:v=>((v.p0+v.p1+v.p2-200)/10),
+  norme:x=>x<0?"Excellent":x<3?"Très bon":x<6?"Bon":x<8?"Moyen":x<10?"Faible":"Très faible",
+  sens:"bas"},
+ {id:"shirado",nom:"Shirado (gainage ventral)",unite:"s",desc:"Maintien en position, dos plaqué, genoux fléchis.",
+  champs:[["v","Temps tenu (secondes)"]],calc:v=>v.v,
+  norme:x=>x>=180?"Excellent":x>=120?"Très bon":x>=90?"Bon":x>=60?"Moyen":"À renforcer",sens:"haut"},
+ {id:"sorensen",nom:"Sørensen (gainage lombaire)",unite:"s",desc:"Buste dans le vide, tronc à l'horizontale.",
+  champs:[["v","Temps tenu (secondes)"]],calc:v=>v.v,
+  norme:x=>x>=180?"Excellent":x>=120?"Très bon":x>=90?"Bon":x>=60?"Moyen":"À renforcer",sens:"haut"},
+ {id:"planche",nom:"Gainage planche",unite:"s",desc:"Appui avant-bras et pointes de pieds, corps aligné.",
+  champs:[["v","Temps tenu (secondes)"]],calc:v=>v.v,
+  norme:x=>x>=180?"Excellent":x>=120?"Très bon":x>=60?"Bon":x>=30?"Moyen":"À renforcer",sens:"haut"},
+ {id:"chaise",nom:"Chaise (endurance quadriceps)",unite:"s",desc:"Dos au mur, cuisses à l'horizontale.",
+  champs:[["v","Temps tenu (secondes)"]],calc:v=>v.v,
+  norme:x=>x>=120?"Excellent":x>=90?"Très bon":x>=60?"Bon":x>=30?"Moyen":"À renforcer",sens:"haut"},
+ {id:"tug",nom:"Timed Up and Go",unite:"s",desc:"Se lever, marcher 3 m, faire demi-tour, se rasseoir.",
+  champs:[["v","Temps (secondes)"]],calc:v=>v.v,
+  norme:x=>x<10?"Autonomie normale":x<14?"Bon":x<20?"Mobilité réduite":"Risque de chute — prudence",sens:"bas"},
+ {id:"wblt",nom:"Weight Bearing Lunge (cheville)",unite:"cm",desc:"Distance orteil-mur, genou touchant le mur, talon au sol.",
+  champs:[["v","Distance (cm)"]],calc:v=>v.v,
+  norme:x=>x>=12?"Excellent":x>=10?"Normal":x>=8?"Limité":"Très limité",sens:"haut"},
+ {id:"souplesse",nom:"Souplesse (doigts-sol)",unite:"cm",desc:"Debout, jambes tendues, distance doigts-sol (négatif = dépassement).",
+  champs:[["v","Distance (cm)"]],calc:v=>v.v,
+  norme:x=>x<=0?"Excellent":x<=10?"Bon":x<=20?"Moyen":"Raideur marquée",sens:"bas"},
+ {id:"unipodal",nom:"Équilibre unipodal",unite:"s",desc:"Tenir sur un pied, yeux ouverts, mains sur les hanches.",
+  champs:[["v","Temps tenu (secondes)"]],calc:v=>v.v,
+  norme:x=>x>=45?"Excellent":x>=30?"Bon":x>=15?"Moyen":"À travailler",sens:"haut"},
+ {id:"pompes",nom:"Pompes (max en une série)",unite:"rép.",desc:"Nombre maximum, amplitude complète.",
+  champs:[["v","Répétitions"]],calc:v=>v.v,
+  norme:x=>x>=40?"Excellent":x>=25?"Très bon":x>=15?"Bon":x>=8?"Moyen":"À renforcer",sens:"haut"}
+];
+function testsTab(c,editable){
+  const hist=(c.tests||[]);
+  const form=editable?`
+    <div class="panel" style="margin-bottom:14px"><div class="ph">Nouveau test</div>
+      <label class="fld"><span>Test</span><select id="tst-id">${TESTS.map(t2=>`<option value="${t2.id}" ${S.tstSel===t2.id?"selected":""}>${t2.nom}</option>`).join("")}</select></label>
+      ${(()=>{const t2=TESTS.find(x=>x.id===(S.tstSel||TESTS[0].id));
+        return `<p class="muted" style="font-size:12.5px;margin:-6px 0 10px">${esc(t2.desc)}</p>
+        ${t2.champs.map(([k,lab])=>`<label class="fld"><span>${lab}</span><input id="tst-${k}" inputmode="decimal" placeholder="—"></label>`).join("")}`;})()}
+      <button class="btn p full" data-act="tst-add">Enregistrer le test</button>
+    </div>`:"";
+  const byTest={};
+  hist.forEach(h=>{ (byTest[h.id]=byTest[h.id]||[]).push(h); });
+  const rows=Object.keys(byTest).map(id=>{
+    const t2=TESTS.find(x=>x.id===id); if(!t2) return "";
+    const l=byTest[id]; const last=l[l.length-1], first=l[0];
+    const delta=(l.length>=2)?+(last.val-first.val).toFixed(1):null;
+    const mieux=delta===null?null:(t2.sens==="haut"?delta>0:delta<0);
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div class="exn">${esc(t2.nom)}</div>
+          <div class="exd">${String(last.val).replace(".",",")} ${t2.unite} · <b style="color:var(--amber)">${esc(t2.norme(last.val))}</b></div>
+          <div class="md" style="margin-left:0">${frDate(last.date)}${l.length>1?` · ${l.length} mesures`:""}</div>
+          ${delta!==null?`<div style="font-size:12.5px;color:${mieux?"#4CAF50":"#FF6B6B"};margin-top:2px">${delta>0?"+":""}${String(delta).replace(".",",")} ${t2.unite} depuis le premier test</div>`:""}
+        </div>
+        ${editable?`<button class="x" data-act="tst-del" data-id="${id}">×</button>`:""}
+      </div>
+    </div>`;
+  }).join("");
+  return form+(rows||`<p class="muted">Aucun test enregistré${editable?" — ajoute le premier ci-dessus.":"."}</p>`);
+}
+
+
+/* ===== REÇU / FACTURE (micro-entreprise) ===== */
+function coachInfos(){
+  try{ return JSON.parse(localStorage.getItem("coach_infos")||"{}"); }catch(e){ return {}; }
+}
+function setCoachInfo(k,v){
+  const o=coachInfos(); o[k]=v;
+  try{ localStorage.setItem("coach_infos",JSON.stringify(o)); }catch(e){}
+}
+function nextFactureNum(){
+  const o=coachInfos(); const y=new Date().getFullYear();
+  const n=(o["num_"+y]||0)+1;
+  setCoachInfo("num_"+y,n);
+  return y+"-"+String(n).padStart(3,"0");
+}
+function recuHTML(c,pay,num){
+  const ci=coachInfos();
+  const d=frDate(pay.date);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reçu ${num}</title>
+  <style>@media print{.no-print{display:none !important}}</style></head>
+  <body style="font-family:Arial,sans-serif;color:#222;max-width:640px;margin:0 auto;padding:0">
+    <div class="no-print" style="position:sticky;top:0;background:#0D0B0A;padding:12px 16px;display:flex;justify-content:space-between;gap:10px">
+      <a href="${esc(location.origin+location.pathname)}" style="color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:8px 14px">‹ Retour à l'appli</a>
+      <button onclick="window.print()" style="background:#B01F1F;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13.5px;font-weight:700">🖨 Imprimer / PDF</button>
+    </div>
+    <div style="padding:24px 20px">
+      <div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #B01F1F;padding-bottom:14px;margin-bottom:18px">
+        <img src="${LOGO}" style="width:64px">
+        <div><div style="font-size:20px;font-weight:800;letter-spacing:.04em">ALEX COACHING</div>
+        <div style="color:#777;font-size:12.5px">Coach sportif — Éducateur sportif</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:20px;margin-bottom:20px;font-size:13px">
+        <div style="flex:1">
+          <div style="font-weight:700;margin-bottom:4px">Prestataire</div>
+          <div>${esc(ci.nom||"Alexis — Alex Coaching")}</div>
+          ${ci.adresse?`<div>${esc(ci.adresse)}</div>`:""}
+          ${ci.siret?`<div>SIRET : ${esc(ci.siret)}</div>`:`<div style="color:#c00">SIRET : à renseigner</div>`}
+          ${ci.carte?`<div>Carte pro : ${esc(ci.carte)}</div>`:""}
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;margin-bottom:4px">Client</div>
+          <div>${esc(c.nom)}</div>
+          ${c.clientEmail?`<div style="color:#777">${esc(c.clientEmail)}</div>`:""}
+        </div>
+      </div>
+      <div style="background:#F6F1EC;border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:13.5px">
+        <b>Reçu n° ${esc(num)}</b> — émis le ${frDate(today())}
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px">
+        <tr style="background:#B01F1F;color:#fff"><th style="padding:8px 10px;text-align:left">Prestation</th><th style="padding:8px 10px;text-align:right">Montant</th></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #ddd">
+          ${esc(pay.note||"Prestation de coaching sportif")}<div style="color:#777;font-size:12px">Réglé le ${d}${c.formule?` · Formule ${esc(c.formule)}`:""}</div>
+        </td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right;font-weight:700">${(+pay.montant||0).toFixed(2)} €</td></tr>
+        <tr><td style="padding:10px;text-align:right;font-weight:700">Total réglé</td>
+            <td style="padding:10px;text-align:right;font-weight:800;font-size:16px">${(+pay.montant||0).toFixed(2)} €</td></tr>
+      </table>
+      <p style="font-size:12px;color:#555;line-height:1.6">TVA non applicable, article 293 B du Code général des impôts.<br>
+      Reçu libératoire pour la prestation ci-dessus. Document à conserver.</p>
+      <p style="margin-top:24px;font-size:11px;color:#999;text-align:center">Alex Coaching — Change ton corps. Transforme ta vie.</p>
+    </div>
+  </body></html>`;
+}
+function printRecu(c,pay){
+  const num=nextFactureNum();
+  const w=window.open("","_blank");
+  if(!w){ alert("Autorisez les pop-ups pour générer le reçu."); return; }
+  w.document.write(recuHTML(c,pay,num)); w.document.close();
+  setTimeout(()=>{ try{w.print();}catch(e){} },400);
+}
+
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
   const now=new Date(), m=now.getMonth(), y=now.getFullYear();
@@ -1322,7 +1519,7 @@ function programme(c,editable){
     <p class="muted" style="font-size:12px;margin-top:6px">Pour réactiver : change la date de fin ci-dessus (son historique est intact).</p>
   </div>`:"";
   const pdfBtn=prog.length?`<button class="btn g full" style="margin-bottom:12px" data-act="print-prog">🖨 Imprimer / PDF le programme</button>`:"";
-  return progHeader+endedWarn+pdfBtn+list+form;
+  return progHeader+endedWarn+pdfBtn+list+form+(editable?rm1Panel():"");
 }
 function progres(c,editable){
   const ms=c.mesures||[];
@@ -1511,7 +1708,7 @@ function clientSpace(c){
           :`<button class="btn p full" data-act="start-wk" data-jour="${esc(jour)}" style="padding:12px">▶ Commencer la séance</button>`}
       </div>`;})()}
     <div style="margin-top:10px;font-size:12.5px;font-style:italic;color:rgba(255,255,255,.75)">« ${quoteOfDay()} »</div></div>`;
-  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="faq"?faqTab():S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
+  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="faq"?faqTab():S.clientTab==="tests"?testsTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
   return banner+inner;
 }
 function addModal(){
@@ -3003,6 +3200,31 @@ document.addEventListener("click",e=>{
       break; }
     case "role": S.role=t.dataset.role; if(S.role==="client"&&!S.selectedId&&S.clients[0]) S.selectedId=S.clients[0].id; render(); break;
     case "nav": S.view=t.dataset.view; render(); break;
+    case "client-plus":{
+      const items=[["bilan","◫","Bilan & mesures","Tes mensurations, ton IMC et tes photos"],
+                   ["nutrition","🍎","Nutrition","Ton plan alimentaire et tes repères"],
+                   ["tests","📋","Tests physiques","Tes résultats aux tests et ta progression"],
+                   ["faq","❓","Aide","Réponses aux questions fréquentes"]];
+      const ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px";
+      ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:420px;width:100%;margin-bottom:calc(64px + env(safe-area-inset-bottom))">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0">Plus</h3>
+          <button class="x" data-close-plus style="font-size:22px">×</button>
+        </div>
+        ${items.map(([k,ic,titre,sous])=>`<button type="button" class="btn ${S.clientTab===k?"p":"g"} full" style="margin-bottom:8px;text-align:left;padding:13px 14px;display:flex;gap:12px;align-items:center" data-goto="${k}">
+          <span style="font-size:20px;flex:0 0 auto">${ic}</span>
+          <span style="flex:1;min-width:0"><span style="display:block;font-size:14.5px;font-weight:700">${titre}</span>
+          <span style="display:block;font-size:12px;color:${S.clientTab===k?"rgba(255,255,255,.8)":"var(--grey2)"};white-space:normal;line-height:1.35;margin-top:1px">${sous}</span></span>
+        </button>`).join("")}
+      </div>`;
+      ov.addEventListener("click",ev=>{
+        if(ev.target===ov||ev.target.closest("[data-close-plus]")){ ov.remove(); return; }
+        const b2=ev.target.closest("[data-goto]"); if(!b2) return;
+        S.clientTab=b2.dataset.goto; ov.remove(); render();
+      });
+      document.body.appendChild(ov);
+      break; }
     case "nav-client": S.clientTab=t.dataset.ctab;
       render();
       if(t.dataset.ctab==="messages"){ reloadKeepingView(); }
@@ -3084,6 +3306,30 @@ document.addEventListener("click",e=>{
       });
       document.body.appendChild(ov);
       break; }
+    case "tst-add":{ if(!c) break;
+      const tid=val("tst-id")||TESTS[0].id;
+      const t2=TESTS.find(x=>x.id===tid); if(!t2) break;
+      const vals={}; let manque=false;
+      t2.champs.forEach(([k])=>{ const v=parseFloat((val("tst-"+k)||"").replace(",",".")); if(isNaN(v)) manque=true; vals[k]=v; });
+      if(manque){ alert("Renseigne toutes les valeurs du test."); break; }
+      const res=Math.round(t2.calc(vals)*10)/10;
+      c.tests=c.tests||[];
+      c.tests.push({id:tid,date:today(),val:res});
+      if(c.tests.length>60) c.tests=c.tests.slice(-60);
+      patchField(c,"tests",err=>toast(err?"Erreur":"Test enregistré — "+t2.norme(res)));
+      render(); break; }
+    case "tst-del":{ if(!c) break;
+      if(!confirm("Supprimer tout l'historique de ce test ?")) break;
+      c.tests=(c.tests||[]).filter(x=>x.id!==t.dataset.id);
+      patchField(c,"tests",()=>{}); render(); break; }
+    case "pay-recu":{ if(!c) break;
+      const pay=(c.paiements||[])[+t.dataset.idx]; if(!pay) break;
+      const ci=coachInfos();
+      if(!ci.siret){
+        const sr=prompt("Ton numéro SIRET (obligatoire sur un reçu) :","");
+        if(sr&&sr.trim()) setCoachInfo("siret",sr.trim());
+      }
+      printRecu(c,pay); break; }
     case "faq-toggle": S.faqOpen=(S.faqOpen===t.dataset.key)?null:t.dataset.key; render(); break;
     case "see-faq":{
       const ov=document.createElement("div");
@@ -3470,6 +3716,16 @@ document.addEventListener("click",e=>{
   }
 });
 document.addEventListener("input",e=>{
+  const co=e.target.closest("[data-coach]");
+  if(co){ setCoachInfo(co.dataset.coach,co.value); return; }
+  if(e.target.id==="rm-charge"||e.target.id==="rm-reps"){
+    const k=e.target.id==="rm-charge"?"rmCharge":"rmReps";
+    S[k]=e.target.value; const pos=e.target.selectionStart, id=e.target.id;
+    render();
+    const el4=document.getElementById(id);
+    if(el4){ el4.focus(); try{el4.setSelectionRange(pos,pos);}catch(_){} }
+    return;
+  }
   const ef=e.target.closest("[data-exofilter]");
   if(ef){
     const wrap=ef.closest(".exopicker"); if(!wrap) return;
@@ -3501,6 +3757,12 @@ document.addEventListener("input",e=>{
   const c=sel(); if(!c) return; c[el.dataset.bind]=el.value; save();
 });
 document.addEventListener("change",e=>{
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-dsel")){
+    S.detailTab=e.target.value; render();
+    if(S.detailTab==="messages") reloadKeepingView();
+    return;
+  }
+  if(e.target.id==="tst-id"){ S.tstSel=e.target.value; render(); return; }
   if(e.target.id==="tpl-maison"){ if(S.tplEdit) S.tplEdit.maison=e.target.checked; return; }
   const pk=e.target.closest("[data-pick]");
   if(pk){ const inp=document.getElementById(pk.dataset.pick);
