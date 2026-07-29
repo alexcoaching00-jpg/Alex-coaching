@@ -428,7 +428,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v6.9 — 22/07/2026";
+const APP_VERSION="v7.0 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2128,6 +2128,28 @@ const MENUS=[
    {t:"Collation",items:[["cottage",150],["fruits_sec",30]]},
    {t:"Dîner",items:[["crevettes",180],["riz_c",90],["haricots_v",200],["huile",10]]}]}
 ];
+
+/* Catégorie de chaque aliment : on ne propose que des remplacements équivalents */
+const CAT_ALIM={
+  feculent:["oat","riz","riz_c","pates","quinoa","semoule","boulgour","sarrasin","pdt","patate_d","pain","pain_cpl","wasa","galette_r","muesli"],
+  legumineuse:["lentilles","pois_ch","haricots_r","pois_cass"],
+  proteine:["poulet","dinde","steak5","boeuf","porc_f","jambon","saumon","thon","poisson","colin","maquereau","sardines","crevettes","oeuf","blanc_oeuf","tofu","tempeh","steak_veg"],
+  laitier:["lait","lait_veg","skyr","fromage_b","yaourt","yaourt_g","cottage","mozza","parmesan","comte"],
+  fruit:["banane","pomme","poire","orange","kiwi","ananas","mangue","raisin","friuts_r","pasteque","clementine","fruits_sec","dattes","compote"],
+  legume:["legumes","brocoli","courgette","haricots_v","epinards","carotte","tomate","poivron","salade","champignons","chou_f","betterave"],
+  lipide:["huile","huile_colza","beurre","avocat","amandes","noix","noisettes","cajou","pb","purée_am","graines_ch","graines_lin","graines_c","olives"],
+  sucrant:["miel","sirop_er","cacao","choco_n","confiture"],
+  supplement:["whey","caseine"]
+};
+function catOf(id){ for(const k in CAT_ALIM){ if(CAT_ALIM[k].includes(id)) return k; } return ""; }
+function alternativesFor(id){
+  const cat=catOf(id); if(!cat) return [];
+  return CAT_ALIM[cat].filter(x=>x!==id);
+}
+const CAT_LABEL={feculent:"Féculents",legumineuse:"Légumineuses",proteine:"Protéines",laitier:"Produits laitiers",fruit:"Fruits",legume:"Légumes",lipide:"Bonnes graisses",sucrant:"Sucrants",supplement:"Compléments"};
+/* Remplacements choisis (par le coach ou le client) : {idOrigine:idRemplacant} */
+function getSwaps(c){ return (c.nutrition&&c.nutrition.swaps)||{}; }
+
 function nutriMenu(c){
   const info=nutriInfo(c); if(!info) return null;
   const nsel=(c.nutrition&&c.nutrition.menu)||1;
@@ -2147,15 +2169,20 @@ function nutriMenu(c){
   const baseTotal=menu.repas.reduce((t,r2)=>t+r2.items.reduce((t2,[id,q])=>t2+kcalOf(id,q),0),0);
   const kf=info.cible/baseTotal;
   let totJ=0;
+  const swaps=getSwaps(c);
   const repas=menu.repas.map(r2=>{
     let tot=0;
     const items=r2.items.map(([id,base])=>{
-      const a=ALIMENTS[id];
+      // Remplacement éventuel : on vise les MÊMES calories que l'aliment d'origine
+      const origA=ALIMENTS[id];
+      const newId=(swaps[id]&&ALIMENTS[swaps[id]])?swaps[id]:id;
+      const a=ALIMENTS[newId];
+      const kcalCible=(origA.u?origA.k*base:origA.k*base/100)*kf;
       let q,label,kcal;
-      if(a.u){ q=Math.max(1,Math.round(base*kf)); kcal=Math.round(a.k*q); label=q+" "+a.n.toLowerCase()+(q>1?"s":""); }
-      else{ q=Math.max(5,Math.round(base*kf/5)*5); kcal=Math.round(a.k*q/100); label=a.n+" — "+q+(a.ml?" ml":" g"); }
+      if(a.u){ q=Math.max(1,Math.round(kcalCible/a.k)); kcal=Math.round(a.k*q); label=q+" "+a.n.toLowerCase()+(q>1?"s":""); }
+      else{ q=Math.max(5,Math.round(kcalCible/a.k*100/5)*5); kcal=Math.round(a.k*q/100); label=a.n+" — "+q+(a.ml?" ml":" g"); }
       tot+=kcal;
-      return {label,kcal};
+      return {label,kcal,id,newId,swapped:newId!==id};
     });
     totJ+=tot;
     return {t:r2.t,items,tot};
@@ -2231,9 +2258,10 @@ function nutritionTab(c,editable){
         <span class="exn" style="font-size:15px">${esc(r2.t)}</span>
         <span style="color:var(--amber);font-family:'Bebas Neue';font-size:16px;letter-spacing:.04em">≈ ${r2.tot} kcal</span>
       </div>
-      ${r2.items.map(it=>`<div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--white2);padding:4px 0;border-bottom:1px solid var(--line)">
-        <span>${esc(it.label)}</span><span style="color:var(--grey2)">${it.kcal} kcal</span>
-      </div>`).join("")}
+      ${r2.items.map(it=>`<button type="button" class="food-row" data-act="swap-food" data-fid="${esc(it.id)}" style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:8px;font-size:13.5px;color:var(--white2);padding:8px 0;border:none;border-bottom:1px solid var(--line);background:none;text-align:left;font-family:inherit;cursor:pointer">
+        <span style="flex:1;min-width:0">${esc(it.label)} ${it.swapped?'<span style="color:#4CAF50;font-size:11px">↔ remplacé</span>':''}</span>
+        <span style="color:var(--grey2);white-space:nowrap">${it.kcal} kcal <span style="color:var(--red);font-size:11px">↔</span></span>
+      </button>`).join("")}
     </div>`).join("");
   const totalLine=`<div class="panel" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
     <span style="font-size:14px;color:var(--white)">Total de la journée</span>
@@ -2250,6 +2278,10 @@ function nutritionTab(c,editable){
     <p class="muted" style="font-size:11px;margin-top:8px">Compléments en vente libre : choisir des produits certifiés (norme anti-dopage AFNOR NF V94-001) et vérifier l'absence de contre-indications médicales.</p>
   </div>`:"";
   const swaps=suppPanel+`<div class="panel" style="margin-bottom:12px">
+    <div class="ph" style="font-size:13px">💡 Personnaliser</div>
+    <p style="font-size:13px;color:var(--white2);line-height:1.5;margin-bottom:8px">Appuie sur n'importe quel aliment du plan pour le remplacer par un équivalent — les grammages s'ajustent pour garder les mêmes calories.</p>
+    ${Object.keys(getSwaps(c)).length?`<button class="link" style="font-size:12.5px;padding:0" data-act="swap-reset">↺ Rétablir les aliments d'origine</button>`:""}
+  </div>`+`<div class="panel" style="margin-bottom:12px">
     <div class="ph" style="font-size:13px">Équivalences libres</div>
     <p style="font-size:13px;color:var(--white2);line-height:1.5">Poulet ↔ dinde ↔ poisson blanc ↔ tofu · Riz ↔ pâtes ↔ quinoa ↔ semoule · Amandes ↔ noix ↔ noisettes · Skyr ↔ fromage blanc · Légumes : variez à volonté.</p>
   </div>`;
@@ -2970,6 +3002,40 @@ document.addEventListener("click",e=>{
       const idx2=S.tplEdit.program.findIndex(x=>x.id===t.dataset.id); if(idx2<0) break;
       S.tplEdit.program.splice(idx2+1,0,{...S.tplEdit.program[idx2],id:uid(),historique:[]});
       render(); toast("Exercice dupliqué"); break; }
+    case "swap-food":{ if(!c) break;
+      const fid=t.dataset.fid; const alts=alternativesFor(fid);
+      if(!alts.length){ toast("Aucun équivalent pour cet aliment"); break; }
+      const cur=(getSwaps(c)[fid])||fid;
+      const ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px";
+      ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:420px;width:100%;max-height:75vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0">Remplacer par…</h3>
+          <button class="x" data-close-swap style="font-size:22px">×</button>
+        </div>
+        <p class="muted" style="font-size:12px;margin-bottom:12px">${esc(CAT_LABEL[catOf(fid)]||"")} — les quantités s'ajusteront automatiquement.</p>
+        <button class="btn ${cur===fid?"p":"g"} full" style="margin-bottom:8px;text-align:left;padding:12px 14px" data-swap-to="${esc(fid)}" data-swap-from="${esc(fid)}">
+          ${esc(ALIMENTS[fid].n)} <span style="font-size:11px;color:${cur===fid?"rgba(255,255,255,.8)":"var(--grey2)"}">· d'origine</span></button>
+        ${alts.map(a2=>`<button class="btn ${cur===a2?"p":"g"} full" style="margin-bottom:8px;text-align:left;padding:12px 14px" data-swap-to="${esc(a2)}" data-swap-from="${esc(fid)}">
+          ${esc(ALIMENTS[a2].n)} <span style="font-size:11px;color:var(--grey2)">· ${ALIMENTS[a2].k} kcal/${ALIMENTS[a2].u?"unité":"100 g"}</span></button>`).join("")}
+      </div>`;
+      ov.addEventListener("click",ev=>{
+        if(ev.target===ov||ev.target.closest("[data-close-swap]")){ ov.remove(); return; }
+        const btn=ev.target.closest("[data-swap-to]"); if(!btn) return;
+        const from=btn.dataset.swapFrom, to=btn.dataset.swapTo;
+        const cc=sel(); if(!cc){ ov.remove(); return; }
+        cc.nutrition=cc.nutrition||{};
+        cc.nutrition.swaps={...(cc.nutrition.swaps||{})};
+        if(to===from) delete cc.nutrition.swaps[from]; else cc.nutrition.swaps[from]=to;
+        patchField(cc,"nutrition",err=>toast(err?"Erreur":"Aliment remplacé ✓"));
+        ov.remove(); render();
+      });
+      document.body.appendChild(ov);
+      break; }
+    case "swap-reset":{ if(!c) break;
+      if(!confirm("Rétablir tous les aliments d'origine ?")) break;
+      c.nutrition=c.nutrition||{}; c.nutrition.swaps={};
+      patchField(c,"nutrition",()=>{}); render(); break; }
     case "toggle-spark": S.sparkOpen=(S.sparkOpen===t.dataset.id)?null:t.dataset.id; render(); break;
     case "ex-up": if(c&&swapExInBloc(c.program,t.dataset.id,-1)){ save(); render(); } break;
     case "ex-down": if(c&&swapExInBloc(c.program,t.dataset.id,1)){ save(); render(); } break;
