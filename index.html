@@ -428,7 +428,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v7.0 — 22/07/2026";
+const APP_VERSION="v7.1 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -708,7 +708,7 @@ function render(){
       <button data-act="logout" style="border:none;background:var(--ink2);color:#E8DCD0;border-radius:999px;padding:6px 12px;font-family:'Archivo';font-weight:700;font-size:12px;cursor:pointer">Quitter</button></div>
       ${S.clients.length>0?`<div class="pick"><label>Vous êtes</label><select data-act="pick-client">${S.clients.map(cl=>`<option value="${cl.id}" ${cl.id===S.selectedId?'selected':''}>${esc(cl.nom)}</option>`).join("")}</select></div>`:`<p class="sub">Espace client</p>`}</header>`;
     const body=clientSpace(cc);
-    const nav=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutri","🍎"]].map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
+    const nav=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutri","🍎"],["faq","Aide","?"]].map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
     root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div></div>`;
     return;
   }
@@ -726,7 +726,7 @@ function render(){
   if(S.role==="coach"){
     nav=[["dashboard","Accueil","◆"],["clients","Clients","☰"],["programmes","Programmes","▤"]].map(([k,l,i])=>`<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':(k==='programmes'&&S.view==='programmes')?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
   }else{
-    nav=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutri","🍎"]].map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
+    nav=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutri","🍎"],["faq","Aide","?"]].map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
   }
   if(S.showAdd) modal=addModal();
   root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
@@ -873,6 +873,7 @@ function dashboard(){
         <button class="btn g full" data-act="export">↓ Exporter une sauvegarde</button>
         <button class="btn g full" data-act="import-open">↑ Importer une sauvegarde</button>
         <input type="file" id="imp-file" accept=".json,application/json" style="display:none">
+        <button class="btn g full" data-act="see-faq">❓ Voir la FAQ client</button>
         <button class="btn g full" data-act="change-pw">🔑 Changer mon mot de passe</button>
         <button class="btn g full" data-act="install-help">📲 Installer comme application</button>
         <button class="btn g full" data-act="logout">Se déconnecter</button>
@@ -1114,6 +1115,52 @@ function exoIcon(nom,size){
   </svg>`;
 }
 
+
+/* ===== FOIRE AUX QUESTIONS (visible par le client) ===== */
+const FAQ=[
+ ["Entraînement",[
+  ["J'ai des courbatures, je m'entraîne quand même ?","Des courbatures légères ne t'empêchent pas de t'entraîner : bouge, échauffe-toi bien, et adapte les charges. Si la douleur est vive, localisée ou articulaire, préviens-moi avant la séance."],
+  ["Combien de séances par semaine ?","2 à 3 séances suffisent pour progresser durablement quand elles sont bien construites. La régularité sur plusieurs mois compte davantage que le nombre de séances sur une semaine."],
+  ["Je n'ai pas le temps de tout faire, je fais quoi ?","Priorise les premiers exercices de la séance : ce sont les plus importants. Mieux vaut 3 exercices bien faits que 6 bâclés."],
+  ["Combien de temps de repos entre les séries ?","Le temps indiqué sur chaque exercice. En général : 60-90 s sur les exercices d'isolation, 2 à 3 min sur les gros mouvements (squat, soulevé de terre, développé)."],
+  ["Je stagne, c'est normal ?","Oui, la progression n'est jamais linéaire. Des paliers de 2-3 semaines sont normaux. Si ça dure plus longtemps, on ajuste ensemble le programme, le sommeil ou l'alimentation."],
+  ["Cardio avant ou après la musculation ?","Après, ou sur une autre séance. Faire du cardio avant réduit la performance sur les charges."]]],
+ ["Nutrition",[
+  ["Je dois tout peser ?","Au début, peser aide à comprendre les quantités. Après quelques semaines, l'œil suffit. L'objectif est l'autonomie, pas la balance à vie."],
+  ["Je n'aime pas un aliment du plan","Appuie dessus dans l'onglet Nutrition : tu peux le remplacer par un équivalent, les quantités s'ajustent automatiquement."],
+  ["J'ai craqué ce week-end, c'est fichu ?","Absolument pas. Un écart ne remet pas en cause plusieurs semaines de travail. Reprends simplement le plan dès le repas suivant, sans compenser en sautant des repas."],
+  ["Je peux boire de l'alcool ?","Occasionnellement, oui. Retiens que l'alcool apporte des calories (7 kcal/g), perturbe le sommeil et la récupération. À limiter surtout en phase de perte de poids."],
+  ["Combien d'eau par jour ?","1,5 à 2 L, davantage les jours d'entraînement ou de forte chaleur."],
+  ["Les compléments sont-ils obligatoires ?","Non. La whey est un dépannage pratique, pas une nécessité. La créatine est le seul supplément avec un effet clairement démontré sur la force. Les BCAA sont inutiles si tu atteins tes protéines."]]],
+ ["Résultats & suivi",[
+  ["En combien de temps je vois des résultats ?","Les premières sensations arrivent en 2-3 semaines (énergie, force). Les changements visibles prennent 8 à 12 semaines de régularité."],
+  ["Mon poids ne bouge pas mais je me sens mieux","C'est bon signe : tu perds de la masse grasse et gagnes du muscle. C'est pour ça qu'on suit aussi le tour de taille et les photos, pas seulement la balance."],
+  ["Quand se peser ?","Une fois par semaine, le matin à jeun, toujours le même jour. Le poids varie de 1 à 2 kg dans une journée, c'est normal."],
+  ["Je pars en vacances, je fais quoi ?","Dis-le moi avant : je peux te préparer un programme maison sans matériel. Bouger un minimum vaut mieux qu'un arrêt complet."]]],
+ ["Pratique",[
+  ["Comment noter mes charges ?","Dans ton programme, appuie sur « + Noter la charge » sous l'exercice. Ça alimente ta courbe de progression et détecte tes records."],
+  ["Comment lancer une séance guidée ?","Depuis ton accueil, bouton « ▶ Commencer la séance », ou dans l'onglet Programme sur le jour voulu. L'appli te guide série par série avec le minuteur."],
+  ["Je ne peux pas venir à ma séance","Préviens-moi le plus tôt possible par la messagerie, on replanifie ensemble."],
+  ["Comment installer l'appli sur mon téléphone ?","iPhone : bouton Partager dans Safari → « Sur l'écran d'accueil ». Android : menu ⋮ de Chrome → « Ajouter à l'écran d'accueil ». Tu l'auras ensuite comme une vraie application."],
+  ["J'ai oublié mon mot de passe","Sur l'écran de connexion, appuie sur « Mot de passe oublié ? » : tu recevras un e-mail pour en choisir un nouveau."],
+  ["Mes données sont-elles privées ?","Oui. Tu es le seul à voir ton espace, et moi seul y ai accès en tant que coach. Rien n'est partagé avec qui que ce soit d'autre."]]]
+];
+
+
+function faqTab(){
+  return `<div class="sec-head"><h2 style="font-size:18px">Questions fréquentes</h2></div>
+  <p class="muted" style="font-size:13px;margin-bottom:14px">Les réponses aux questions les plus courantes. Si tu ne trouves pas, écris-moi dans la messagerie.</p>
+  ${FAQ.map((sec,si)=>`
+    <div class="sec-head" style="margin-top:6px"><h2 style="font-size:15px;color:var(--red)">${esc(sec[0])}</h2></div>
+    ${sec[1].map((qa,qi)=>{const key=si+"-"+qi;const open=S.faqOpen===key;
+      return `<div class="panel" style="margin-bottom:8px;padding:0;overflow:hidden">
+        <button type="button" data-act="faq-toggle" data-key="${key}" style="width:100%;text-align:left;background:none;border:none;color:var(--white);padding:13px 14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <span style="flex:1">${esc(qa[0])}</span><span style="color:var(--red);flex:0 0 auto">${open?"−":"+"}</span>
+        </button>
+        ${open?`<div style="padding:0 14px 13px;font-size:13.5px;color:var(--white2);line-height:1.6">${esc(qa[1])}</div>`:""}
+      </div>`;}).join("")}`).join("")}`;
+}
+
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
   const now=new Date(), m=now.getMonth(), y=now.getFullYear();
@@ -1225,7 +1272,11 @@ function programme(c,editable){
     list=prog.map(exCard).join("");
   } else {
     list=blocKeys.map(b=>`
-      ${b?`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}</h2><button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button></div>`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
+      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:16px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}</h2>
+        <span style="display:flex;gap:12px;align-items:center">
+          ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
+          <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
+        </span></div>`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
       ${blocs[b].map(exCard).join("")}`).join("");
   }
   const dEx=S.exDraft||{};
@@ -1460,7 +1511,7 @@ function clientSpace(c){
           :`<button class="btn p full" data-act="start-wk" data-jour="${esc(jour)}" style="padding:12px">▶ Commencer la séance</button>`}
       </div>`;})()}
     <div style="margin-top:10px;font-size:12.5px;font-style:italic;color:rgba(255,255,255,.75)">« ${quoteOfDay()} »</div></div>`;
-  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
+  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="faq"?faqTab():S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
   return banner+inner;
 }
 function addModal(){
@@ -3002,6 +3053,57 @@ document.addEventListener("click",e=>{
       const idx2=S.tplEdit.program.findIndex(x=>x.id===t.dataset.id); if(idx2<0) break;
       S.tplEdit.program.splice(idx2+1,0,{...S.tplEdit.program[idx2],id:uid(),historique:[]});
       render(); toast("Exercice dupliqué"); break; }
+    case "prog-up":{ if(!c) break;
+      const jour=t.dataset.jour;
+      const exos=(c.program||[]).filter(e=>(e.bloc||"")===jour&&chargeNum(e.charge)!==null);
+      if(!exos.length){ alert("Aucun exercice avec une charge chiffrée dans cette séance."); break; }
+      const ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px";
+      ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:340px;width:100%">
+        <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0 0 6px">＋ Progresser — ${esc(jour)}</h3>
+        <p class="muted" style="font-size:12.5px;margin-bottom:14px">Augmente les charges de ${exos.length} exercice${exos.length>1?"s":""} d'un coup, pour le nouveau cycle.</p>
+        <button class="btn p full" style="margin-bottom:8px" data-progup="2.5" data-jour="${esc(jour)}">+ 2,5 kg sur chaque exercice</button>
+        <button class="btn g full" style="margin-bottom:8px" data-progup="5" data-jour="${esc(jour)}">+ 5 kg sur chaque exercice</button>
+        <button class="btn g full" style="margin-bottom:8px" data-progup="pct5" data-jour="${esc(jour)}">+ 5 % (proportionnel)</button>
+        <button class="link full" data-close-progup style="margin-top:6px;font-size:13px">Annuler</button>
+      </div>`;
+      ov.addEventListener("click",ev=>{
+        if(ev.target===ov||ev.target.closest("[data-close-progup]")){ ov.remove(); return; }
+        const btn=ev.target.closest("[data-progup]"); if(!btn) return;
+        const mode=btn.dataset.progup, j2=btn.dataset.jour, cc=sel(); if(!cc){ov.remove();return;}
+        let n2=0;
+        (cc.program||[]).forEach(e=>{
+          if((e.bloc||"")!==j2) return;
+          const cur=chargeNum(e.charge); if(cur===null) return;
+          const nv=mode==="pct5"?Math.round(cur*1.05*2)/2:+(cur+parseFloat(mode)).toFixed(1);
+          const unit=/kg/i.test(e.charge||"")?" kg":"";
+          e.charge=String(nv).replace(".",",")+unit; n2++;
+        });
+        save(); ov.remove(); render();
+        toast(n2+" charge"+(n2>1?"s":"")+" augmentée"+(n2>1?"s":""));
+      });
+      document.body.appendChild(ov);
+      break; }
+    case "faq-toggle": S.faqOpen=(S.faqOpen===t.dataset.key)?null:t.dataset.key; render(); break;
+    case "see-faq":{
+      const ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:200;overflow-y:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))";
+      ov.innerHTML=`<div style="max-width:520px;margin:0 auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h2 style="font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;color:var(--white);margin:0">FAQ vue par tes clients</h2>
+          <button class="x" data-close-faq style="font-size:24px">×</button>
+        </div>
+        ${FAQ.map(sec=>`<div style="margin-bottom:14px">
+          <div style="font-size:14px;font-weight:800;color:var(--red);margin-bottom:6px">${esc(sec[0])}</div>
+          ${sec[1].map(qa=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:7px">
+            <div style="font-size:13.5px;font-weight:700;color:var(--white);margin-bottom:4px">${esc(qa[0])}</div>
+            <div style="font-size:13px;color:var(--white2);line-height:1.55">${esc(qa[1])}</div>
+          </div>`).join("")}
+        </div>`).join("")}
+      </div>`;
+      ov.addEventListener("click",ev=>{ if(ev.target.closest("[data-close-faq]")||ev.target===ov) ov.remove(); });
+      document.body.appendChild(ov);
+      break; }
     case "swap-food":{ if(!c) break;
       const fid=t.dataset.fid; const alts=alternativesFor(fid);
       if(!alts.length){ toast("Aucun équivalent pour cet aliment"); break; }
