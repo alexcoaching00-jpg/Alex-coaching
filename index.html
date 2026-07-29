@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v7.4 — 22/07/2026";
+const APP_VERSION="v7.9 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -480,8 +480,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -786,13 +786,27 @@ function dashboard(){
       const todayStr=new Date().toDateString();
       const auj=rdvs.filter(x=>x.d.toDateString()===todayStr);
       const later=rdvs.filter(x=>x.d.toDateString()!==todayStr);
-      return `${auj.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.5);background:linear-gradient(180deg,rgba(184,134,47,.08),transparent)">
+      const faites=cs.filter(c2=>(c2.seances||[]).some(s2=>s2.fait&&s2.date===today()));
+      return `${faites.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(76,175,80,.4)">
+        <div class="ph" style="color:#4CAF50;font-size:14px">✅ Séances faites aujourd'hui</div>
+        ${faites.map(c2=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13.5px">
+          <span style="color:var(--white)">${esc(c2.nom)}</span>
+          <span style="display:flex;align-items:center;gap:10px">
+            ${(()=>{const r2=forfaitRestant(c2);return r2!==null?`<span style="color:var(--grey2);font-size:12px">${r2} restante${r2>1?"s":""}</span>`:"";})()}
+            <button class="link" style="font-size:12.5px;padding:0" data-act="open" data-id="${c2.id}">Ouvrir ›</button>
+          </span>
+        </div>`).join("")}
+      </div>`:""}
+      ${auj.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.5);background:linear-gradient(180deg,rgba(184,134,47,.08),transparent)">
         <div class="ph" style="color:var(--amber);font-size:14px">📅 Aujourd'hui</div>
         ${auj.map(({c,d})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:15px">
           <span style="color:var(--white);font-weight:700">${esc(c.nom)}</span>
-          <span style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--amber);font-weight:800;font-family:'Bebas Neue';font-size:18px;letter-spacing:.05em">${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
             <button class="link" style="font-size:15px;padding:2px" title="Envoyer un rappel" data-act="rdv-remind" data-id="${c.id}">🔔</button>
+            ${(c.seances||[]).some(s2=>s2.fait&&s2.date===today())
+              ?`<span title="Séance validée" style="font-size:15px">✅</span>`
+              :`<button class="link" style="font-size:15px;padding:2px;color:#4CAF50" title="Valider la séance du jour" data-act="quick-done" data-id="${c.id}">✔</button>`}
           </span>
         </div>`).join("")}</div>`:''}
       ${later.length?`<div class="panel" style="margin-bottom:14px"><div class="ph" style="font-size:14px">Prochains RDV</div>
@@ -822,6 +836,21 @@ function dashboard(){
         <div class="ph" style="color:#F0B429;font-size:14px">📋 Check-ins en retard (14+ jours)</div>
         ${stale.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
+      </div>`;})()}
+    ${(()=>{
+      const bas=cs.map(c2=>({c2,r:forfaitRestant(c2)})).filter(x=>x.r!==null&&x.r<=2);
+      if(!bas.length) return '';
+      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.45);background:linear-gradient(180deg,rgba(184,134,47,.07),transparent)">
+        <div class="ph" style="color:var(--amber);font-size:14px">💳 Forfaits à renouveler</div>
+        ${bas.map(({c2,r})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13.5px">
+          <span style="color:var(--white);font-weight:600">${esc(c2.nom)}</span>
+          <span style="display:flex;align-items:center;gap:10px">
+            <b style="color:${r<=0?"#FF6B6B":"var(--amber)"}">${r<=0?"épuisé":r+" séance"+(r>1?"s":"")}</b>
+            ${(c2.telephone||"").trim()?`<a href="tel:${esc((c2.telephone||"").replace(/\s/g,""))}" style="text-decoration:none;font-size:15px">📞</a>`:""}
+            <button class="link" style="font-size:12.5px;padding:0" data-act="open" data-id="${c2.id}">Ouvrir ›</button>
+          </span>
+        </div>`).join("")}
+        <p class="muted" style="font-size:11.5px;margin-top:6px">C'est le meilleur moment pour proposer la suite — avant la dernière séance.</p>
       </div>`;})()}
     ${(()=>{
       const old2=cs.filter(c2=>c2.prochainRdv&&new Date(c2.prochainRdv)<new Date(Date.now()-24*3600*1000));
@@ -1006,6 +1035,8 @@ function infosTab(c){
     </div>
     <div class="panel" style="margin-bottom:14px">
       <div class="ph">Accès client</div>
+      <label class="fld"><span>Téléphone</span><input data-bind="telephone" type="tel" inputmode="tel" value="${esc(c.telephone||"")}" placeholder="06 12 34 56 78"></label>
+      ${contactRow(c)}
       <label class="fld"><span>E-mail du client</span><input data-bind="clientEmail" type="email" value="${esc(c.clientEmail||"")}" placeholder="client@exemple.fr" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <button class="btn p full" data-act="auto-invite">✨ Envoyer l'accès automatiquement</button>
       <p class="muted" style="font-size:11.5px;margin:6px 0 10px;text-align:center">Le client reçoit un e-mail avec un lien : un clic, son compte est créé, puis il choisit son mot de passe.</p>
@@ -1199,7 +1230,9 @@ function rm1Panel(){
   const res=rm1Estime(S.rmCharge,S.rmReps);
   return `<div class="panel" style="margin-bottom:14px">
     <div class="ph">🏋️ Calculateur de 1RM</div>
-    <p class="muted" style="font-size:12.5px;margin-bottom:10px">Estime la charge maximale sur 1 répétition sans faire tester un maxi — plus sûr, surtout chez un débutant.</p>
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px">${S.isClient
+      ?"Estime ta charge maximale sur 1 répétition à partir d'une série que tu as réussie — sans avoir à tenter un maxi."
+      :"Estime la charge maximale sur 1 répétition sans faire tester un maxi — plus sûr, surtout chez un débutant."}</p>
     <div class="r2">
       <label class="fld" style="margin-bottom:8px"><span>Charge soulevée (kg)</span><input id="rm-charge" inputmode="decimal" placeholder="60" value="${esc(S.rmCharge||"")}"></label>
       <label class="fld" style="margin-bottom:8px"><span>Répétitions (1 à 12)</span><input id="rm-reps" inputmode="numeric" placeholder="8" value="${esc(S.rmReps||"")}"></label>
@@ -1358,6 +1391,40 @@ function printRecu(c,pay){
   setTimeout(()=>{ try{w.print();}catch(e){} },400);
 }
 
+
+/* Volume d'une séance = somme (séries × reps × charge) — indicateur de charge de travail */
+function volumeSeance(c,jour){
+  let vol=0, n=0;
+  (c.program||[]).forEach(e=>{
+    if((e.bloc||"")!==jour) return;
+    const ch=chargeNum(e.charge); const rp=parseInt(String(e.reps).match(/\d+/)||0);
+    n++;
+    if(ch&&rp) vol+=(e.series||1)*rp*ch;
+  });
+  return {vol:Math.round(vol),n};
+}
+
+
+/* Numéro au format international pour WhatsApp (France par défaut) */
+function telWa(tel){
+  let t=String(tel||"").replace(/[^\d+]/g,"");
+  if(!t) return "";
+  if(t.startsWith("+")) return t.slice(1);
+  if(t.startsWith("00")) return t.slice(2);
+  if(t.startsWith("0")) return "33"+t.slice(1);
+  return t;
+}
+function contactRow(c){
+  const tel=(c.telephone||"").trim();
+  if(!tel) return "";
+  const wa=telWa(tel);
+  return `<div style="display:flex;gap:8px;margin-bottom:12px">
+    <a class="btn g full" href="tel:${esc(tel.replace(/\s/g,""))}" style="text-decoration:none;text-align:center;padding:12px 8px;font-size:14px">📞 Appeler</a>
+    <a class="btn g full" href="sms:${esc(tel.replace(/\s/g,""))}" style="text-decoration:none;text-align:center;padding:12px 8px;font-size:14px">💬 SMS</a>
+    ${wa?`<a class="btn g full" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;padding:12px 8px;font-size:14px">WhatsApp</a>`:""}
+  </div>`;
+}
+
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
   const now=new Date(), m=now.getMonth(), y=now.getFullYear();
@@ -1469,7 +1536,7 @@ function programme(c,editable){
     list=prog.map(exCard).join("");
   } else {
     list=blocKeys.map(b=>`
-      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:16px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}</h2>
+      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:16px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
         <span style="display:flex;gap:12px;align-items:center">
           ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
@@ -1518,8 +1585,12 @@ function programme(c,editable){
     <p style="font-size:13px;color:var(--white2);line-height:1.5">Le programme s'est terminé le <b>${frDate(c.programmeFin)}</b> : ${esc((c.nom||"").split(" ")[0])} ne peut plus ouvrir son espace et voit un message l'invitant à te contacter.</p>
     <p class="muted" style="font-size:12px;margin-top:6px">Pour réactiver : change la date de fin ci-dessus (son historique est intact).</p>
   </div>`:"";
-  const pdfBtn=prog.length?`<button class="btn g full" style="margin-bottom:12px" data-act="print-prog">🖨 Imprimer / PDF le programme</button>`:"";
-  return progHeader+endedWarn+pdfBtn+list+form+(editable?rm1Panel():"");
+  const pdfBtn=prog.length?`<div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn g full" data-act="print-prog">🖨 PDF</button>
+      ${editable&&S.clients.length>1?`<button class="btn g full" data-act="copy-prog">⧉ Copier vers…</button>`:""}
+      ${editable?`<button class="btn g full" data-act="save-as-tpl">💾 Enregistrer</button>`:""}
+    </div>`:"";
+  return progHeader+endedWarn+pdfBtn+list+form+rm1Panel();
 }
 function progres(c,editable){
   const ms=c.mesures||[];
@@ -2186,8 +2257,24 @@ async function toggleVoice(role){
 
 
 /* ouvre directement la conversation d'un client (coach) */
+
+/* Ouvre une fiche client en nettoyant tout état lié au client précédent
+   (évite qu'un exercice en cours de modification saute d'un client à l'autre) */
+function openClient(id,tab){
+  if(S.selectedId!==id){
+    S.exDraft=null;        // brouillon d'exercice
+    S.sparkOpen=null;      // courbe de progression dépliée
+    S.tstSel=null;         // test sélectionné
+    S.photoCompare=false;  // comparaison avant/après
+    if(typeof WK!=="undefined"&&WK.on) closeWorkout(true);  // séance guidée d'un autre client
+  }
+  S.selectedId=id; S.view="detail"; S.detailTab=tab||"infos"; S.confirmDel=false;
+  S.q="";                  // on quitte la liste : le filtre ne doit pas rester actif
+  render();
+}
+
 function openMessages(id){
-  S.selectedId=id; S.view="detail"; S.detailTab="messages"; S.confirmDel=false; render();
+  openClient(id,"messages");
   setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},60);
   reloadKeepingView().then?.(()=>{});
   const cc=S.clients.find(x=>x.id===id); if(!cc) return;
@@ -3082,7 +3169,7 @@ async function createClientFromModal(){
   const {data,error}=await sb.from("clients").insert(baseRow(c)).select().single();
   if(error){ alert("Création impossible : "+error.message); return; }
   const created=rowToClient(data);
-  S.clients.push(created); S.selectedId=created.id; S.showAdd=false; S.view="detail"; S.detailTab="infos"; render();
+  S.clients.push(created); S.showAdd=false; openClient(created.id,"infos");
 }
 async function addSample(){
   const {data,error}=await sb.from("clients").insert(baseRow(sampleObj())).select().single();
@@ -3232,7 +3319,7 @@ document.addEventListener("click",e=>{
       if(t.dataset.ctab==="messages"){ reloadKeepingView(); }
       break;
     case "open-msgs": openMessages(t.dataset.id); break;
-    case "open": S.selectedId=t.dataset.id; S.view="detail"; S.detailTab="infos"; S.confirmDel=false; render(); break;
+    case "open": openClient(t.dataset.id,"infos"); break;
     case "back": S.view="clients"; render(); break;
     case "dtab": S.detailTab=t.dataset.dtab; S.confirmDel=false;
       render();
@@ -3257,7 +3344,7 @@ document.addEventListener("click",e=>{
       const bloc=val("ex-bloc")||"";
       S.lastBloc=bloc; pushRecentExo(nom);
       c.program=c.program||[];
-      const draft=S.exDraft;
+      const draft=(S.exDraft&&(c.program||[]).some(x=>x.id===S.exDraft.id))?S.exDraft:null;
       const payload={nom,series:+val("ex-series")||3,reps:val("ex-reps"),charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
       if(draft&&draft.id){
         const idx=c.program.findIndex(x=>x.id===draft.id);
@@ -3403,7 +3490,7 @@ document.addEventListener("click",e=>{
     case "tpl-editor-cancel": S.tplEdit=null; render(); break;
     case "tpl-add-ex":{ if(!S.tplEdit) break;
       const nom=val("tex-nom").trim(); if(!nom) break;
-      const draftT=S.tplEdit.draft;
+      const draftT=(S.tplEdit.draft&&S.tplEdit.program.some(x=>x.id===S.tplEdit.draft.id))?S.tplEdit.draft:null;
       const keepId=(draftT&&draftT.id)||uid();
       const tbloc=val("tex-bloc")||"";
       S.tplEdit.lastBloc=tbloc; pushRecentExo(nom);
@@ -3488,6 +3575,43 @@ document.addEventListener("click",e=>{
       patchField(c,"messages",err=>toast(err?"Erreur d'envoi":"Bilan envoyé ✓"));
       pushTo(c.clientEmail,"📊 Ton bilan du mois","Ton coach t'a envoyé ton récapitulatif");
       render(); break; }
+    case "copy-prog":{ if(!c||!(c.program||[]).length) break;
+      const autres=S.clients.filter(x=>x.id!==c.id);
+      if(!autres.length){ alert("Tu n'as qu'un seul client."); break; }
+      const ov=document.createElement("div");
+      ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px";
+      ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:420px;width:100%;max-height:75vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0">⧉ Copier le programme</h3>
+          <button class="x" data-close-cp style="font-size:22px">×</button>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin-bottom:12px">Les ${(c.program||[]).length} exercices de ${esc((c.nom||"").split(" ")[0])} seront copiés. Le programme actuel du destinataire sera remplacé.</p>
+        ${autres.map(a2=>`<button class="btn g full" style="margin-bottom:8px;text-align:left;padding:12px 14px" data-cpto="${a2.id}">
+          ${esc(a2.nom)}<span style="display:block;font-size:11.5px;color:var(--grey2);margin-top:1px">${(a2.program||[]).length} exercice${(a2.program||[]).length>1?"s":""} actuellement</span></button>`).join("")}
+      </div>`;
+      ov.addEventListener("click",ev=>{
+        if(ev.target===ov||ev.target.closest("[data-close-cp]")){ ov.remove(); return; }
+        const btn=ev.target.closest("[data-cpto]"); if(!btn) return;
+        const cible=S.clients.find(x=>x.id===btn.dataset.cpto); if(!cible){ov.remove();return;}
+        if(!confirm(`Remplacer le programme de ${cible.nom} par celui de ${c.nom} ?`)){ return; }
+        cible.program=(c.program||[]).map(e=>({...e,id:uid(),historique:[]}));
+        sb.from("clients").update(lightRow(cible)).eq("id",cible.id).then(({error})=>{
+          toast(error?"Erreur de copie":"Programme copié vers "+cible.nom);
+        });
+        ov.remove();
+      });
+      document.body.appendChild(ov);
+      break; }
+    case "save-as-tpl":{ if(!c||!(c.program||[]).length) break;
+      const nom=(prompt("Nom du programme à enregistrer dans ta bibliothèque :","Programme "+((c.nom||"").split(" ")[0]))||"").trim();
+      if(!nom) break;
+      const row={nom,program:(c.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:false};
+      sb.from("templates").insert(row).select().single().then(({data,error})=>{
+        if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
+        if(data) S.templates.push({...row,...data});
+        toast("Enregistré dans ta bibliothèque ✓");
+      });
+      break; }
     case "print-prog":{ if(!c||!(c.program||[]).length) break;
       printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false}); break; }
     case "tpl-pdf":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(t2) printProgram(t2); break; }
@@ -3700,6 +3824,22 @@ document.addEventListener("click",e=>{
       c.prochainRdv=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
       save(); render(); toast("RDV replanifié au "+frDate(c.prochainRdv.slice(0,10))); break; }
     case "rdv-clear":{ if(!c) break; c.prochainRdv=""; save(); render(); break; }
+    case "quick-done":{
+      const c2=S.clients.find(x=>x.id===t.dataset.id); if(!c2) break;
+      if((c2.seances||[]).some(s2=>s2.fait&&s2.date===today())){ toast("Séance déjà validée aujourd'hui"); break; }
+      c2.seances=c2.seances||[];
+      c2.seances.push({date:today(),fait:true,ressenti:"",note:"Séance validée depuis l'accueil"});
+      sb.from("clients").update(lightRow(c2)).eq("id",c2.id).then(({error})=>{
+        if(error) schemaHint(error);
+        toast(error?"Erreur":"Séance validée ✓ "+((c2.nom||"").split(" ")[0]));
+      });
+      // Replanifier automatiquement à la semaine suivante si un RDV existait
+      if(c2.prochainRdv){
+        const d2=new Date(new Date(c2.prochainRdv).getTime()+7*24*3600*1000);
+        const p2=n2=>String(n2).padStart(2,"0");
+        c2.prochainRdv=`${d2.getFullYear()}-${p2(d2.getMonth()+1)}-${p2(d2.getDate())}T${p2(d2.getHours())}:${p2(d2.getMinutes())}`;
+      }
+      render(); break; }
     case "rdv-remind":{ const c2=S.clients.find(x=>x.id===t.dataset.id); if(!c2||!c2.prochainRdv) break;
       const d=new Date(c2.prochainRdv);
       const quand=d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
