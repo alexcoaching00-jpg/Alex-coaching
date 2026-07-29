@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v7.9 — 22/07/2026";
+const APP_VERSION="v8.0 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -920,6 +920,7 @@ function dashboard(){
           <label class="fld" style="margin-bottom:8px"><span>Adresse</span><input data-coach="adresse" value="${esc(ci.adresse||"")}" placeholder="Rue, code postal, ville"></label>
           <label class="fld" style="margin-bottom:8px"><span>SIRET</span><input data-coach="siret" value="${esc(ci.siret||"")}" placeholder="123 456 789 00012"></label>
           <label class="fld" style="margin-bottom:0"><span>N° carte professionnelle</span><input data-coach="carte" value="${esc(ci.carte||"")}" placeholder="0559..."></label></div>`;})()}
+        <button class="btn g full" data-act="diag-push">🔔 Diagnostic notifications</button>
         <button class="btn g full" data-act="see-faq">❓ Voir la FAQ client</button>
         <button class="btn g full" data-act="change-pw">🔑 Changer mon mot de passe</button>
         <button class="btn g full" data-act="install-help">📲 Installer comme application</button>
@@ -1423,6 +1424,102 @@ function contactRow(c){
     <a class="btn g full" href="sms:${esc(tel.replace(/\s/g,""))}" style="text-decoration:none;text-align:center;padding:12px 8px;font-size:14px">💬 SMS</a>
     ${wa?`<a class="btn g full" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;padding:12px 8px;font-size:14px">WhatsApp</a>`:""}
   </div>`;
+}
+
+
+/* ===== DIAGNOSTIC NOTIFICATIONS : dit précisément ce qui bloque ===== */
+async function diagPush(){
+  const L=[];
+  const add=(ok,txt,fix)=>L.push({ok,txt,fix:fix||""});
+  // 1. Mode application (obligatoire sur iPhone)
+  const iOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const standalone=window.navigator.standalone===true||window.matchMedia("(display-mode: standalone)").matches;
+  add(!iOS||standalone, iOS?("Appli ouverte depuis l'icône : "+(standalone?"oui":"NON")):"Appareil : Android/PC (pas de restriction)",
+      "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil », puis ouvrir par l'icône.");
+  // 2. Autorisation
+  const perm=(window.Notification&&Notification.permission)||"absent";
+  add(perm==="granted","Autorisation notifications : "+perm,
+      perm==="denied"?"Refusée : Réglages iPhone → Notifications → Alex Coaching → Autoriser.":"Appuie sur un bouton de l'appli pour déclencher la demande.");
+  // 3. Service worker : le fichier sw.js doit être en ligne
+  let swOk=false, swMsg="non supporté";
+  if("serviceWorker" in navigator){
+    try{
+      const r=await fetch("./sw.js",{cache:"no-store"});
+      const ct=(r.headers.get("content-type")||"");
+      if(!r.ok) swMsg="fichier sw.js absent (erreur "+r.status+")";
+      else if(ct.includes("text/html")) swMsg="sw.js introuvable (page HTML renvoyée)";
+      else { swMsg="fichier sw.js présent"; swOk=true; }
+    }catch(e){ swMsg="sw.js inaccessible"; }
+  }
+  add(swOk,"Fichier sw.js : "+swMsg,"Envoie le fichier sw.js à la racine de ton dépôt GitHub, à côté d'index.html.");
+  // 4. Service worker actif
+  let regOk=false, regMsg="—";
+  if(swOk){
+    try{
+      const reg=await Promise.race([navigator.serviceWorker.ready,new Promise(r=>setTimeout(()=>r(null),4000))]);
+      if(reg){ regOk=true; regMsg="actif"; } else regMsg="ne démarre pas (délai dépassé)";
+    }catch(e){ regMsg="erreur : "+e.message; }
+  } else regMsg="impossible sans sw.js";
+  add(regOk,"Service worker : "+regMsg,"Ferme complètement l'appli et rouvre-la après avoir mis sw.js en ligne.");
+  // 5. Abonnement push
+  let subOk=false, subMsg="—", endpoint="";
+  if(regOk&&perm==="granted"&&("PushManager" in window)){
+    try{
+      const reg=await navigator.serviceWorker.ready;
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
+      endpoint=sub.toJSON().endpoint||""; subOk=true; subMsg="obtenu";
+    }catch(e){ subMsg="refusé : "+(e.message||e.name); }
+  } else subMsg="conditions précédentes non remplies";
+  add(subOk,"Abonnement de l'appareil : "+subMsg,"Vérifie iOS 16.4 minimum (Réglages → Général → Informations).");
+  // 6. Enregistrement en base
+  let dbOk=false, dbMsg="—";
+  if(subOk&&sb&&S.session){
+    try{
+      const reg=await navigator.serviceWorker.ready;
+      const j=(await reg.pushManager.getSubscription()).toJSON();
+      const mail=((S.session.user&&S.session.user.email)||"").toLowerCase();
+      const {error}=await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:mail});
+      if(error){
+        if(/duplicate|unique/i.test(error.message||"")){ dbOk=true; dbMsg="déjà enregistré ✓"; }
+        else dbMsg="refusé par Supabase : "+error.message;
+      } else { dbOk=true; dbMsg="enregistré ✓"; }
+    }catch(e){ dbMsg="erreur : "+(e.message||"inconnue"); }
+  } else dbMsg="conditions précédentes non remplies";
+  add(dbOk,"Enregistrement dans Supabase : "+dbMsg,"Table manquante ou règle de sécurité : relance le script SQL des notifications.");
+  return {L,endpoint};
+}
+function showDiagPush(){
+  const ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:220;overflow-y:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))";
+  ov.innerHTML=`<div style="max-width:520px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;color:var(--white);margin:0">🔔 Diagnostic notifications</h2>
+      <button class="x" data-close-diag style="font-size:24px">×</button>
+    </div>
+    <p class="muted" style="font-size:13px;margin-bottom:14px">Analyse en cours…</p></div>`;
+  ov.addEventListener("click",ev=>{ if(ev.target.closest("[data-close-diag]")) ov.remove(); });
+  document.body.appendChild(ov);
+  diagPush().then(({L,endpoint})=>{
+    const box=ov.querySelector("div");
+    const premierEchec=L.find(x=>!x.ok);
+    box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;color:var(--white);margin:0">🔔 Diagnostic notifications</h2>
+      <button class="x" data-close-diag style="font-size:24px">×</button>
+    </div>
+    ${L.map(x=>`<div style="background:var(--card);border:1px solid ${x.ok?"rgba(76,175,80,.4)":"rgba(176,31,31,.5)"};border-radius:12px;padding:11px 13px;margin-bottom:8px">
+      <div style="font-size:13.5px;color:var(--white);font-weight:600">${x.ok?"✅":"❌"} ${esc(x.txt)}</div>
+      ${!x.ok&&x.fix?`<div style="font-size:12.5px;color:var(--amber);margin-top:5px;line-height:1.5">→ ${esc(x.fix)}</div>`:""}
+    </div>`).join("")}
+    ${premierEchec
+      ?`<div class="panel" style="margin-top:12px;border-color:rgba(176,31,31,.5)"><div class="ph" style="color:var(--red);font-size:13.5px">À corriger en priorité</div>
+         <p style="font-size:13.5px;color:var(--white2);line-height:1.55">${esc(premierEchec.fix||premierEchec.txt)}</p></div>`
+      :`<div class="panel" style="margin-top:12px;border-color:rgba(76,175,80,.5)"><div class="ph" style="color:#4CAF50;font-size:13.5px">Tout est en place ✓</div>
+         <p style="font-size:13px;color:var(--white2)">Ton appareil est enregistré. Si tu ne reçois rien, vérifie que la fonction <b>send-due-pushes</b> est déployée sans « Verify JWT » et que la tâche automatique tourne.</p></div>`}
+    <button class="btn g full" style="margin-top:14px" data-close-diag>Fermer</button>`;
+  }).catch(e=>{
+    ov.querySelector("div").innerHTML=`<p style="color:#FF6B6B">Erreur du diagnostic : ${esc(e.message||"inconnue")}</p><button class="btn g full" data-close-diag>Fermer</button>`;
+  });
 }
 
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
@@ -3420,6 +3517,7 @@ document.addEventListener("click",e=>{
       }
       printRecu(c,pay); break; }
     case "faq-toggle": S.faqOpen=(S.faqOpen===t.dataset.key)?null:t.dataset.key; render(); break;
+    case "diag-push": showDiagPush(); break;
     case "see-faq":{
       const ov=document.createElement("div");
       ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:200;overflow-y:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))";
