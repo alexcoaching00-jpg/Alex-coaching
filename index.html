@@ -444,7 +444,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v9.1 — 22/07/2026";
+const APP_VERSION="v9.3 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1811,7 +1811,10 @@ function programme(c,editable){
     return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
       <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
       ${(()=>{const th=exoThumb(e);
-        return th?`<img src="${th}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:12px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
+        return th?`<button type="button" data-act="play-video" data-id="${e.id}" style="position:relative;padding:0;border:0;background:none;flex:0 0 auto;cursor:pointer;line-height:0">
+            <img src="${th}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.outerHTML=''">
+            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;text-shadow:0 2px 8px rgba(0,0,0,.8);pointer-events:none">▶️</span>
+          </button>`
         :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;align-items:center;justify-content:center">${exoIcon(e.nom,44)}</span>`;})()}
       <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span class="exi" style="font-size:15px">${String(i+1).padStart(2,"0")}</span><span class="exn" style="font-size:18px;line-height:1.25">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:11px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:11px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
       <div class="exstats">
@@ -1826,7 +1829,9 @@ function programme(c,editable){
       ${prBadge(e)}
       ${((e.historique||[]).length>=2)?`<button class="link" style="font-size:12px;padding:0;margin-top:2px" data-act="toggle-spark" data-id="${e.id}">${S.sparkOpen===e.id?"▾ Masquer la courbe":"▸ Voir la progression"}</button>${S.sparkOpen===e.id?exoSpark(e):""}`:""}
       <div style="display:flex;gap:16px;align-items:center;margin-top:11px;flex-wrap:wrap">
-        <a class="link" style="font-size:13.5px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
+        ${ytId(e)
+          ?`<button class="link" style="font-size:13.5px;padding:0" data-act="play-video" data-id="${e.id}">▶️ Voir la vidéo</button>`
+          :`<a class="link" style="font-size:13.5px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Chercher une vidéo</a>`}
         <button class="link" style="font-size:13.5px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
         ${(editable&&!exoThumb(e))?`<button class="link" style="font-size:13.5px;padding:0;color:var(--amber)" data-act="set-video" data-id="${e.id}">🎬 Ajouter la vidéo</button>`:""}
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
@@ -2296,7 +2301,10 @@ function wkRender(){
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;width:100%">
       <h2 style="font-family:'Bebas Neue';font-size:34px;letter-spacing:.04em;color:var(--white);line-height:1.1;margin-bottom:6px">${esc(ex.nom)}</h2>
       ${(()=>{ const th=exoThumb(ex);
-        if(th) return `<a href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener" style="display:block;margin:2px auto 10px;max-width:220px"><img src="${th}" alt="" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.style.display='none'"></a>`;
+        if(th) return `<button type="button" data-act="wk-play-video" style="position:relative;display:block;margin:2px auto 10px;max-width:220px;width:100%;padding:0;border:0;background:none;cursor:pointer;line-height:0">
+            <img src="${th}" alt="" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.style.display='none'">
+            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;text-shadow:0 2px 10px rgba(0,0,0,.85);pointer-events:none">▶️</span>
+          </button>`;
         return `<div style="display:flex;flex-direction:column;align-items:center;margin:2px 0 10px">${exoIcon(ex.nom,52)}<span style="font-size:11px;color:var(--grey2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px">${esc(ZONE_LABEL[exoZone(ex.nom)]||"")}</span></div>`; })()}
       ${ex.rir?`<span class="tag ink" style="align-self:center;margin-bottom:12px">${ex.rirScale==="rpe"?"RPE":"RIR"} ${esc(ex.rir)}</span>`:""}
       <div style="margin:8px 0 6px">${dots}</div>
@@ -2306,7 +2314,9 @@ function wkRender(){
       ${ex.note?`<p style="color:var(--grey);font-size:13.5px;margin-top:10px;font-style:italic">${esc(ex.note)}</p>`:""}
       ${ex.alt?`<p style="color:var(--amber);font-size:13px;margin-top:8px">↔ Trop difficile ? ${esc(ex.alt)}</p>`:""}
       <div style="display:flex;justify-content:center;gap:18px;margin-top:14px">
-        <a class="link" style="font-size:13px;text-decoration:none" href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener">▶️ Voir la technique</a>
+        ${ytId(ex)
+          ?`<button class="link" style="font-size:13px" data-act="wk-play-video">▶️ Voir la technique</button>`
+          :`<a class="link" style="font-size:13px;text-decoration:none" href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener">▶️ Chercher une vidéo</a>`}
         <button class="link" data-act="wk-charge" style="font-size:13px">+ Noter la charge</button>
       </div>
       ${(()=>{
@@ -3006,6 +3016,38 @@ function exoVideoUrl(e){
   if(/^https?:\/\//i.test(v)) return v;
   return "https://www.youtube.com/results?search_query="+encodeURIComponent((e&&e.nom||"exercice musculation")+" technique exécution");
 }
+
+/* Identifiant YouTube d'un exercice (null si le lien n'est pas YouTube) */
+function ytId(e){
+  const v=(e&&e.video||"").trim();
+  if(!/^https?:\/\//i.test(v)) return null;
+  const m=v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{6,})/);
+  return m?m[1]:null;
+}
+/* Ouvre la vidéo DANS l'appli, sans quitter la séance */
+function playVideo(nom,id,lien){
+  const ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:240;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom))";
+  ov.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+      <span style="color:var(--white);font-weight:700;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nom||"Vidéo")}</span>
+      <button class="x" data-close-vid style="font-size:26px;flex:0 0 auto">×</button>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
+      ${id
+        ?`<div style="width:100%;max-width:820px;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;border:1px solid var(--line)">
+            <iframe src="https://www.youtube.com/embed/${esc(id)}?autoplay=1&rel=0&playsinline=1" style="width:100%;height:100%;border:0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+          </div>`
+        :`<div style="text-align:center;color:var(--white2);font-size:14px;line-height:1.6;max-width:340px">
+            Cette vidéo ne peut pas être lue directement dans l'appli.<br>
+            <a href="${esc(lien)}" target="_blank" rel="noopener" style="color:var(--red);font-weight:700">Ouvrir dans le navigateur ›</a>
+          </div>`}
+    </div>
+    ${id?`<div style="text-align:center;margin-top:12px"><a href="${esc(lien)}" target="_blank" rel="noopener" style="color:var(--grey);font-size:12.5px">Ouvrir sur YouTube ›</a></div>`:""}`;
+  ov.addEventListener("click",ev=>{ if(ev.target===ov||ev.target.closest("[data-close-vid]")) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
 /* Miniature de la vidéo YouTube du coach, pour affichage direct pendant la séance (null si pas de lien précis) */
 function exoThumb(e){
   const v=(e&&e.video||"").trim();
@@ -3144,7 +3186,9 @@ function tplExoCard(e,i,editing){
       <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):(e.reps||"—"))}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
-      <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
+      ${ytId(e)
+        ?`<button class="link" style="font-size:12px;padding:0" data-act="play-video-tpl" data-idx="${i}">▶️ Voir la vidéo</button>`
+        :`<a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Chercher</a>`}
     </div>
     </div>
     ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="tpl-dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
@@ -3249,6 +3293,11 @@ function programmesView(){
   }).join("");
   return `
     <div class="sec-head"><h2>Mes programmes</h2><button class="link" data-act="tpl-new">+ Nouveau</button></div>
+    ${(()=>{
+      const liens=(S.templates||[]).reduce((n,t2)=>n+(t2.program||[]).filter(e=>ytId(e)).length,0);
+      if(!liens||!(S.clients||[]).length) return "";
+      return `<button class="btn g full" style="margin-bottom:12px" data-act="sync-videos">🎬 Envoyer mes vidéos aux clients</button>
+        <p class="muted" style="font-size:11.5px;margin:-6px 0 12px">Copie les liens vidéo de tes modèles vers les exercices du même nom chez tes clients. Leurs charges, séries et historiques ne sont pas touchés.</p>`;})()}
     <label class="fld" style="margin-bottom:6px"><input id="exo-find" placeholder="🔎 Chercher un exercice chez mes clients…" value="${esc(S.exoFind||"")}"></label>
     ${(()=>{
       const res=findExoEverywhere(S.exoFind);
@@ -3874,6 +3923,39 @@ document.addEventListener("click",e=>{
       break; }
     case "edit-ex-cancel": S.exDraft=null; render(); break;
     case "del-ex": if(c){ c.program=(c.program||[]).filter(x=>x.id!==t.dataset.id); if(S.exDraft&&S.exDraft.id===t.dataset.id) S.exDraft=null; save(); render(); } break;
+    case "sync-videos":{
+      // Recense les liens vidéo par nom d'exercice (modèles + fiches clients déjà renseignées)
+      const liens={};
+      const noter=e=>{ if(ytId(e)){ const k=normTxt(e.nom); if(!liens[k]) liens[k]=e.video; } };
+      (S.templates||[]).forEach(t2=>(t2.program||[]).forEach(noter));
+      (S.clients||[]).forEach(c2=>(c2.program||[]).forEach(noter));
+      const nbLiens=Object.keys(liens).length;
+      if(!nbLiens){ alert("Aucun lien vidéo trouvé. Ajoute-en d'abord sur tes exercices."); break; }
+
+      // Repère ce qui serait mis à jour
+      const plan=[];
+      (S.clients||[]).forEach(c2=>{
+        let n=0;
+        (c2.program||[]).forEach(e=>{ if(!ytId(e)&&liens[normTxt(e.nom)]) n++; });
+        if(n) plan.push({c:c2,n});
+      });
+      if(!plan.length){ alert("Tes clients ont déjà toutes les vidéos disponibles ✓"); break; }
+
+      const total=plan.reduce((t2,x)=>t2+x.n,0);
+      if(!confirm(`Ajouter ${total} vidéo${total>1?"s":""} chez ${plan.length} client${plan.length>1?"s":""} ?\n\n${plan.map(x=>`• ${x.c.nom} : ${x.n} exercice${x.n>1?"s":""}`).join("\n")}\n\nRien d'autre ne sera modifié.`)) break;
+
+      let faits=0, erreurs=0, restants=plan.length;
+      plan.forEach(({c:c2})=>{
+        (c2.program||[]).forEach(e=>{ if(!ytId(e)&&liens[normTxt(e.nom)]){ e.video=liens[normTxt(e.nom)]; faits++; } });
+        sb.from("clients").update({program:c2.program,updated_at:new Date().toISOString()}).eq("id",c2.id).then(({error})=>{
+          if(error) erreurs++;
+          if(--restants===0){
+            render();
+            toast(erreurs?`${faits} vidéos ajoutées, ${erreurs} erreur(s)`:`${faits} vidéo${faits>1?"s":""} ajoutée${faits>1?"s":""} ✓`);
+          }
+        });
+      });
+      break; }
     case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false,seanceTypes:{},seanceRounds:{},seanceTourRepos:{}}; render(); break;
     case "tpl-edit":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
       S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})},seanceTourRepos:{...(t2.seanceTourRepos||{})}}; render(); break; }
@@ -4093,6 +4175,15 @@ document.addEventListener("click",e=>{
       const v=prompt(`Charge du jour pour « ${ex.nom} » ?`, ex.historique&&ex.historique.length?ex.historique[ex.historique.length-1].charge:"");
       if(v&&v.trim()){ ex.historique=ex.historique||[]; ex.historique.push({date:today(),charge:v.trim()}); if(ex.historique.length>20)ex.historique=ex.historique.slice(-20); if(isNewPR(ex)){ confetti(); toast("🏆 Nouveau record !"); } save(); wkRender(); }
       break; }
+    case "play-video":{ if(!c) break;
+      const exv=(c.program||[]).find(x=>x.id===t.dataset.id); if(!exv) break;
+      playVideo(exv.nom,ytId(exv),exoVideoUrl(exv)); break; }
+    case "play-video-tpl":{ if(!S.tplEdit) break;
+      const exv2=S.tplEdit.program[+t.dataset.idx]; if(!exv2) break;
+      playVideo(exv2.nom,ytId(exv2),exoVideoUrl(exv2)); break; }
+    case "wk-play-video":{ if(!WK.on) break;
+      const exv3=WK.exos[WK.idx]; if(!exv3) break;
+      playVideo(exv3.nom,ytId(exv3),exoVideoUrl(exv3)); break; }
     case "set-video":{ if(!c) break;
       const ex4=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex4) break;
       if(confirm(`Chercher une vidéo pour « ${ex4.nom} » sur YouTube ?\n\nUne fois la bonne vidéo trouvée, copie son lien puis reviens ici pour le coller.`)){
