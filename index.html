@@ -444,7 +444,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.9 — 22/07/2026";
+const APP_VERSION="v9.0 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1161,30 +1161,189 @@ function exoGear(nom){
 }
 const ZONE_LABEL={pecs:"Pectoraux",dos:"Dos",epaules:"Épaules",biceps:"Biceps",triceps:"Triceps",abdos:"Abdos",jambes:"Jambes",cardio:"Cardio",mobilite:"Mobilité",full:"Global"};
 /* Silhouette : les parties de la zone ciblée passent en rouge */
+/* ===== SILHOUETTE ANIMÉE : montre réellement le geste =====
+   Bonhomme articulé (tête, tronc, bras, jambes) qui alterne entre une pose
+   de DÉPART et une pose d'ARRIVÉE propres à chaque famille de mouvement. */
+const MOUVEMENTS=[
+  // [clés du nom, pose départ, pose arrivée, matériel tenu]
+  {k:["squat","chaise","wall sit","presse","hack","leg press","pistol","sissy","step","montée"],
+   a:{hanche:0,genou:0,brasA:-8,brasB:8,tronc:0},  b:{hanche:26,genou:34,brasA:-4,brasB:4,tronc:14}},
+  {k:["fente","split squat","bulgare","lunge"],
+   a:{hanche:0,genou:0,brasA:-6,brasB:6,tronc:0},  b:{hanche:20,genou:40,brasA:-6,brasB:6,tronc:6,fente:1}},
+  {k:["soulevé de terre","deadlift","good morning","romain","hip hinge","swing","pull-through"],
+   a:{hanche:0,genou:0,brasA:0,brasB:0,tronc:0},   b:{hanche:14,genou:12,brasA:0,brasB:0,tronc:52}},
+  {k:["hip thrust","pont fessier","glute bridge","frog pump"],
+   a:{allonge:1,hanche:0},                          b:{allonge:1,hanche:1}},
+  {k:["développé couché","écarté couché","pec deck","chest press","couché élastique"],
+   a:{allonge:1,brasOuvert:0},                      b:{allonge:1,brasOuvert:1}},
+  {k:["développé militaire","développé haltères","arnold","overhead","pike push","élévations frontales","push press","thruster"],
+   a:{brasHaut:0},                                  b:{brasHaut:1}},
+  {k:["élévations latérales","oiseau","reverse fly","pull-apart","écarté","face pull","abduction"],
+   a:{brasEcart:0},                                 b:{brasEcart:1}},
+  {k:["traction","tirage vertical","pulldown","chin-up","muscle-up"],
+   a:{suspendu:1,tire:0},                           b:{suspendu:1,tire:1}},
+  {k:["rowing","tirage horizontal","seal row","inverted row","pendlay","meadows"],
+   a:{tronc:38,brasTire:0},                         b:{tronc:38,brasTire:1}},
+  {k:["curl","biceps"],
+   a:{curl:0},                                      b:{curl:1}},
+  {k:["triceps","pushdown","barre au front","skull","kickback tri","extension nuque"],
+   a:{tri:0},                                       b:{tri:1}},
+  {k:["pompe","push-up","dips"],
+   a:{planche:1,bas:0},                             b:{planche:1,bas:1}},
+  {k:["gainage","planche","plank","hollow","dead bug","bird dog","superman","pallof"],
+   a:{planche:1,bas:0},                             b:{planche:1,bas:0,micro:1}},
+  {k:["crunch","sit-up","relevé de jambe","v-up","russian twist","abdo","toes to bar","mountain climber"],
+   a:{allonge:1,crunch:0},                          b:{allonge:1,crunch:1}},
+  {k:["burpee","jump","saut","jumping jack","corde à sauter","high knee","montées de genoux","sprint","talons-fesses","skater","tuck"],
+   a:{saut:0},                                      b:{saut:1}},
+  {k:["mollet","calf"],
+   a:{pointe:0},                                    b:{pointe:1}},
+  {k:["leg curl","ischio"],
+   a:{allonge:1,legCurl:0},                         b:{allonge:1,legCurl:1}},
+  {k:["leg extension","quadriceps machine"],
+   a:{assis:1,ext:0},                               b:{assis:1,ext:1}},
+  {k:["étirement","mobilité","cat-cow","chat-vache","chien tête","pigeon","rotation","cercles","respiration","posture de l'enfant","dislocation"],
+   a:{tronc:0,brasHaut:0},                          b:{tronc:26,brasHaut:1}},
+  {k:["marche","carry","farmer","suitcase","traîneau","sled","prowler","bear crawl","crab walk"],
+   a:{marche:0},                                    b:{marche:1}},
+];
+function mouvementDe(nom){
+  const n=normTxt(nom);
+  for(const m of MOUVEMENTS){ for(const k of m.k){ if(n.includes(normTxt(k))) return m; } }
+  return null;
+}
+/* Dessine le bonhomme dans une pose donnée */
+function poseSVG(p,col,gear){
+  p=p||{};
+  const G="#B8862F";
+  const seg=(x1,y1,x2,y2,w)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${w||5}" stroke-linecap="round"/>`;
+  let out="";
+
+  if(p.allonge){ // couché sur le dos
+    const bo=p.brasOuvert?1:0, cr=p.crunch?1:0, lc=p.legCurl?1:0, ht=(p.hanche===1);
+    out+=`<circle cx="${9+cr*3}" cy="${34-cr*6}" r="4.6" fill="${col}"/>`;
+    out+=seg(13,36-cr*3,26,36,6);                                   // tronc
+    if(bo){ out+=seg(16,34,14,24,4)+seg(16,38,14,48,4); }           // bras ouverts
+    else  { out+=seg(16,34,18,24,4)+seg(16,38,18,48,4); }           // bras tendus
+    if(ht) out+=seg(26,36,32,28,6)+seg(32,28,36,38,5);              // hanches montées
+    else if(lc) out+=seg(26,36,34,36,6)+seg(34,36,32,26,5);
+    else if(cr) out+=seg(26,36,32,30,6)+seg(32,30,34,40,5);
+    else out+=seg(26,36,36,36,6)+seg(36,36,38,44,5);
+    if(gear==="barre"&&bo) out+=`<rect x="8" y="21" width="26" height="2.4" rx="1.2" fill="${G}"/>`;
+    return out;
+  }
+  if(p.planche){ // gainage / pompes
+    const d=p.bas?3:0, mi=p.micro?1:0;
+    out+=`<circle cx="9" cy="${26+d+mi}" r="4.4" fill="${col}"/>`;
+    out+=seg(13,28+d+mi,30,34,6);
+    out+=seg(13,28+d+mi,13,40,4);                                   // bras
+    out+=seg(30,34,38,44,5);                                        // jambes
+    return out;
+  }
+  if(p.suspendu){ // traction
+    const t=p.tire?1:0;
+    out+=`<rect x="4" y="6" width="32" height="2.6" rx="1.3" fill="${G}"/>`;
+    out+=`<circle cx="20" cy="${16-t*4}" r="4.6" fill="${col}"/>`;
+    out+=seg(20,21-t*4,20,34-t*4,6);
+    out+=seg(20,21-t*4,12,8,4)+seg(20,21-t*4,28,8,4);               // bras vers la barre
+    out+=seg(20,34-t*4,17,46-t*4,5)+seg(20,34-t*4,23,46-t*4,5);
+    return out;
+  }
+  if(p.assis){ // machine assise
+    const e=p.ext?1:0;
+    out+=`<circle cx="14" cy="12" r="4.6" fill="${col}"/>`;
+    out+=seg(14,17,14,30,6);
+    out+=seg(14,30,26,30,5);
+    out+=e?seg(26,30,38,26,5):seg(26,30,28,42,5);
+    return out;
+  }
+  if(p.saut!==undefined){ // saut / cardio
+    const j=p.saut?1:0;
+    out+=`<circle cx="20" cy="${10-j*4}" r="4.6" fill="${col}"/>`;
+    out+=seg(20,15-j*4,20,30-j*4,6);
+    out+=j?seg(20,18-j*4,10,6,4)+seg(20,18-j*4,30,6,4):seg(20,20,14,30,4)+seg(20,20,26,30,4);
+    out+=j?seg(20,26,15,38,5)+seg(20,26,25,38,5):seg(20,30,16,44,5)+seg(20,30,24,44,5);
+    return out;
+  }
+  if(p.marche!==undefined){ // marche chargée
+    const m=p.marche?1:0;
+    out+=`<circle cx="20" cy="9" r="4.6" fill="${col}"/>`;
+    out+=seg(20,14,20,30,6);
+    out+=seg(20,17,14,30,4)+seg(20,17,26,30,4);
+    out+=m?seg(20,30,13,44,5)+seg(20,30,27,42,5):seg(20,30,17,44,5)+seg(20,30,23,44,5);
+    out+=`<rect x="8" y="29" width="8" height="3" rx="1.5" fill="${G}"/><rect x="24" y="29" width="8" height="3" rx="1.5" fill="${G}"/>`;
+    return out;
+  }
+
+  // DEBOUT : squat, fente, hinge, épaules, bras, mollets…
+  const hip=p.hanche||0, kn=p.genou||0, tr=p.tronc||0;
+  const pointe=p.pointe?1:0;
+  const cy0=9+hip*0.45+pointe*-2;
+  const tx=tr*0.28;
+  out+=`<circle cx="${20+tx}" cy="${cy0}" r="4.6" fill="${col}"/>`;
+  out+=seg(20+tx,cy0+5,20,cy0+20,6);                                 // tronc
+  // bras selon le mouvement
+  if(p.brasHaut!==undefined){
+    out+=p.brasHaut?seg(20,cy0+8,11,cy0-6,4)+seg(20,cy0+8,29,cy0-6,4)
+                   :seg(20,cy0+8,13,cy0+18,4)+seg(20,cy0+8,27,cy0+18,4);
+    if(gear==="barre") out+=`<rect x="6" y="${p.brasHaut?cy0-8:cy0+16}" width="28" height="2.4" rx="1.2" fill="${G}"/>`;
+  } else if(p.brasEcart!==undefined){
+    out+=p.brasEcart?seg(20,cy0+9,6,cy0+6,4)+seg(20,cy0+9,34,cy0+6,4)
+                    :seg(20,cy0+9,15,cy0+22,4)+seg(20,cy0+9,25,cy0+22,4);
+  } else if(p.curl!==undefined){
+    out+=p.curl?seg(20,cy0+9,13,cy0+18,4)+seg(13,cy0+18,17,cy0+7,4)
+               :seg(20,cy0+9,14,cy0+24,4);
+    out+=p.curl?seg(20,cy0+9,27,cy0+18,4)+seg(27,cy0+18,23,cy0+7,4)
+               :seg(20,cy0+9,26,cy0+24,4);
+    if(gear==="halteres") out+=`<rect x="${p.curl?11:10}" y="${p.curl?cy0+5:cy0+23}" width="7" height="3" rx="1.5" fill="${G}"/><rect x="${p.curl?21:23}" y="${p.curl?cy0+5:cy0+23}" width="7" height="3" rx="1.5" fill="${G}"/>`;
+  } else if(p.tri!==undefined){
+    out+=p.tri?seg(20,cy0+9,14,cy0+20,4)+seg(20,cy0+9,26,cy0+20,4)
+              :seg(20,cy0+9,15,cy0+13,4)+seg(20,cy0+9,25,cy0+13,4);
+  } else if(p.brasTire!==undefined){
+    out+=p.brasTire?seg(20,cy0+10,15,cy0+18,4)+seg(20,cy0+10,25,cy0+18,4)
+                   :seg(20,cy0+10,17,cy0+28,4)+seg(20,cy0+10,23,cy0+28,4);
+  } else {
+    out+=seg(20,cy0+9,20-6+(p.brasA||0)*0.4,cy0+22,4)+seg(20,cy0+9,20+6+(p.brasB||0)*0.4,cy0+22,4);
+  }
+  // jambes
+  const hy=cy0+20;
+  if(p.fente){
+    out+=seg(20,hy,11,hy+9,5)+seg(11,hy+9,11,hy+18,5);
+    out+=seg(20,hy,29,hy+11,5)+seg(29,hy+11,31,hy+18,5);
+  } else {
+    const kx=kn*0.16, ky=hy+11-kn*0.12;
+    out+=seg(20,hy,16-kx,ky,5)+seg(16-kx,ky,16,hy+22-pointe*2,5);
+    out+=seg(20,hy,24+kx,ky,5)+seg(24+kx,ky,24,hy+22-pointe*2,5);
+  }
+  if(gear==="barre"&&p.hanche!==undefined&&!p.brasHaut) out+=`<rect x="6" y="${cy0+6}" width="28" height="2.4" rx="1.2" fill="${G}"/>`;
+  if(gear==="elastique") out+=`<path d="M6 ${hy+22} Q20 ${hy+14} 34 ${hy+22}" stroke="${G}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  return out;
+}
+/* Icône animée : alterne pose A / pose B */
+let ICON_SEQ=0;
 function exoIcon(nom,size){
   size=size||44;
-  const z=exoZone(nom), gear=exoGear(nom);
-  const on="#B01F1F", off="#4A3B32";
-  const c=k=>(z===k||z==="full")?on:off;
-  const cardio=(z==="cardio"), mob=(z==="mobilite");
+  const mv=mouvementDe(nom);
+  const gear=exoGear(nom);
+  const col="#B01F1F";
+  const id="mv"+(++ICON_SEQ);
+  if(!mv){
+    // Mouvement non identifié : silhouette neutre debout, sans animation
+    return `<svg viewBox="0 0 40 56" width="${size}" height="${size*1.4}" style="display:block;flex:0 0 auto" aria-hidden="true">
+      ${poseSVG({hanche:0,genou:0,brasA:-6,brasB:6},"#6B5F55",gear)}</svg>`;
+  }
   return `<svg viewBox="0 0 40 56" width="${size}" height="${size*1.4}" style="display:block;flex:0 0 auto" aria-hidden="true">
-    <circle cx="20" cy="7" r="5" fill="${(cardio||mob)?on:"#6B5F55"}"/>
-    <rect x="14" y="13" width="12" height="13" rx="3" fill="${c('pecs')}"/>
-    <rect x="14" y="24" width="12" height="7" rx="2" fill="${c('abdos')}"/>
-    <rect x="15" y="13" width="10" height="4" rx="2" fill="${z==='dos'?on:'none'}"/>
-    <circle cx="11" cy="15" r="3.4" fill="${c('epaules')}"/><circle cx="29" cy="15" r="3.4" fill="${c('epaules')}"/>
-    <rect x="7.6" y="18" width="4.6" height="8" rx="2.3" fill="${c('biceps')}"/><rect x="27.8" y="18" width="4.6" height="8" rx="2.3" fill="${c('biceps')}"/>
-    <rect x="7.6" y="26" width="4.6" height="8" rx="2.3" fill="${c('triceps')}"/><rect x="27.8" y="26" width="4.6" height="8" rx="2.3" fill="${c('triceps')}"/>
-    <rect x="14.4" y="31" width="4.8" height="11" rx="2.4" fill="${c('jambes')}"/><rect x="20.8" y="31" width="4.8" height="11" rx="2.4" fill="${c('jambes')}"/>
-    <rect x="14.8" y="42" width="4" height="10" rx="2" fill="${c('jambes')}"/><rect x="21.2" y="42" width="4" height="10" rx="2" fill="${c('jambes')}"/>
-    ${gear==="barre"?`<rect x="2" y="20" width="36" height="2.4" rx="1.2" fill="#B8862F"/><rect x="2" y="17" width="3" height="8" rx="1.2" fill="#B8862F"/><rect x="35" y="17" width="3" height="8" rx="1.2" fill="#B8862F"/>`:""}
-    ${gear==="halteres"?`<rect x="4" y="30" width="7" height="3" rx="1.5" fill="#B8862F"/><rect x="29" y="30" width="7" height="3" rx="1.5" fill="#B8862F"/>`:""}
-    ${gear==="elastique"?`<path d="M4 46 Q20 38 36 46" stroke="#B8862F" stroke-width="2.2" fill="none" stroke-linecap="round"/>`:""}
-    ${gear==="machine"?`<rect x="2" y="12" width="3" height="34" rx="1.5" fill="#B8862F"/><rect x="35" y="12" width="3" height="34" rx="1.5" fill="#B8862F"/>`:""}
-    ${cardio?`<path d="M31 44 l4 4 M35 44 l-4 4" stroke="${on}" stroke-width="2" stroke-linecap="round"/>`:""}
+    <g class="pA-${id}">${poseSVG(mv.a,col,gear)}</g>
+    <g class="pB-${id}" opacity="0">${poseSVG(mv.b,col,gear)}</g>
+    <style>
+      @keyframes ${id}A{0%,42%{opacity:1}50%,92%{opacity:0}100%{opacity:1}}
+      @keyframes ${id}B{0%,42%{opacity:0}50%,92%{opacity:1}100%{opacity:0}}
+      .pA-${id}{animation:${id}A 2.2s ease-in-out infinite}
+      .pB-${id}{animation:${id}B 2.2s ease-in-out infinite}
+      @media (prefers-reduced-motion:reduce){.pA-${id},.pB-${id}{animation:none}.pB-${id}{opacity:0}}
+    </style>
   </svg>`;
 }
-
 
 /* ===== FOIRE AUX QUESTIONS (visible par le client) ===== */
 const FAQ=[
@@ -1659,6 +1818,7 @@ function programme(c,editable){
       <div style="display:flex;gap:16px;align-items:center;margin-top:11px;flex-wrap:wrap">
         <a class="link" style="font-size:13.5px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
         <button class="link" style="font-size:13.5px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
+        ${(editable&&!exoThumb(e))?`<button class="link" style="font-size:13.5px;padding:0;color:var(--amber)" data-act="set-video" data-id="${e.id}">🎬 Ajouter la vidéo</button>`:""}
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
       </div></div>
       </div>
@@ -3922,6 +4082,18 @@ document.addEventListener("click",e=>{
       const ex=WK.exos[WK.idx];
       const v=prompt(`Charge du jour pour « ${ex.nom} » ?`, ex.historique&&ex.historique.length?ex.historique[ex.historique.length-1].charge:"");
       if(v&&v.trim()){ ex.historique=ex.historique||[]; ex.historique.push({date:today(),charge:v.trim()}); if(ex.historique.length>20)ex.historique=ex.historique.slice(-20); if(isNewPR(ex)){ confetti(); toast("🏆 Nouveau record !"); } save(); wkRender(); }
+      break; }
+    case "set-video":{ if(!c) break;
+      const ex4=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex4) break;
+      if(confirm(`Chercher une vidéo pour « ${ex4.nom} » sur YouTube ?\n\nUne fois la bonne vidéo trouvée, copie son lien puis reviens ici pour le coller.`)){
+        window.open("https://www.youtube.com/results?search_query="+encodeURIComponent(ex4.nom+" technique exécution"),"_blank");
+      }
+      const lien=(prompt(`Colle le lien YouTube pour « ${ex4.nom} » :`,ex4.video||"")||"").trim();
+      if(!lien) break;
+      if(!/^https?:\/\//i.test(lien)){ alert("Le lien doit commencer par https://"); break; }
+      ex4.video=lien;
+      save(); render();
+      toast(exoThumb(ex4)?"Vidéo ajoutée — image affichée ✓":"Lien enregistré (miniature seulement pour YouTube)");
       break; }
     case "log-charge":{ if(!c) return;
       const ex=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex) return;
