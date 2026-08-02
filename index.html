@@ -26,7 +26,10 @@
   :root{--ink:#0D0B0A;--ink2:#1D1714;--base:#12100E;--card:#1C1613;--red:#B01F1F;--red2:#7E1712;--grey:#A39588;--grey2:#6B5F55;--line:#2E2620;--danger:#E53935;--white:#F2EDE7;--white2:#C9BCAF;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
   html{background:var(--base)}
-  html,body{overflow-x:hidden;max-width:100vw}
+  /* overflow-x sur <html> casserait position:fixed (barre du bas) sur iPad/Safari :
+     on protège du débordement via body et .wrap uniquement */
+  html{max-width:100vw}
+  body{overflow-x:hidden;max-width:100vw}
   body{color:var(--white);font-family:'Inter',system-ui,sans-serif;min-height:100vh;
     background:
       radial-gradient(1100px 750px at 12% -8%, rgba(176,31,31,.12), transparent 55%),
@@ -123,7 +126,7 @@
   .cbanner .obj{font-family:'Bebas Neue';font-size:20px;margin-top:4px;letter-spacing:.04em}
   .chartbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 12px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
   .chart-empty{border-radius:14px;padding:20px;text-align:center;background:var(--ink2);color:var(--grey);border:1px dashed var(--line);font-size:14px}
-  nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
   nav button{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button.on{color:var(--red)}nav .ic{font-size:18px;line-height:1}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:60}
@@ -429,7 +432,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.7 — 22/07/2026";
+const APP_VERSION="v8.8 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1630,7 +1633,7 @@ function programme(c,editable){
         return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
         :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 4px">${exoIcon(e.nom,26)}</span>`;})()}
       <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:10px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
-      <div class="exd">${e.series} × ${esc(e.reps)}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
+      <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps):e.reps)}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
       ${last3.length?`<div class="exd" style="color:#4CAF50;font-size:12px">Charges : ${last3.map(h=>`${esc(h.charge)} <span style="color:var(--grey2)">(${frDate(h.date)})</span>`).join(" → ")}</div>`:""}
@@ -1639,7 +1642,7 @@ function programme(c,editable){
       <div style="display:flex;gap:14px;align-items:center;margin-top:5px;flex-wrap:wrap">
         <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
         <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
-        ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(e.repos)}</button>`:""}
+        ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
       </div></div>
       </div>
       ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
@@ -2951,7 +2954,7 @@ function tplExoCard(e,i,editing){
         ${e.bloc?`<span class="tag am" style="font-size:10px">${esc(e.bloc)}</span>`:""}
         ${e.ss?`<span class="tag" style="font-size:10px;background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4)">🔗 SS ${esc(e.ss)}</span>`:""}${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}
       </div>
-      <div class="exd">${e.series} × ${esc(e.reps||"—")}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
+      <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):(e.reps||"—"))}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
       <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
