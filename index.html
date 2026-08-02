@@ -444,7 +444,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v9.0 — 22/07/2026";
+const APP_VERSION="v9.1 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -516,9 +516,19 @@ function save(){const c=sel();if(!c||!sb)return;DIRTY=true;clearTimeout(timers[c
   sb.from("clients").update(lightRow(c)).eq("id",c.id).then(({error})=>{ DIRTY=false; if(error) schemaHint(error); toast(error?"Erreur de sync":"Synchronisé"); });
 },350);}
 /* patch ciblé d'un seul champ (messages, photos, bilans) : léger et fiable */
+/* Correspondance nom interne → nom de colonne en base */
+const COLONNES={
+  notesPrivees:"notes_privees", coachEmail:"coach_email",
+  seanceTypes:"seance_types", seanceRounds:"seance_rounds", seanceTourRepos:"seance_tour_repos",
+  clientEmail:"client_email", dateDebut:"date_debut", objectifPoids:"objectif_poids",
+  forfaitTotal:"forfait_total", prochainRdv:"prochain_rdv",
+  programmeDebut:"programme_debut", programmeFin:"programme_fin", tailleCm:"taille_cm"
+};
 function patchField(c,field,cb){
+  const col=COLONNES[field]||field;
+  const val=(c[field]!==undefined&&c[field]!==null)?c[field]:[];
   PENDING++;
-  sb.from("clients").update({[field]:c[field]||[],updated_at:new Date().toISOString()}).eq("id",c.id)
+  sb.from("clients").update({[col]:val,updated_at:new Date().toISOString()}).eq("id",c.id)
     .then(({error})=>{
       PENDING=Math.max(0,PENDING-1);
       if(error){ schemaHint(error); alert("Envoi impossible : "+(error.message||"erreur réseau")+"\nRéessayez."); }
