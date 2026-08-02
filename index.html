@@ -108,11 +108,11 @@
   .fld textarea{resize:vertical}
   .panel{background:var(--ink2);border:1px solid var(--line);border-radius:16px;padding:14px}
   .panel .ph{font-family:'Bebas Neue';font-size:17px;letter-spacing:.05em;margin-bottom:10px;color:var(--white)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
   .exi{font-family:'Bebas Neue';font-size:14px;color:var(--red);letter-spacing:.06em}
   .exn{font-weight:700;font-size:15px;color:var(--white)}
-  .exd{font-size:13px;color:var(--grey);margin-top:4px}
-  .exnote{font-size:12.5px;color:#FF6B6B;margin-top:4px;font-style:italic}
+  .exd{font-size:14px;color:var(--grey);margin-top:6px;line-height:1.5}
+  .exnote{font-size:14px;color:#FF6B6B;margin-top:8px;font-style:italic;line-height:1.5}
   .x{border:none;background:transparent;color:var(--grey2);cursor:pointer;font-size:18px;line-height:1;padding:4px}
   .mrow{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 13px;margin-bottom:8px}
   .mrow .mv{font-family:'Bebas Neue';font-size:18px;color:var(--white);letter-spacing:.04em}
@@ -149,6 +149,14 @@
 
   /* === anti-débordement === */
   .wrap{overflow-x:clip}
+  @media (min-width:820px){
+    .wrap{max-width:720px}
+    nav{max-width:720px}
+    .card{padding:20px}
+    .exn{font-size:20px !important}
+    .exstat{padding:9px 15px;min-width:76px}
+    .exstat .v{font-size:18px}
+  }
   img,svg,audio,video{max-width:100%}
   .r2>*,.msg-input>*,.hd-top>*,.pstats>*,.crow>*{min-width:0}
   .tabbar button{flex:1 1 0;padding:8px 2px;white-space:nowrap;font-size:10.5px;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis}
@@ -172,13 +180,17 @@
   .pstat .pl{font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:2px}
   .pstat.delta .pv{color:#4CAF50}.pstat.delta.up .pv{color:var(--amber)}
   .pstat.target .pv{color:var(--red)}
-  .tmr{background:var(--ink2);border:1px solid #4A3B32;color:var(--amber);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter'}
+  .tmr{background:var(--ink2);border:1px solid #4A3B32;color:var(--amber);border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Inter'}
   .exo-results{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--ink2);margin-bottom:10px}
   .exo-hit{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);color:var(--white);padding:10px 12px;font-size:14px;cursor:pointer;font-family:inherit}
   .exo-hit:last-child{border-bottom:none}
   .exo-hit:active{background:rgba(176,31,31,.25)}
   .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
   .tabsel select{font-size:16px;font-weight:700;color:var(--white);background-color:var(--ink2);border-color:#5A4A3F;padding:14px 38px 14px 14px}
+  .exstats{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .exstat{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:7px 12px;min-width:64px;text-align:center}
+  .exstat .v{display:block;font-size:16px;font-weight:800;color:var(--white);line-height:1.15;white-space:nowrap}
+  .exstat .k{display:block;font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
   .chip{background:var(--ink2);border:1px solid var(--line);color:var(--grey);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
   .chip.on{background:var(--red);border-color:var(--red);color:#fff}
   .tmr.run{background:var(--red);border-color:var(--red);color:#fff;animation:tpulse 1s ease-in-out infinite}
@@ -432,7 +444,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.8 — 22/07/2026";
+const APP_VERSION="v8.9 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1630,18 +1642,23 @@ function programme(c,editable){
     return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
       <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
       ${(()=>{const th=exoThumb(e);
-        return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
-        :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 4px">${exoIcon(e.nom,26)}</span>`;})()}
-      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:10px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
-      <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps):e.reps)}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}</div>
+        return th?`<img src="${th}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:12px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
+        :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;align-items:center;justify-content:center">${exoIcon(e.nom,44)}</span>`;})()}
+      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span class="exi" style="font-size:15px">${String(i+1).padStart(2,"0")}</span><span class="exn" style="font-size:18px;line-height:1.25">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:11px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:11px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
+      <div class="exstats">
+        <div class="exstat"><span class="v">${e.series}</span><span class="k">${e.series>1?"séries":"série"}</span></div>
+        <div class="exstat"><span class="v">${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):(e.reps||"—"))}</span><span class="k">${e.repType==="temps"?"durée":"reps"}</span></div>
+        ${e.charge?`<div class="exstat"><span class="v">${esc(e.charge)}</span><span class="k">charge</span></div>`:""}
+        ${e.repos?`<div class="exstat"><span class="v">${esc(normDuree(e.repos)||e.repos)}</span><span class="k">repos</span></div>`:""}
+      </div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
       ${last3.length?`<div class="exd" style="color:#4CAF50;font-size:12px">Charges : ${last3.map(h=>`${esc(h.charge)} <span style="color:var(--grey2)">(${frDate(h.date)})</span>`).join(" → ")}</div>`:""}
       ${prBadge(e)}
       ${((e.historique||[]).length>=2)?`<button class="link" style="font-size:12px;padding:0;margin-top:2px" data-act="toggle-spark" data-id="${e.id}">${S.sparkOpen===e.id?"▾ Masquer la courbe":"▸ Voir la progression"}</button>${S.sparkOpen===e.id?exoSpark(e):""}`:""}
-      <div style="display:flex;gap:14px;align-items:center;margin-top:5px;flex-wrap:wrap">
-        <a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
-        <button class="link" style="font-size:12px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
+      <div style="display:flex;gap:16px;align-items:center;margin-top:11px;flex-wrap:wrap">
+        <a class="link" style="font-size:13.5px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Vidéo</a>
+        <button class="link" style="font-size:13.5px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
       </div></div>
       </div>
@@ -1660,7 +1677,7 @@ function programme(c,editable){
     list=prog.map(exCard).join("");
   } else {
     list=blocKeys.map(b=>`
-      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:16px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
+      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:19px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
         <span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
