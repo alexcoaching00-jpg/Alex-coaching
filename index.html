@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.5 — 22/07/2026";
+const APP_VERSION="v8.6 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -480,8 +480,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},seanceRounds:r.seance_rounds||{},tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},seance_rounds:c.seanceRounds||{},tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -593,7 +593,7 @@ async function loadClients(silent){
   S.loading=false; render();
   ensureCoachEmail();   // pour que les clients puissent notifier le coach en retour
   // Modèles de programmes (silencieux)
-  sb.from("templates").select("*").then(({data})=>{ if(data){ S.templates=data.map(x=>({...x,seanceTypes:x.seance_types||{}})); render(); } });
+  sb.from("templates").select("*").then(({data})=>{ if(data){ S.templates=data.map(x=>({...x,seanceTypes:x.seance_types||{},seanceRounds:x.seance_rounds||{}})); render(); } });
 }
 
 function sampleObj(){return{nom:"Madeleine D.",objectif:"Retrouver de l'autonomie fonctionnelle au quotidien",niveau:"Débutant",formule:"Individuel",notes:"Sédentaire, gênes lombaires et épaule. Progression douce, RIR 3–4.",dateDebut:"2026-01-15",
@@ -1539,6 +1539,11 @@ function seanceTypeBadge(c,bloc){
   const t=SEANCE_TYPES.find(x=>x[0]===seanceType(c,bloc));
   return t?`<span class="tag" style="background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4);font-size:11px;white-space:nowrap">${t[1]} ${t[2]}</span>`:"";
 }
+function seanceRounds(c,bloc){ return (c.seanceRounds&&+c.seanceRounds[bloc])||0; }
+function seanceRoundsBadge(c,bloc){
+  const n=seanceRounds(c,bloc);
+  return n>1?`<span class="tag" style="background:rgba(176,31,31,.18);color:#FF6B6B;border:1px solid rgba(176,31,31,.4);font-size:11px;white-space:nowrap">🔁 ${n} tours</span>`:"";
+}
 
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
@@ -1656,8 +1661,12 @@ function programme(c,editable){
           ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
         </span></div>
-        ${editable?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>`
-        :(seanceType(c,b)?`<div style="margin:-6px 0 10px">${seanceTypeBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
+        ${editable?`<div class="r2" style="margin-bottom:10px">
+            <label class="fld" style="margin-bottom:0"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+            <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds" data-jour="${esc(b)}" value="${seanceRounds(c,b)||""}"></label>
+          </div>
+          ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total.</p>`:""}`
+        :(seanceType(c,b)||seanceRounds(c,b)>1?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
       ${blocs[b].map(exCard).join("")}`).join("");
   }
   const dEx=S.exDraft||{};
@@ -1945,7 +1954,9 @@ function openWorkout(jour){
   const exos=(c.program||[]).filter(e=>(e.bloc||"")===jour);
   if(!exos.length) return;
   stopTimer();
+  const rounds=seanceRounds(c,jour);
   WK.on=true; WK.c=c; WK.jour=jour; WK.exos=exos; WK.idx=0; WK.serie=1; WK.rest=0;
+  WK.rounds=rounds>1?rounds:0; WK.round=1;
   wakeOn();
   let ov=document.getElementById("wk");
   if(!ov){ ov=document.createElement("div"); ov.id="wk"; document.body.appendChild(ov); }
@@ -1967,6 +1978,20 @@ function wkSerieDone(){
   const ex=WK.exos[WK.idx];
   const lastSerie=WK.serie>=(ex.series||1);
   const lastExo=WK.idx>=WK.exos.length-1;
+
+  // Mode circuit (nombre de tours défini) : chaque exercice se fait UNE fois, puis on tourne
+  if(WK.rounds>1){
+    if(!lastExo){
+      WK.idx++;
+      wkStartRest(parseRepos(ex.repos)||20);
+      return;
+    }
+    // dernier exercice du tour
+    if(WK.round>=WK.rounds){ wkFinish(); return; }
+    WK.round++; WK.idx=0;
+    wkStartRest(parseRepos(ex.repos)||20);
+    return;
+  }
 
   // Superset : enchaîner l'exercice suivant du groupe SANS repos
   if(ex.ss){
@@ -2053,14 +2078,16 @@ function wkFinish(){
 function wkRender(){
   const ov=document.getElementById("wk"); if(!ov||!WK.on) return;
   const ex=WK.exos[WK.idx];
-  const total=ex.series||1;
-  const dots=Array.from({length:total},(_,i)=>`<span class="wk-dot ${i<WK.serie-1?'d':''} ${i===WK.serie-1?'cur':''}"></span>`).join("");
+  const circuit=WK.rounds>1;
+  const total=circuit?WK.rounds:(ex.series||1);
+  const curUnit=circuit?WK.round:WK.serie;
+  const dots=Array.from({length:total},(_,i)=>`<span class="wk-dot ${i<curUnit-1?'d':''} ${i===curUnit-1?'cur':''}"></span>`).join("");
   const hist=(ex.historique||[]).slice(-1)[0];
   if(WK.rest>0){
     ov.innerHTML=`<div class="wk-in" style="justify-content:center;text-align:center">
       <p style="color:var(--amber);font-family:'Bebas Neue';font-size:18px;letter-spacing:.2em">REPOS</p>
       <div id="wk-rest-n" style="font-family:'Bebas Neue';font-size:96px;color:var(--white);line-height:1">${Math.floor(WK.rest/60)}:${String(WK.rest%60).padStart(2,"0")}</div>
-      <p style="color:var(--grey);margin:14px 0 26px">Ensuite : <b style="color:var(--white)">${esc(ex.nom)}</b> — série ${WK.serie}/${total}</p>
+      <p style="color:var(--grey);margin:14px 0 26px">Ensuite : <b style="color:var(--white)">${esc(ex.nom)}</b> — ${circuit?`tour ${WK.round}/${WK.rounds}`:`série ${WK.serie}/${total}`}</p>
       <button class="btn g full" data-act="wk-skip" style="max-width:280px">Passer le repos ›</button>
       <button class="link" data-act="wk-close" style="margin-top:18px">Quitter la séance</button>
     </div>`;
@@ -2068,7 +2095,7 @@ function wkRender(){
   }
   ov.innerHTML=`<div class="wk-in">
     <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
-      <span style="color:var(--grey);font-size:13px">${esc(WK.jour)}${seanceType(WK.c,WK.jour)?` ${seanceTypeBadge(WK.c,WK.jour)}`:""} · Exercice ${WK.idx+1}/${WK.exos.length}</span>
+      <span style="color:var(--grey);font-size:13px">${esc(WK.jour)}${seanceType(WK.c,WK.jour)?` ${seanceTypeBadge(WK.c,WK.jour)}`:""}${circuit?` <span style="color:var(--amber)">· 🔁 ${WK.rounds} tours</span>`:""} · Exercice ${WK.idx+1}/${WK.exos.length}</span>
       <button class="x" data-act="wk-close" style="font-size:22px">×</button>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;width:100%">
@@ -2078,7 +2105,7 @@ function wkRender(){
         return `<div style="display:flex;flex-direction:column;align-items:center;margin:2px 0 10px">${exoIcon(ex.nom,52)}<span style="font-size:11px;color:var(--grey2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px">${esc(ZONE_LABEL[exoZone(ex.nom)]||"")}</span></div>`; })()}
       ${ex.rir?`<span class="tag ink" style="align-self:center;margin-bottom:12px">${ex.rirScale==="rpe"?"RPE":"RIR"} ${esc(ex.rir)}</span>`:""}
       <div style="margin:8px 0 6px">${dots}</div>
-      <p style="color:var(--amber);font-family:'Bebas Neue';font-size:22px;letter-spacing:.08em">SÉRIE ${WK.serie} / ${total}</p>
+      <p style="color:var(--amber);font-family:'Bebas Neue';font-size:22px;letter-spacing:.08em">${circuit?`TOUR ${curUnit} / ${total}`:`SÉRIE ${WK.serie} / ${total}`}</p>
       <p style="color:var(--white);font-size:26px;font-weight:800;margin:6px 0">${esc(ex.reps||"—")} reps${ex.charge?` · ${esc(ex.charge)}`:""}</p>
       ${hist?`<p style="color:#4CAF50;font-size:13px">Dernière fois : ${esc(hist.charge)} (${frDate(hist.date)})</p>`:""}
       ${ex.note?`<p style="color:var(--grey);font-size:13.5px;margin-top:10px;font-style:italic">${esc(ex.note)}</p>`:""}
@@ -2098,13 +2125,23 @@ function wkRender(){
       <div style="display:none">
       </div>
     </div>
-    ${(()=>{ if(!ex.ss) return "";
+    ${(()=>{ if(WK.rounds>1){
+        const nextEx=WK.exos[WK.idx+1];
+        return `<div style="background:rgba(176,31,31,.15);border:1px solid rgba(176,31,31,.4);border-radius:12px;padding:8px 12px;margin-bottom:10px;text-align:center;font-size:13px;color:#FF6B6B">
+          🔁 Tour ${WK.round}/${WK.rounds} · Exercice ${WK.idx+1}/${WK.exos.length}${nextEx?` — ensuite <b>${esc(nextEx.nom)}</b>`:` — dernier de ce tour`}
+        </div>`;
+      }
+      if(!ex.ss) return "";
       const grp=ssPartners(ex); const pos=grp.findIndex(x=>x.id===ex.id);
       const next=grp[pos+1];
       return `<div style="background:rgba(184,134,47,.15);border:1px solid rgba(184,134,47,.45);border-radius:12px;padding:8px 12px;margin-bottom:10px;text-align:center;font-size:13px;color:var(--amber)">
         🔗 Superset ${esc(ex.ss)} · ${pos+1}/${grp.length}${next?` — enchaîne sans repos avec <b>${esc(next.nom)}</b>`:" — repos après cette série"}
       </div>`;})()}
     <button class="btn p full" data-act="wk-done" style="padding:16px;font-size:17px">${(()=>{
+      if(WK.rounds>1){
+        const isLastOfRound=WK.idx>=WK.exos.length-1;
+        return isLastOfRound?"✓ Fin du tour — repos":"✓ Fait — exercice suivant ›";
+      }
       if(ex.ss){ const grp=ssPartners(ex); const pos=grp.findIndex(x=>x.id===ex.id);
         if(pos<grp.length-1) return "✓ Fait — enchaîner ›"; }
       return "✓ Série faite"+(parseRepos(ex.repos)?` — repos ${esc(ex.repos)}`:"");})()}</button>
@@ -2923,7 +2960,11 @@ function tplEditor(){
         <button class="link" style="font-size:12px" data-act="tpl-add-here" data-bloc="${esc(b2)}">+ Exo ici</button>
       </span>`:""}
     </div>
-    ${b2?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type-tpl" data-jour="${esc(b2)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${((t.seanceTypes||{})[b2]||"")===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>`:""}
+    ${b2?`<div class="r2" style="margin-bottom:10px">
+        <label class="fld" style="margin-bottom:0"><span>Type de séance</span><select data-act="set-seance-type-tpl" data-jour="${esc(b2)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${((t.seanceTypes||{})[b2]||"")===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+        <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds-tpl" data-jour="${esc(b2)}" value="${((t.seanceRounds||{})[b2])||""}"></label>
+      </div>
+      ${((t.seanceRounds||{})[b2]||0)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : ${(t.seanceRounds||{})[b2]} tours.</p>`:""}`:""}
     ${groups[b2].map(({e,i})=>tplExoCard(e,i,true)).join("")}`;
   }).join("");
   return `
@@ -2974,8 +3015,10 @@ function programmesView(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:16px;color:var(--white)">${t.maison?`<span style="background:rgba(76,175,80,.18);color:#4CAF50;border-radius:999px;padding:2px 9px;font-size:11px;margin-right:6px;vertical-align:middle">🏠 Maison</span>`:""}${esc(t.nom)}</div>
-      ${(()=>{const types=[...new Set(Object.values(t.seanceTypes||{}))];if(!types.length)return"";
-        return `<div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">${types.map(ty=>{const d2=SEANCE_TYPES.find(x=>x[0]===ty);return d2?`<span class="tag" style="background:rgba(184,134,47,.15);color:var(--amber);border:1px solid rgba(184,134,47,.35);font-size:10px">${d2[1]} ${d2[2]}</span>`:"";}).join("")}</div>`;})()}
+      ${(()=>{const types=[...new Set(Object.values(t.seanceTypes||{}))];
+        const maxRounds=Math.max(0,...Object.values(t.seanceRounds||{}));
+        if(!types.length&&maxRounds<=1)return"";
+        return `<div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">${types.map(ty=>{const d2=SEANCE_TYPES.find(x=>x[0]===ty);return d2?`<span class="tag" style="background:rgba(184,134,47,.15);color:var(--amber);border:1px solid rgba(184,134,47,.35);font-size:10px">${d2[1]} ${d2[2]}</span>`:"";}).join("")}${maxRounds>1?`<span class="tag" style="background:rgba(176,31,31,.15);color:#FF6B6B;border:1px solid rgba(176,31,31,.35);font-size:10px">🔁 circuit</span>`:""}</div>`;})()}
           <div class="md" style="margin-left:0">${prog.length} exercice${prog.length>1?"s":""}${jours.length?` · ${jours.join(", ")}`:""}</div>
         </div>
         <button class="x" data-act="tpl-del2" data-id="${t.id}" title="Supprimer">×</button>
@@ -3021,9 +3064,9 @@ function programPrintHTML(t){
   const blocs={};
   prog.forEach(e=>{const b2=e.bloc||"";(blocs[b2]=blocs[b2]||[]).push(e);});
   const keys=Object.keys(blocs).sort((a,b2)=>rank(a)-rank(b2));
-  const stype=t.seanceTypes||{};
+  const stype=t.seanceTypes||{}; const sround=t.seanceRounds||{};
   const sections=keys.map(b2=>`
-    <h3 style="color:#B01F1F;font-size:15px;margin:18px 0 6px">${b2?(b2.length<=2?"Séance "+b2:b2):"Exercices"}${(()=>{const d2=SEANCE_TYPES.find(x=>x[0]===stype[b2]);return d2?` <span style="font-size:11px;background:#F6EDE1;color:#B8862F;border-radius:999px;padding:2px 9px;vertical-align:middle">${d2[1]} ${d2[2]}</span>`:"";})()}</h3>
+    <h3 style="color:#B01F1F;font-size:15px;margin:18px 0 6px">${b2?(b2.length<=2?"Séance "+b2:b2):"Exercices"}${(()=>{const d2=SEANCE_TYPES.find(x=>x[0]===stype[b2]);return d2?` <span style="font-size:11px;background:#F6EDE1;color:#B8862F;border-radius:999px;padding:2px 9px;vertical-align:middle">${d2[1]} ${d2[2]}</span>`:"";})()}${((sround[b2])>1)?` <span style="font-size:11px;background:#FCEAEA;color:#B01F1F;border-radius:999px;padding:2px 9px;vertical-align:middle">🔁 ${sround[b2]} tours</span>`:""}</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <tr style="background:#B01F1F;color:#fff"><th style="padding:6px 9px;text-align:left">Exercice</th><th style="padding:6px 9px">Séries</th><th style="padding:6px 9px">Reps</th><th style="padding:6px 9px">Charge</th><th style="padding:6px 9px">Repos</th><th style="padding:6px 9px">RIR</th></tr>
       ${blocs[b2].map(e=>`<tr>
@@ -3618,9 +3661,9 @@ document.addEventListener("click",e=>{
       break; }
     case "edit-ex-cancel": S.exDraft=null; render(); break;
     case "del-ex": if(c){ c.program=(c.program||[]).filter(x=>x.id!==t.dataset.id); if(S.exDraft&&S.exDraft.id===t.dataset.id) S.exDraft=null; save(); render(); } break;
-    case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false,seanceTypes:{}}; render(); break;
+    case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false,seanceTypes:{},seanceRounds:{}}; render(); break;
     case "tpl-edit":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
-      S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison,seanceTypes:{...(t2.seanceTypes||{})}}; render(); break; }
+      S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})}}; render(); break; }
     case "tpl-editor-cancel": S.tplEdit=null; render(); break;
     case "tpl-add-ex":{ if(!S.tplEdit) break;
       const nom=val("tex-nom").trim(); if(!nom) break;
@@ -3673,17 +3716,18 @@ document.addEventListener("click",e=>{
       if(!S.tplEdit.program.length){ alert("Ajoute au moins un exercice."); break; }
       const maisonFlag=!!S.tplEdit.maison;
       const seanceTypesT=S.tplEdit.seanceTypes||{};
+      const seanceRoundsT=S.tplEdit.seanceRounds||{};
       if(S.tplEdit.id){
-        sb.from("templates").update({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT}).eq("id",S.tplEdit.id).then(({error})=>{
+        sb.from("templates").update({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT,seance_rounds:seanceRoundsT}).eq("id",S.tplEdit.id).then(({error})=>{
           if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
           const t2=S.templates.find(x=>x.id===S.tplEdit.id);
-          if(t2){ t2.nom=nom; t2.program=S.tplEdit.program; t2.maison=maisonFlag; t2.seanceTypes=seanceTypesT; }
+          if(t2){ t2.nom=nom; t2.program=S.tplEdit.program; t2.maison=maisonFlag; t2.seanceTypes=seanceTypesT; t2.seanceRounds=seanceRoundsT; }
           S.tplEdit=null; toast("Programme enregistré"); render();
         });
       } else {
-        sb.from("templates").insert({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT}).select().single().then(({data,error})=>{
+        sb.from("templates").insert({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT,seance_rounds:seanceRoundsT}).select().single().then(({data,error})=>{
           if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
-          if(data) S.templates.push({...data,seanceTypes:seanceTypesT});
+          if(data) S.templates.push({...data,seanceTypes:seanceTypesT,seanceRounds:seanceRoundsT});
           S.tplEdit=null; toast("Programme créé"); render();
         });
       }
@@ -3694,16 +3738,17 @@ document.addEventListener("click",e=>{
       if(!confirm(`Envoyer « ${t2.nom} » à ${target.nom} ?\nSon programme actuel sera remplacé.`)) break;
       target.program=(t2.program||[]).map(e=>({...e,id:uid(),historique:[]}));
       target.seanceTypes={...(t2.seanceTypes||{})};
+      target.seanceRounds={...(t2.seanceRounds||{})};
       pushTo(target.clientEmail,"🏋️ Nouveau programme","Ton coach vient de mettre à jour ton programme");
-      sb.from("clients").update({...lightRow(target),seance_types:target.seanceTypes}).eq("id",target.id).then(({error})=>{
+      sb.from("clients").update({...lightRow(target),seance_types:target.seanceTypes,seance_rounds:target.seanceRounds}).eq("id",target.id).then(({error})=>{
         toast(error?"Erreur d'envoi":"Programme envoyé à "+target.nom);
       });
       break; }
     case "tpl-clone":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
-      const copy={nom:t2.nom+" (copie)",program:(t2.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:!!t2.maison,seance_types:{...(t2.seanceTypes||{})}};
+      const copy={nom:t2.nom+" (copie)",program:(t2.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:!!t2.maison,seance_types:{...(t2.seanceTypes||{})},seance_rounds:{...(t2.seanceRounds||{})}};
       sb.from("templates").insert(copy).select().single().then(({data,error})=>{
         if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
-        if(data){ S.templates.push({...copy,...data,seanceTypes:{...(t2.seanceTypes||{})}}); toast("Programme dupliqué"); render(); }
+        if(data){ S.templates.push({...copy,...data,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})}}); toast("Programme dupliqué"); render(); }
       });
       break; }
     case "send-recap":{ if(!c) return;
@@ -3752,7 +3797,7 @@ document.addEventListener("click",e=>{
       });
       break; }
     case "print-prog":{ if(!c||!(c.program||[]).length) break;
-      printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false,seanceTypes:c.seanceTypes||{}}); break; }
+      printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false,seanceTypes:c.seanceTypes||{},seanceRounds:c.seanceRounds||{}}); break; }
     case "tpl-pdf":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(t2) printProgram(t2); break; }
     case "tpl-del2":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
       if(!confirm(`Supprimer « ${t2.nom} » ?`)) break;
@@ -4025,6 +4070,22 @@ document.addEventListener("input",e=>{
     if(el3){ el3.focus(); try{el3.setSelectionRange(pos,pos);}catch(_){} }
     return;
   }
+  const rdIn=e.target.closest("[data-act=\"set-seance-rounds\"]");
+  if(rdIn){
+    const c=sel(); if(!c) return;
+    c.seanceRounds=c.seanceRounds||{};
+    const n=parseInt(rdIn.value)||0;
+    if(n>0) c.seanceRounds[rdIn.dataset.jour]=n; else delete c.seanceRounds[rdIn.dataset.jour];
+    return;
+  }
+  const rdTpl=e.target.closest("[data-act=\"set-seance-rounds-tpl\"]");
+  if(rdTpl){
+    if(!S.tplEdit) return;
+    S.tplEdit.seanceRounds=S.tplEdit.seanceRounds||{};
+    const n2=parseInt(rdTpl.value)||0;
+    if(n2>0) S.tplEdit.seanceRounds[rdTpl.dataset.jour]=n2; else delete S.tplEdit.seanceRounds[rdTpl.dataset.jour];
+    return;
+  }
   if(e.target.id==="cl-search"){
     S.q=e.target.value; const pos=e.target.selectionStart; render();
     const el2=document.getElementById("cl-search");
@@ -4046,6 +4107,10 @@ document.addEventListener("change",e=>{
   if(e.target.id==="tst-id"){ S.tstSel=e.target.value; render(); return; }
 
   // Type de série (reps/temps) : adapte le libellé et le placeholder, sans perdre les autres champs
+  const rdBlur=e.target.closest("[data-act=\"set-seance-rounds\"]");
+  if(rdBlur){ const c=sel(); if(c){ patchField(c,"seanceRounds",()=>{ setTimeout(render,0); }); } return; }
+  const rdBlurTpl=e.target.closest("[data-act=\"set-seance-rounds-tpl\"]");
+  if(rdBlurTpl){ toast("Nombre de tours mis à jour"); setTimeout(render,0); return; }
   const stSel=e.target.closest("[data-act=\"set-seance-type\"]");
   if(stSel){
     const c=sel(); if(!c) return;
