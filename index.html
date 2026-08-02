@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.1 — 22/07/2026";
+const APP_VERSION="v8.2 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -4114,11 +4114,22 @@ function schedulePush(title,body,secs){
   }catch(e){}
 }
 /* Notification vers une AUTRE personne (le client, ou le coach) */
+/* Déclenche l'envoi tout de suite au lieu d'attendre le passage automatique (jusqu'à 1 min) */
+function flushPushes(){
+  try{
+    fetch(SUPA_URL+"/functions/v1/send-due-pushes",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPA_KEY},
+      body:"{}"
+    }).catch(()=>{});
+  }catch(e){}
+}
 function pushTo(email,title,body){
   try{
     if(!sb||!S.session) return;
     const mail=(email||"").trim().toLowerCase(); if(!mail) return;
-    sb.from("scheduled_pushes").insert({title,body:(body||"").slice(0,140),send_at:new Date().toISOString(),target_email:mail}).then(()=>{});
+    sb.from("scheduled_pushes").insert({title,body:(body||"").slice(0,140),send_at:new Date().toISOString(),target_email:mail})
+      .then(()=>{ flushPushes(); });   // envoi immédiat
   }catch(e){}
 }
 /* Adresse du coach (propriétaire du compte) — utile pour notifier le coach */
