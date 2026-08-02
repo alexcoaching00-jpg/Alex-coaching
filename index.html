@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.4 — 22/07/2026";
+const APP_VERSION="v8.5 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -480,8 +480,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -593,7 +593,7 @@ async function loadClients(silent){
   S.loading=false; render();
   ensureCoachEmail();   // pour que les clients puissent notifier le coach en retour
   // Modèles de programmes (silencieux)
-  sb.from("templates").select("*").then(({data})=>{ if(data){ S.templates=data; render(); } });
+  sb.from("templates").select("*").then(({data})=>{ if(data){ S.templates=data.map(x=>({...x,seanceTypes:x.seance_types||{}})); render(); } });
 }
 
 function sampleObj(){return{nom:"Madeleine D.",objectif:"Retrouver de l'autonomie fonctionnelle au quotidien",niveau:"Débutant",formule:"Individuel",notes:"Sédentaire, gênes lombaires et épaule. Progression douce, RIR 3–4.",dateDebut:"2026-01-15",
@@ -1523,6 +1523,23 @@ function showDiagPush(){
   });
 }
 
+
+/* ===== TYPE DE SÉANCE (par jour/bloc, pas par exercice) ===== */
+const SEANCE_TYPES=[
+ ["muscu","💪","Musculation"],
+ ["hiit","🔥","HIIT"],
+ ["cardio","🏃","Cardio"],
+ ["circuit","🔄","Circuit training"],
+ ["fonctionnel","⚙️","Fonctionnel"],
+ ["mobilite","🧘","Mobilité / Récupération"],
+ ["mixte","⚡","Mixte"]
+];
+function seanceType(c,bloc){ return (c.seanceTypes&&c.seanceTypes[bloc])||""; }
+function seanceTypeBadge(c,bloc){
+  const t=SEANCE_TYPES.find(x=>x[0]===seanceType(c,bloc));
+  return t?`<span class="tag" style="background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4);font-size:11px;white-space:nowrap">${t[1]} ${t[2]}</span>`:"";
+}
+
 /* ===== RÉCAP MENSUEL : synthèse prête à envoyer au client ===== */
 function monthRecap(c){
   const now=new Date(), m=now.getMonth(), y=now.getFullYear();
@@ -1635,10 +1652,12 @@ function programme(c,editable){
   } else {
     list=blocKeys.map(b=>`
       ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:16px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
-        <span style="display:flex;gap:12px;align-items:center">
+        <span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
-        </span></div>`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
+        </span></div>
+        ${editable?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>`
+        :(seanceType(c,b)?`<div style="margin:-6px 0 10px">${seanceTypeBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
       ${blocs[b].map(exCard).join("")}`).join("");
   }
   const dEx=S.exDraft||{};
@@ -2049,7 +2068,7 @@ function wkRender(){
   }
   ov.innerHTML=`<div class="wk-in">
     <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
-      <span style="color:var(--grey);font-size:13px">${esc(WK.jour)} · Exercice ${WK.idx+1}/${WK.exos.length}</span>
+      <span style="color:var(--grey);font-size:13px">${esc(WK.jour)}${seanceType(WK.c,WK.jour)?` ${seanceTypeBadge(WK.c,WK.jour)}`:""} · Exercice ${WK.idx+1}/${WK.exos.length}</span>
       <button class="x" data-act="wk-close" style="font-size:22px">×</button>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;width:100%">
@@ -2898,12 +2917,13 @@ function tplEditor(){
     return `
     <div class="sec-head" style="margin-top:10px;flex-wrap:wrap;gap:6px">
       <h2 style="font-size:15px;color:var(--red)">${label(b2)} <span style="color:var(--grey2);font-weight:400;font-size:12px">· ${groups[b2].length} exo${groups[b2].length>1?"s":""}</span></h2>
-      ${b2?`<span style="display:flex;align-items:center;gap:6px">
+      ${b2?`<span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <select id="dl-${safe}" style="font-size:12px;padding:5px 26px 5px 8px;border-radius:8px;background:var(--ink2);color:var(--white);border:1px solid var(--line)">${others.map(j=>`<option value="${j}">${j.length<=2?"Séance "+j:j}</option>`).join("")}</select>
         <button class="link" style="font-size:12px" data-act="tpl-dup-day" data-from="${esc(b2)}">⧉ Copier vers</button>
         <button class="link" style="font-size:12px" data-act="tpl-add-here" data-bloc="${esc(b2)}">+ Exo ici</button>
       </span>`:""}
     </div>
+    ${b2?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type-tpl" data-jour="${esc(b2)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${((t.seanceTypes||{})[b2]||"")===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>`:""}
     ${groups[b2].map(({e,i})=>tplExoCard(e,i,true)).join("")}`;
   }).join("");
   return `
@@ -2954,6 +2974,8 @@ function programmesView(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:16px;color:var(--white)">${t.maison?`<span style="background:rgba(76,175,80,.18);color:#4CAF50;border-radius:999px;padding:2px 9px;font-size:11px;margin-right:6px;vertical-align:middle">🏠 Maison</span>`:""}${esc(t.nom)}</div>
+      ${(()=>{const types=[...new Set(Object.values(t.seanceTypes||{}))];if(!types.length)return"";
+        return `<div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">${types.map(ty=>{const d2=SEANCE_TYPES.find(x=>x[0]===ty);return d2?`<span class="tag" style="background:rgba(184,134,47,.15);color:var(--amber);border:1px solid rgba(184,134,47,.35);font-size:10px">${d2[1]} ${d2[2]}</span>`:"";}).join("")}</div>`;})()}
           <div class="md" style="margin-left:0">${prog.length} exercice${prog.length>1?"s":""}${jours.length?` · ${jours.join(", ")}`:""}</div>
         </div>
         <button class="x" data-act="tpl-del2" data-id="${t.id}" title="Supprimer">×</button>
@@ -2999,8 +3021,9 @@ function programPrintHTML(t){
   const blocs={};
   prog.forEach(e=>{const b2=e.bloc||"";(blocs[b2]=blocs[b2]||[]).push(e);});
   const keys=Object.keys(blocs).sort((a,b2)=>rank(a)-rank(b2));
+  const stype=t.seanceTypes||{};
   const sections=keys.map(b2=>`
-    <h3 style="color:#B01F1F;font-size:15px;margin:18px 0 6px">${b2?(b2.length<=2?"Séance "+b2:b2):"Exercices"}</h3>
+    <h3 style="color:#B01F1F;font-size:15px;margin:18px 0 6px">${b2?(b2.length<=2?"Séance "+b2:b2):"Exercices"}${(()=>{const d2=SEANCE_TYPES.find(x=>x[0]===stype[b2]);return d2?` <span style="font-size:11px;background:#F6EDE1;color:#B8862F;border-radius:999px;padding:2px 9px;vertical-align:middle">${d2[1]} ${d2[2]}</span>`:"";})()}</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <tr style="background:#B01F1F;color:#fff"><th style="padding:6px 9px;text-align:left">Exercice</th><th style="padding:6px 9px">Séries</th><th style="padding:6px 9px">Reps</th><th style="padding:6px 9px">Charge</th><th style="padding:6px 9px">Repos</th><th style="padding:6px 9px">RIR</th></tr>
       ${blocs[b2].map(e=>`<tr>
@@ -3595,9 +3618,9 @@ document.addEventListener("click",e=>{
       break; }
     case "edit-ex-cancel": S.exDraft=null; render(); break;
     case "del-ex": if(c){ c.program=(c.program||[]).filter(x=>x.id!==t.dataset.id); if(S.exDraft&&S.exDraft.id===t.dataset.id) S.exDraft=null; save(); render(); } break;
-    case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false}; render(); break;
+    case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false,seanceTypes:{}}; render(); break;
     case "tpl-edit":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
-      S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison}; render(); break; }
+      S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison,seanceTypes:{...(t2.seanceTypes||{})}}; render(); break; }
     case "tpl-editor-cancel": S.tplEdit=null; render(); break;
     case "tpl-add-ex":{ if(!S.tplEdit) break;
       const nom=val("tex-nom").trim(); if(!nom) break;
@@ -3649,17 +3672,18 @@ document.addEventListener("click",e=>{
       if(!nom){ alert("Donne un nom au programme."); break; }
       if(!S.tplEdit.program.length){ alert("Ajoute au moins un exercice."); break; }
       const maisonFlag=!!S.tplEdit.maison;
+      const seanceTypesT=S.tplEdit.seanceTypes||{};
       if(S.tplEdit.id){
-        sb.from("templates").update({nom,program:S.tplEdit.program,maison:maisonFlag}).eq("id",S.tplEdit.id).then(({error})=>{
+        sb.from("templates").update({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT}).eq("id",S.tplEdit.id).then(({error})=>{
           if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
           const t2=S.templates.find(x=>x.id===S.tplEdit.id);
-          if(t2){ t2.nom=nom; t2.program=S.tplEdit.program; t2.maison=maisonFlag; }
+          if(t2){ t2.nom=nom; t2.program=S.tplEdit.program; t2.maison=maisonFlag; t2.seanceTypes=seanceTypesT; }
           S.tplEdit=null; toast("Programme enregistré"); render();
         });
       } else {
-        sb.from("templates").insert({nom,program:S.tplEdit.program,maison:maisonFlag}).select().single().then(({data,error})=>{
+        sb.from("templates").insert({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT}).select().single().then(({data,error})=>{
           if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
-          if(data) S.templates.push(data);
+          if(data) S.templates.push({...data,seanceTypes:seanceTypesT});
           S.tplEdit=null; toast("Programme créé"); render();
         });
       }
@@ -3669,16 +3693,17 @@ document.addEventListener("click",e=>{
       if(!target) break;
       if(!confirm(`Envoyer « ${t2.nom} » à ${target.nom} ?\nSon programme actuel sera remplacé.`)) break;
       target.program=(t2.program||[]).map(e=>({...e,id:uid(),historique:[]}));
+      target.seanceTypes={...(t2.seanceTypes||{})};
       pushTo(target.clientEmail,"🏋️ Nouveau programme","Ton coach vient de mettre à jour ton programme");
-      sb.from("clients").update(lightRow(target)).eq("id",target.id).then(({error})=>{
+      sb.from("clients").update({...lightRow(target),seance_types:target.seanceTypes}).eq("id",target.id).then(({error})=>{
         toast(error?"Erreur d'envoi":"Programme envoyé à "+target.nom);
       });
       break; }
     case "tpl-clone":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
-      const copy={nom:t2.nom+" (copie)",program:(t2.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:!!t2.maison};
+      const copy={nom:t2.nom+" (copie)",program:(t2.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:!!t2.maison,seance_types:{...(t2.seanceTypes||{})}};
       sb.from("templates").insert(copy).select().single().then(({data,error})=>{
         if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
-        if(data){ S.templates.push({...copy,...data}); toast("Programme dupliqué"); render(); }
+        if(data){ S.templates.push({...copy,...data,seanceTypes:{...(t2.seanceTypes||{})}}); toast("Programme dupliqué"); render(); }
       });
       break; }
     case "send-recap":{ if(!c) return;
@@ -3727,7 +3752,7 @@ document.addEventListener("click",e=>{
       });
       break; }
     case "print-prog":{ if(!c||!(c.program||[]).length) break;
-      printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false}); break; }
+      printProgram({nom:"Programme — "+c.nom,program:c.program,maison:false,seanceTypes:c.seanceTypes||{}}); break; }
     case "tpl-pdf":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(t2) printProgram(t2); break; }
     case "tpl-del2":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
       if(!confirm(`Supprimer « ${t2.nom} » ?`)) break;
@@ -4021,6 +4046,25 @@ document.addEventListener("change",e=>{
   if(e.target.id==="tst-id"){ S.tstSel=e.target.value; render(); return; }
 
   // Type de série (reps/temps) : adapte le libellé et le placeholder, sans perdre les autres champs
+  const stSel=e.target.closest("[data-act=\"set-seance-type\"]");
+  if(stSel){
+    const c=sel(); if(!c) return;
+    c.seanceTypes=c.seanceTypes||{};
+    const v=stSel.value;
+    if(v) c.seanceTypes[stSel.dataset.jour]=v; else delete c.seanceTypes[stSel.dataset.jour];
+    patchField(c,"seanceTypes",err=>toast(err?"Erreur":"Type de séance enregistré"));
+    return;
+  }
+  const stTpl=e.target.closest("[data-act=\"set-seance-type-tpl\"]");
+  if(stTpl){
+    if(!S.tplEdit) return;
+    S.tplEdit.nom=val("tpl-nom");
+    S.tplEdit.seanceTypes=S.tplEdit.seanceTypes||{};
+    const v2=stTpl.value;
+    if(v2) S.tplEdit.seanceTypes[stTpl.dataset.jour]=v2; else delete S.tplEdit.seanceTypes[stTpl.dataset.jour];
+    toast("Type de séance mis à jour");
+    return;
+  }
   if(e.target.id==="ex-reptype"||e.target.id==="tex-reptype"){
     const p=e.target.id==="ex-reptype"?"ex":"tex";
     const isT=e.target.value==="temps";
