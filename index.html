@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.6 — 22/07/2026";
+const APP_VERSION="v8.7 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -480,8 +480,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},seanceRounds:r.seance_rounds||{},tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},seance_rounds:c.seanceRounds||{},tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},seanceRounds:r.seance_rounds||{},seanceTourRepos:r.seance_tour_repos||{},tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},seance_rounds:c.seanceRounds||{},seance_tour_repos:c.seanceTourRepos||{},tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -593,7 +593,7 @@ async function loadClients(silent){
   S.loading=false; render();
   ensureCoachEmail();   // pour que les clients puissent notifier le coach en retour
   // Modèles de programmes (silencieux)
-  sb.from("templates").select("*").then(({data})=>{ if(data){ S.templates=data.map(x=>({...x,seanceTypes:x.seance_types||{},seanceRounds:x.seance_rounds||{}})); render(); } });
+  sb.from("templates").select("*").then(({data})=>{ if(data){ S.templates=data.map(x=>({...x,seanceTypes:x.seance_types||{},seanceRounds:x.seance_rounds||{},seanceTourRepos:x.seance_tour_repos||{}})); render(); } });
 }
 
 function sampleObj(){return{nom:"Madeleine D.",objectif:"Retrouver de l'autonomie fonctionnelle au quotidien",niveau:"Débutant",formule:"Individuel",notes:"Sédentaire, gênes lombaires et épaule. Progression douce, RIR 3–4.",dateDebut:"2026-01-15",
@@ -1540,6 +1540,7 @@ function seanceTypeBadge(c,bloc){
   return t?`<span class="tag" style="background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4);font-size:11px;white-space:nowrap">${t[1]} ${t[2]}</span>`:"";
 }
 function seanceRounds(c,bloc){ return (c.seanceRounds&&+c.seanceRounds[bloc])||0; }
+function tourRepos(c,bloc){ return (c.seanceTourRepos&&c.seanceTourRepos[bloc])||""; }
 function seanceRoundsBadge(c,bloc){
   const n=seanceRounds(c,bloc);
   return n>1?`<span class="tag" style="background:rgba(176,31,31,.18);color:#FF6B6B;border:1px solid rgba(176,31,31,.4);font-size:11px;white-space:nowrap">🔁 ${n} tours</span>`:"";
@@ -1661,11 +1662,12 @@ function programme(c,editable){
           ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
         </span></div>
-        ${editable?`<div class="r2" style="margin-bottom:10px">
-            <label class="fld" style="margin-bottom:0"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+        ${editable?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+          <div class="r2" style="margin-bottom:10px">
             <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds" data-jour="${esc(b)}" value="${seanceRounds(c,b)||""}"></label>
+            <label class="fld" style="margin-bottom:0"><span>Repos entre les tours</span><input data-act="set-tour-repos" data-jour="${esc(b)}" placeholder="2min ou 120" value="${esc(tourRepos(c,b))}"></label>
           </div>
-          ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total.</p>`:""}`
+          ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total. Repos de transition entre exercices = celui de chaque exercice ; repos entre les tours = ${esc(tourRepos(c,b)||"60 s par défaut")}.</p>`:""}`
         :(seanceType(c,b)||seanceRounds(c,b)>1?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
       ${blocs[b].map(exCard).join("")}`).join("");
   }
@@ -1676,9 +1678,9 @@ function programme(c,editable){
       <label class="fld"><span>Exercice (ou saisie libre)</span><input id="ex-nom" list="exos-fr" placeholder="Ex. Presse à cuisses" value="${esc(dEx.nom||"")}"></label>
       <div class="r2"><label class="fld"><span>Séries</span><input id="ex-series" type="number" min="1" value="${dEx.series||3}"></label>
       <label class="fld"><span>Type de série</span><select id="ex-reptype"><option value="reps" ${(dEx.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${dEx.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label></div>
-      <label class="fld"><span id="ex-replabel">${dEx.repType==="temps"?"Durée par série (s)":"Répétitions"}</span><input id="ex-reps" inputmode="${dEx.repType==="temps"?"numeric":"text"}" placeholder="${dEx.repType==="temps"?"45":"12"}" value="${esc(dEx.reps!=null?dEx.reps:"")}"></label>
+      <label class="fld"><span id="ex-replabel">${dEx.repType==="temps"?"Durée par série":"Répétitions"}</span><input id="ex-reps" placeholder="${dEx.repType==="temps"?"45 ou 1min30":"12"}" value="${esc(dEx.reps!=null?dEx.reps:"")}"></label>
       <div class="r2"><label class="fld"><span>Charge</span><input id="ex-charge" placeholder="40 kg" value="${esc(dEx.charge||"")}"></label>
-      <label class="fld"><span>Repos</span><input id="ex-repos" placeholder="60 s" value="${esc(dEx.repos||"")}"></label></div>
+      <label class="fld"><span>Repos</span><input id="ex-repos" placeholder="90 ou 1min30" value="${esc(dEx.repos||"")}"></label></div>
       <div class="r2"><label class="fld"><span>Jour</span><select id="ex-bloc"><option value="">—</option>${["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche","A","B","C"].map(j=>`<option value="${j}" ${(dEx.bloc||S.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
       <label class="fld"><span>Superset</span><select id="ex-ss"><option value="">— Aucun —</option>${["A","B","C","D"].map(v=>`<option value="${v}" ${dEx.ss===v?"selected":""}>Superset ${v}</option>`).join("")}</select></label></div>
       <div class="r2"><label class="fld"><span>Échelle d'effort</span><select id="ex-scale"><option value="rir" ${(dEx.rirScale||"rir")==="rir"?"selected":""}>RIR</option><option value="rpe" ${dEx.rirScale==="rpe"?"selected":""}>RPE</option></select></label>
@@ -1982,14 +1984,17 @@ function wkSerieDone(){
   // Mode circuit (nombre de tours défini) : chaque exercice se fait UNE fois, puis on tourne
   if(WK.rounds>1){
     if(!lastExo){
+      // Transition entre deux exercices du MÊME tour : repos propre à l'exercice qui vient d'être fait
       WK.idx++;
+      WK.roundTransition=false;
       wkStartRest(parseRepos(ex.repos)||20);
       return;
     }
-    // dernier exercice du tour
+    // Dernier exercice du tour : passage au tour suivant, avec son propre repos (souvent plus long)
     if(WK.round>=WK.rounds){ wkFinish(); return; }
     WK.round++; WK.idx=0;
-    wkStartRest(parseRepos(ex.repos)||20);
+    WK.roundTransition=true;
+    wkStartRest(parseRepos(tourRepos(WK.c,WK.jour))||60);
     return;
   }
 
@@ -2085,7 +2090,7 @@ function wkRender(){
   const hist=(ex.historique||[]).slice(-1)[0];
   if(WK.rest>0){
     ov.innerHTML=`<div class="wk-in" style="justify-content:center;text-align:center">
-      <p style="color:var(--amber);font-family:'Bebas Neue';font-size:18px;letter-spacing:.2em">REPOS</p>
+      <p style="color:var(--amber);font-family:'Bebas Neue';font-size:18px;letter-spacing:.2em">${WK.roundTransition?"REPOS ENTRE LES TOURS":"REPOS"}</p>
       <div id="wk-rest-n" style="font-family:'Bebas Neue';font-size:96px;color:var(--white);line-height:1">${Math.floor(WK.rest/60)}:${String(WK.rest%60).padStart(2,"0")}</div>
       <p style="color:var(--grey);margin:14px 0 26px">Ensuite : <b style="color:var(--white)">${esc(ex.nom)}</b> — ${circuit?`tour ${WK.round}/${WK.rounds}`:`série ${WK.serie}/${total}`}</p>
       <button class="btn g full" data-act="wk-skip" style="max-width:280px">Passer le repos ›</button>
@@ -2157,13 +2162,30 @@ const TIMER={int:null,exId:null};
 function parseRepos(txt){
   if(!txt) return null;
   const t=String(txt).toLowerCase().trim();
-  const mm=t.match(/^(\d+)\s*[:h]\s*(\d{1,2})/); // 1:30
+  // "1:30" ou "1h30"
+  const mm=t.match(/^(\d+)\s*[:h]\s*(\d{1,2})/);
   if(mm) return (+mm[1])*60+(+mm[2]);
+  // "1 min 30", "1min30s", "2mn15" → minutes + secondes
+  const ms=t.match(/(\d+)\s*(?:min|mn|')\s*(\d{1,2})\s*(?:s|sec)?/);
+  if(ms) return (+ms[1])*60+(+ms[2]);
   const n=t.match(/(\d+([.,]\d+)?)/);
   if(!n) return null;
   const v=parseFloat(n[1].replace(",","."));
   if(t.includes("min")||t.includes("mn")||t.includes("'")) return Math.round(v*60);
   return Math.round(v); // secondes par défaut
+}
+/* Affiche une durée en secondes sous forme lisible : 45 s · 1 min 30 s · 2 min */
+function fmtDuree(secs){
+  const s2=Math.round(+secs||0);
+  if(s2<=0) return "";
+  if(s2<60) return s2+" s";
+  const m=Math.floor(s2/60), r=s2%60;
+  return r?`${m} min ${r} s`:`${m} min`;
+}
+/* Normalise ce que le coach a tapé pour l'enregistrer proprement */
+function normDuree(txt){
+  const n=parseRepos(txt);
+  return n?fmtDuree(n):(txt||"");
 }
 let AC=null;
 let ALARM_EL=null, ALARM_PRIMED=false;
@@ -2960,9 +2982,10 @@ function tplEditor(){
         <button class="link" style="font-size:12px" data-act="tpl-add-here" data-bloc="${esc(b2)}">+ Exo ici</button>
       </span>`:""}
     </div>
-    ${b2?`<div class="r2" style="margin-bottom:10px">
-        <label class="fld" style="margin-bottom:0"><span>Type de séance</span><select data-act="set-seance-type-tpl" data-jour="${esc(b2)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${((t.seanceTypes||{})[b2]||"")===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+    ${b2?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type-tpl" data-jour="${esc(b2)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${((t.seanceTypes||{})[b2]||"")===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+      <div class="r2" style="margin-bottom:10px">
         <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds-tpl" data-jour="${esc(b2)}" value="${((t.seanceRounds||{})[b2])||""}"></label>
+        <label class="fld" style="margin-bottom:0"><span>Repos entre les tours</span><input data-act="set-tour-repos-tpl" data-jour="${esc(b2)}" placeholder="2min ou 120" value="${esc((t.seanceTourRepos||{})[b2]||"")}"></label>
       </div>
       ${((t.seanceRounds||{})[b2]||0)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : ${(t.seanceRounds||{})[b2]} tours.</p>`:""}`:""}
     ${groups[b2].map(({e,i})=>tplExoCard(e,i,true)).join("")}`;
@@ -2982,10 +3005,10 @@ function tplEditor(){
         <label class="fld"><span>Séries</span><input id="tex-series" inputmode="numeric" placeholder="3" value="${d.series||""}"></label>
         <label class="fld"><span>Type de série</span><select id="tex-reptype"><option value="reps" ${(d.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${d.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label>
       </div>
-      <label class="fld"><span id="tex-replabel">${d.repType==="temps"?"Durée par série (s)":"Répétitions"}</span><input id="tex-reps" inputmode="${d.repType==="temps"?"numeric":"text"}" placeholder="${d.repType==="temps"?"45":"8-10"}" value="${esc(d.reps||"")}"></label>
+      <label class="fld"><span id="tex-replabel">${d.repType==="temps"?"Durée par série":"Répétitions"}</span><input id="tex-reps" placeholder="${d.repType==="temps"?"45 ou 1min30":"8-10"}" value="${esc(d.reps||"")}"></label>
       <div class="r2">
         <label class="fld"><span>Charge</span><input id="tex-charge" placeholder="40 kg" value="${esc(d.charge||"")}"></label>
-        <label class="fld"><span>Repos</span><input id="tex-repos" placeholder="90 s" value="${esc(d.repos||"")}"></label>
+        <label class="fld"><span>Repos</span><input id="tex-repos" placeholder="90 ou 1min30" value="${esc(d.repos||"")}"></label>
       </div>
       <div class="r2">
         <label class="fld"><span>Jour / séance</span><select id="tex-bloc"><option value="">—</option>${JOURS2.map(j=>`<option value="${j}" ${(d.bloc||t.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
@@ -3520,8 +3543,8 @@ document.addEventListener("click",e=>{
       const draft=(S.exDraft&&(c.program||[]).some(x=>x.id===S.exDraft.id))?S.exDraft:null;
       const repType1=val("ex-reptype")||"reps";
       let repsVal1=val("ex-reps");
-      if(repType1==="temps"&&/^\d+$/.test(repsVal1.trim())) repsVal1=repsVal1.trim()+" s";
-      const payload={nom,series:+val("ex-series")||3,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
+      if(repType1==="temps") repsVal1=normDuree(repsVal1)||repsVal1;
+      const payload={nom,series:+val("ex-series")||3,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:normDuree(val("ex-repos")),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
       if(draft&&draft.id){
         const idx=c.program.findIndex(x=>x.id===draft.id);
         if(idx>=0) c.program[idx]={...c.program[idx],...payload};
@@ -3661,9 +3684,9 @@ document.addEventListener("click",e=>{
       break; }
     case "edit-ex-cancel": S.exDraft=null; render(); break;
     case "del-ex": if(c){ c.program=(c.program||[]).filter(x=>x.id!==t.dataset.id); if(S.exDraft&&S.exDraft.id===t.dataset.id) S.exDraft=null; save(); render(); } break;
-    case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false,seanceTypes:{},seanceRounds:{}}; render(); break;
+    case "tpl-new": S.tplEdit={id:null,nom:"",program:[],maison:false,seanceTypes:{},seanceRounds:{},seanceTourRepos:{}}; render(); break;
     case "tpl-edit":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
-      S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})}}; render(); break; }
+      S.tplEdit={id:t2.id,nom:t2.nom,program:(t2.program||[]).map(e=>({...e})),maison:!!t2.maison,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})},seanceTourRepos:{...(t2.seanceTourRepos||{})}}; render(); break; }
     case "tpl-editor-cancel": S.tplEdit=null; render(); break;
     case "tpl-add-ex":{ if(!S.tplEdit) break;
       const nom=val("tex-nom").trim(); if(!nom) break;
@@ -3673,8 +3696,8 @@ document.addEventListener("click",e=>{
       S.tplEdit.lastBloc=tbloc; pushRecentExo(nom);
       const repType2=val("tex-reptype")||"reps";
       let repsVal2=val("tex-reps");
-      if(repType2==="temps"&&/^\d+$/.test(repsVal2.trim())) repsVal2=repsVal2.trim()+" s";
-      const payloadT={nom,series:+val("tex-series")||3,reps:repsVal2,repType:repType2,charge:val("tex-charge"),repos:val("tex-repos"),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",rirScale:val("tex-scale")||"rir",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim()};
+      if(repType2==="temps") repsVal2=normDuree(repsVal2)||repsVal2;
+      const payloadT={nom,series:+val("tex-series")||3,reps:repsVal2,repType:repType2,charge:val("tex-charge"),repos:normDuree(val("tex-repos")),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",rirScale:val("tex-scale")||"rir",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim()};
       const idxT=(draftT&&draftT.id)?S.tplEdit.program.findIndex(x=>x.id===draftT.id):-1;
       if(idxT>=0) S.tplEdit.program[idxT]={...S.tplEdit.program[idxT],...payloadT};
       else S.tplEdit.program.push({id:keepId,...payloadT,historique:[]});
@@ -3717,17 +3740,18 @@ document.addEventListener("click",e=>{
       const maisonFlag=!!S.tplEdit.maison;
       const seanceTypesT=S.tplEdit.seanceTypes||{};
       const seanceRoundsT=S.tplEdit.seanceRounds||{};
+      const seanceTourRepoT=S.tplEdit.seanceTourRepos||{};
       if(S.tplEdit.id){
-        sb.from("templates").update({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT,seance_rounds:seanceRoundsT}).eq("id",S.tplEdit.id).then(({error})=>{
+        sb.from("templates").update({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT,seance_rounds:seanceRoundsT,seance_tour_repos:seanceTourRepoT}).eq("id",S.tplEdit.id).then(({error})=>{
           if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
           const t2=S.templates.find(x=>x.id===S.tplEdit.id);
-          if(t2){ t2.nom=nom; t2.program=S.tplEdit.program; t2.maison=maisonFlag; t2.seanceTypes=seanceTypesT; t2.seanceRounds=seanceRoundsT; }
+          if(t2){ t2.nom=nom; t2.program=S.tplEdit.program; t2.maison=maisonFlag; t2.seanceTypes=seanceTypesT; t2.seanceRounds=seanceRoundsT; t2.seanceTourRepos=seanceTourRepoT; }
           S.tplEdit=null; toast("Programme enregistré"); render();
         });
       } else {
-        sb.from("templates").insert({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT,seance_rounds:seanceRoundsT}).select().single().then(({data,error})=>{
+        sb.from("templates").insert({nom,program:S.tplEdit.program,maison:maisonFlag,seance_types:seanceTypesT,seance_rounds:seanceRoundsT,seance_tour_repos:seanceTourRepoT}).select().single().then(({data,error})=>{
           if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
-          if(data) S.templates.push({...data,seanceTypes:seanceTypesT,seanceRounds:seanceRoundsT});
+          if(data) S.templates.push({...data,seanceTypes:seanceTypesT,seanceRounds:seanceRoundsT,seanceTourRepos:seanceTourRepoT});
           S.tplEdit=null; toast("Programme créé"); render();
         });
       }
@@ -3739,16 +3763,17 @@ document.addEventListener("click",e=>{
       target.program=(t2.program||[]).map(e=>({...e,id:uid(),historique:[]}));
       target.seanceTypes={...(t2.seanceTypes||{})};
       target.seanceRounds={...(t2.seanceRounds||{})};
+      target.seanceTourRepos={...(t2.seanceTourRepos||{})};
       pushTo(target.clientEmail,"🏋️ Nouveau programme","Ton coach vient de mettre à jour ton programme");
-      sb.from("clients").update({...lightRow(target),seance_types:target.seanceTypes,seance_rounds:target.seanceRounds}).eq("id",target.id).then(({error})=>{
+      sb.from("clients").update({...lightRow(target),seance_types:target.seanceTypes,seance_rounds:target.seanceRounds,seance_tour_repos:target.seanceTourRepos}).eq("id",target.id).then(({error})=>{
         toast(error?"Erreur d'envoi":"Programme envoyé à "+target.nom);
       });
       break; }
     case "tpl-clone":{ const t2=S.templates.find(x=>x.id===t.dataset.id); if(!t2) break;
-      const copy={nom:t2.nom+" (copie)",program:(t2.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:!!t2.maison,seance_types:{...(t2.seanceTypes||{})},seance_rounds:{...(t2.seanceRounds||{})}};
+      const copy={nom:t2.nom+" (copie)",program:(t2.program||[]).map(e=>({...e,id:uid(),historique:[]})),maison:!!t2.maison,seance_types:{...(t2.seanceTypes||{})},seance_rounds:{...(t2.seanceRounds||{})},seance_tour_repos:{...(t2.seanceTourRepos||{})}};
       sb.from("templates").insert(copy).select().single().then(({data,error})=>{
         if(error){ schemaHint(error); alert("Erreur : "+error.message); return; }
-        if(data){ S.templates.push({...copy,...data,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})}}); toast("Programme dupliqué"); render(); }
+        if(data){ S.templates.push({...copy,...data,seanceTypes:{...(t2.seanceTypes||{})},seanceRounds:{...(t2.seanceRounds||{})},seanceTourRepos:{...(t2.seanceTourRepos||{})}}); toast("Programme dupliqué"); render(); }
       });
       break; }
     case "send-recap":{ if(!c) return;
@@ -4070,6 +4095,20 @@ document.addEventListener("input",e=>{
     if(el3){ el3.focus(); try{el3.setSelectionRange(pos,pos);}catch(_){} }
     return;
   }
+  const trIn=e.target.closest("[data-act=\"set-tour-repos\"]");
+  if(trIn){
+    const c=sel(); if(!c) return;
+    c.seanceTourRepos=c.seanceTourRepos||{};
+    if(trIn.value.trim()) c.seanceTourRepos[trIn.dataset.jour]=trIn.value.trim(); else delete c.seanceTourRepos[trIn.dataset.jour];
+    return;
+  }
+  const trInTpl=e.target.closest("[data-act=\"set-tour-repos-tpl\"]");
+  if(trInTpl){
+    if(!S.tplEdit) return;
+    S.tplEdit.seanceTourRepos=S.tplEdit.seanceTourRepos||{};
+    if(trInTpl.value.trim()) S.tplEdit.seanceTourRepos[trInTpl.dataset.jour]=trInTpl.value.trim(); else delete S.tplEdit.seanceTourRepos[trInTpl.dataset.jour];
+    return;
+  }
   const rdIn=e.target.closest("[data-act=\"set-seance-rounds\"]");
   if(rdIn){
     const c=sel(); if(!c) return;
@@ -4107,6 +4146,19 @@ document.addEventListener("change",e=>{
   if(e.target.id==="tst-id"){ S.tstSel=e.target.value; render(); return; }
 
   // Type de série (reps/temps) : adapte le libellé et le placeholder, sans perdre les autres champs
+  const trBlur=e.target.closest("[data-act=\"set-tour-repos\"]");
+  if(trBlur){ const c=sel(); if(c){
+      c.seanceTourRepos=c.seanceTourRepos||{};
+      const j=trBlur.dataset.jour, nv=normDuree(trBlur.value);
+      if(nv) c.seanceTourRepos[j]=nv; else delete c.seanceTourRepos[j];
+      patchField(c,"seanceTourRepos",()=>{ setTimeout(render,0); });
+    } return; }
+  const trBlurTpl=e.target.closest("[data-act=\"set-tour-repos-tpl\"]");
+  if(trBlurTpl){ if(S.tplEdit){
+      S.tplEdit.seanceTourRepos=S.tplEdit.seanceTourRepos||{};
+      const j2=trBlurTpl.dataset.jour, nv2=normDuree(trBlurTpl.value);
+      if(nv2) S.tplEdit.seanceTourRepos[j2]=nv2; else delete S.tplEdit.seanceTourRepos[j2];
+    } setTimeout(render,0); return; }
   const rdBlur=e.target.closest("[data-act=\"set-seance-rounds\"]");
   if(rdBlur){ const c=sel(); if(c){ patchField(c,"seanceRounds",()=>{ setTimeout(render,0); }); } return; }
   const rdBlurTpl=e.target.closest("[data-act=\"set-seance-rounds-tpl\"]");
@@ -4133,9 +4185,9 @@ document.addEventListener("change",e=>{
   if(e.target.id==="ex-reptype"||e.target.id==="tex-reptype"){
     const p=e.target.id==="ex-reptype"?"ex":"tex";
     const isT=e.target.value==="temps";
-    const lab=document.getElementById(p+"-replabel"); if(lab) lab.textContent=isT?"Durée par série (s)":"Répétitions";
+    const lab=document.getElementById(p+"-replabel"); if(lab) lab.textContent=isT?"Durée par série":"Répétitions";
     const inp=document.getElementById(p+"-reps");
-    if(inp){ inp.placeholder=isT?"45":(p==="ex"?"12":"8-10"); inp.setAttribute("inputmode",isT?"numeric":"text"); }
+    if(inp){ inp.placeholder=isT?"45 ou 1min30":(p==="ex"?"12":"8-10"); }
     return;
   }
   // Échelle RIR / RPE : régénère les valeurs disponibles
