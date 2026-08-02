@@ -429,7 +429,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v8.3 — 22/07/2026";
+const APP_VERSION="v8.4 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1606,7 +1606,7 @@ function programme(c,editable){
       ${(()=>{const th=exoThumb(e);
         return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
         :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:3px 4px">${exoIcon(e.nom,26)}</span>`;})()}
-      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:10px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
+      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:10px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
       <div class="exd">${e.series} × ${esc(e.reps)}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
@@ -1647,13 +1647,14 @@ function programme(c,editable){
       ${exoPicker("ex-nom")}
       <label class="fld"><span>Exercice (ou saisie libre)</span><input id="ex-nom" list="exos-fr" placeholder="Ex. Presse à cuisses" value="${esc(dEx.nom||"")}"></label>
       <div class="r2"><label class="fld"><span>Séries</span><input id="ex-series" type="number" min="1" value="${dEx.series||3}"></label>
-      <label class="fld"><span>Reps</span><input id="ex-reps" value="${esc(dEx.reps!=null?dEx.reps:"12")}"></label></div>
+      <label class="fld"><span>Type de série</span><select id="ex-reptype"><option value="reps" ${(dEx.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${dEx.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label></div>
+      <label class="fld"><span id="ex-replabel">${dEx.repType==="temps"?"Durée par série (s)":"Répétitions"}</span><input id="ex-reps" inputmode="${dEx.repType==="temps"?"numeric":"text"}" placeholder="${dEx.repType==="temps"?"45":"12"}" value="${esc(dEx.reps!=null?dEx.reps:"")}"></label>
       <div class="r2"><label class="fld"><span>Charge</span><input id="ex-charge" placeholder="40 kg" value="${esc(dEx.charge||"")}"></label>
       <label class="fld"><span>Repos</span><input id="ex-repos" placeholder="60 s" value="${esc(dEx.repos||"")}"></label></div>
       <div class="r2"><label class="fld"><span>Jour</span><select id="ex-bloc"><option value="">—</option>${["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche","A","B","C"].map(j=>`<option value="${j}" ${(dEx.bloc||S.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
-      <label class="fld"><span>RIR cible</span><select id="ex-rir"><option value="">—</option>${["0-1","1-2","2-3","3-4"].map(r2=>`<option ${dEx.rir===r2?"selected":""}>${r2}</option>`).join("")}</select></label></div>
-      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="ex-ss">${["","A","B","C","D"].map(v=>`<option value="${v}" ${(dEx.ss||"")===v?"selected":""}>${v?("Superset "+v):"— Aucun —"}</option>`).join("")}</select></label>
-      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="ex-ss"><option value="">Non (exercice seul)</option>${["A","B","C","D","E","F"].map(g=>`<option value="${g}" ${dEx.ss===g?"selected":""}>Superset ${g}</option>`).join("")}</select></label>
+      <label class="fld"><span>Superset</span><select id="ex-ss"><option value="">— Aucun —</option>${["A","B","C","D"].map(v=>`<option value="${v}" ${dEx.ss===v?"selected":""}>Superset ${v}</option>`).join("")}</select></label></div>
+      <div class="r2"><label class="fld"><span>Échelle d'effort</span><select id="ex-scale"><option value="rir" ${(dEx.rirScale||"rir")==="rir"?"selected":""}>RIR</option><option value="rpe" ${dEx.rirScale==="rpe"?"selected":""}>RPE</option></select></label>
+      <label class="fld"><span id="ex-scalelabel">${dEx.rirScale==="rpe"?"RPE cible":"RIR cible"}</span><select id="ex-rir"><option value="">—</option>${(dEx.rirScale==="rpe"?["10","9-10","8-9","7-8","6-7","≤6"]:["0-1","1-2","2-3","3-4"]).map(r2=>`<option ${dEx.rir===r2?"selected":""}>${r2}</option>`).join("")}</select></label></div>
       <label class="fld"><span>Consigne (optionnel)</span><input id="ex-note" placeholder="Amplitude contrôlée…" value="${esc(dEx.note||"")}"></label>
       <label class="fld"><span>Équivalence si trop difficile (optionnel)</span><input id="ex-alt" placeholder="Ex. Squat gobelet → Presse à cuisses" value="${esc(dEx.alt||"")}"></label>
       <label class="fld"><span>Lien vidéo (optionnel — sinon recherche YouTube auto)</span><input id="ex-video" type="url" autocapitalize="off" placeholder="https://youtube.com/…" value="${esc(dEx.video||"")}"></label>
@@ -2056,7 +2057,7 @@ function wkRender(){
       ${(()=>{ const th=exoThumb(ex);
         if(th) return `<a href="${esc(exoVideoUrl(ex))}" target="_blank" rel="noopener" style="display:block;margin:2px auto 10px;max-width:220px"><img src="${th}" alt="" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.style.display='none'"></a>`;
         return `<div style="display:flex;flex-direction:column;align-items:center;margin:2px 0 10px">${exoIcon(ex.nom,52)}<span style="font-size:11px;color:var(--grey2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px">${esc(ZONE_LABEL[exoZone(ex.nom)]||"")}</span></div>`; })()}
-      ${ex.rir?`<span class="tag ink" style="align-self:center;margin-bottom:12px">RIR ${esc(ex.rir)}</span>`:""}
+      ${ex.rir?`<span class="tag ink" style="align-self:center;margin-bottom:12px">${ex.rirScale==="rpe"?"RPE":"RIR"} ${esc(ex.rir)}</span>`:""}
       <div style="margin:8px 0 6px">${dots}</div>
       <p style="color:var(--amber);font-family:'Bebas Neue';font-size:22px;letter-spacing:.08em">SÉRIE ${WK.serie} / ${total}</p>
       <p style="color:var(--white);font-size:26px;font-weight:800;margin:6px 0">${esc(ex.reps||"—")} reps${ex.charge?` · ${esc(ex.charge)}`:""}</p>
@@ -2786,13 +2787,18 @@ function normTxt(str){
   return String(str||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
 
+
+function hiitGroup(){
+  return [["🔥 HIIT / Intervalles",["Burpees", "Burpees sans pompe", "Mountain climbers rapides", "Jumping jacks", "Squat jump", "Squat sauté", "Fentes sautées alternées", "High knees (montées de genoux)", "Talons-fesses rapides", "Skater jumps", "Star jumps", "Tuck jumps", "Box jump", "Broad jump", "Battle ropes", "Wall balls", "Thruster", "Kettlebell swing", "Corde à sauter", "Corde à sauter double-unders", "Sprint sur place", "Sprint", "Shadow boxing", "Bear crawl", "Crab walk", "Plank jacks", "Rameur (sprint 30s)", "Assault bike (sprint)", "Poussée de traîneau (sled push)", "Prowler", "Devil press", "Man makers", "Renegade row", "Medicine ball slam", "Turkish get-up rapide", "Rowing sprint intervalles", "Vélo sprint intervalles"]]];
+}
+
 function elasticGroup(){
   const g=EXOS_MAISON.find(x=>x[0]==="Élastique");
   return g?[["Élastique (accessoire)",g[1]]]:[];
 }
 function pickerOptionsHtml(mode,filter){
-  // Le groupe Élastique est utile dans les deux modes : en salle comme à la maison
-  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
+  // Élastique et HIIT sont utiles dans les deux modes : en salle comme à la maison
+  const groups=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
   const q=normTxt(filter);
   let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
   if(!q){
@@ -2806,14 +2812,14 @@ function pickerOptionsHtml(mode,filter){
   return html;
 }
 function pickerCount(mode,filter){
-  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
+  const groups=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
   const q=normTxt(filter);
   return groups.reduce((t2,g)=>t2+(q?g[1].filter(e=>normTxt(e).includes(q)).length:g[1].length),0);
 }
 /* Résultats à plat, cliquables directement */
 function pickerResults(mode,filter){
   const q=normTxt(filter); if(!q) return [];
-  const groups=mode==="maison"?EXOS_MAISON:EXOS_GROUPES.concat(elasticGroup());
+  const groups=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
   const out=[];
   groups.forEach(([g,list])=>list.forEach(e=>{ if(normTxt(e).includes(q)) out.push({nom:e,grp:g}); }));
   return out.slice(0,60);
@@ -2865,7 +2871,7 @@ function tplExoCard(e,i,editing){
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="exi">${String(i+1).padStart(2,"0")}</span><span class="exn">${esc(e.nom)}</span>
         ${e.bloc?`<span class="tag am" style="font-size:10px">${esc(e.bloc)}</span>`:""}
-        ${e.ss?`<span class="tag" style="font-size:10px;background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4)">🔗 SS ${esc(e.ss)}</span>`:""}${e.rir?`<span class="tag ink" style="font-size:10px">RIR ${esc(e.rir)}</span>`:""}
+        ${e.ss?`<span class="tag" style="font-size:10px;background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4)">🔗 SS ${esc(e.ss)}</span>`:""}${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}
       </div>
       <div class="exd">${e.series} × ${esc(e.reps||"—")}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(e.repos)}`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
@@ -2913,18 +2919,21 @@ function tplEditor(){
       <label class="fld"><span>Nom (ou saisie libre)</span><input id="tex-nom" list="exos-fr" placeholder="Squat gobelet" value="${esc(d.nom||"")}"></label>
       <div class="r2">
         <label class="fld"><span>Séries</span><input id="tex-series" inputmode="numeric" placeholder="3" value="${d.series||""}"></label>
-        <label class="fld"><span>Répétitions</span><input id="tex-reps" placeholder="8-10" value="${esc(d.reps||"")}"></label>
+        <label class="fld"><span>Type de série</span><select id="tex-reptype"><option value="reps" ${(d.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${d.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label>
       </div>
+      <label class="fld"><span id="tex-replabel">${d.repType==="temps"?"Durée par série (s)":"Répétitions"}</span><input id="tex-reps" inputmode="${d.repType==="temps"?"numeric":"text"}" placeholder="${d.repType==="temps"?"45":"8-10"}" value="${esc(d.reps||"")}"></label>
       <div class="r2">
         <label class="fld"><span>Charge</span><input id="tex-charge" placeholder="40 kg" value="${esc(d.charge||"")}"></label>
         <label class="fld"><span>Repos</span><input id="tex-repos" placeholder="90 s" value="${esc(d.repos||"")}"></label>
       </div>
       <div class="r2">
         <label class="fld"><span>Jour / séance</span><select id="tex-bloc"><option value="">—</option>${JOURS2.map(j=>`<option value="${j}" ${(d.bloc||t.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
-        <label class="fld"><span>RIR cible</span><select id="tex-rir"><option value="">—</option>${["0-1","1-2","2-3","3-4"].map(r2=>`<option ${d.rir===r2?"selected":""}>${r2}</option>`).join("")}</select></label>
+        <label class="fld"><span>Superset</span><select id="tex-ss"><option value="">— Aucun —</option>${["A","B","C","D"].map(v=>`<option value="${v}" ${d.ss===v?"selected":""}>Superset ${v}</option>`).join("")}</select></label>
       </div>
-      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="tex-ss">${["","A","B","C","D"].map(v=>`<option value="${v}" ${(d.ss||"")===v?"selected":""}>${v?("Superset "+v):"— Aucun —"}</option>`).join("")}</select></label>
-      <label class="fld"><span>Superset (enchaîner sans repos)</span><select id="tex-ss"><option value="">Non (exercice seul)</option>${["A","B","C","D","E","F"].map(g=>`<option value="${g}" ${d.ss===g?"selected":""}>Superset ${g}</option>`).join("")}</select></label>
+      <div class="r2">
+        <label class="fld"><span>Échelle d'effort</span><select id="tex-scale"><option value="rir" ${(d.rirScale||"rir")==="rir"?"selected":""}>RIR</option><option value="rpe" ${d.rirScale==="rpe"?"selected":""}>RPE</option></select></label>
+        <label class="fld"><span id="tex-scalelabel">${d.rirScale==="rpe"?"RPE cible":"RIR cible"}</span><select id="tex-rir"><option value="">—</option>${(d.rirScale==="rpe"?["10","9-10","8-9","7-8","6-7","≤6"]:["0-1","1-2","2-3","3-4"]).map(r2=>`<option ${d.rir===r2?"selected":""}>${r2}</option>`).join("")}</select></label>
+      </div>
       <label class="fld"><span>Consigne (optionnel)</span><input id="tex-note" placeholder="Amplitude contrôlée…" value="${esc(d.note||"")}"></label>
       <label class="fld"><span>Équivalence si trop difficile (optionnel)</span><input id="tex-alt" placeholder="Presse à cuisses" value="${esc(d.alt||"")}"></label>
       <label class="fld"><span>Lien vidéo (optionnel — sinon recherche YouTube auto)</span><input id="tex-video" type="url" autocapitalize="off" placeholder="https://youtube.com/…" value="${esc(d.video||"")}"></label>
@@ -3443,7 +3452,10 @@ document.addEventListener("click",e=>{
       S.lastBloc=bloc; pushRecentExo(nom);
       c.program=c.program||[];
       const draft=(S.exDraft&&(c.program||[]).some(x=>x.id===S.exDraft.id))?S.exDraft:null;
-      const payload={nom,series:+val("ex-series")||3,reps:val("ex-reps"),charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
+      const repType1=val("ex-reptype")||"reps";
+      let repsVal1=val("ex-reps");
+      if(repType1==="temps"&&/^\d+$/.test(repsVal1.trim())) repsVal1=repsVal1.trim()+" s";
+      const payload={nom,series:+val("ex-series")||3,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:val("ex-repos"),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
       if(draft&&draft.id){
         const idx=c.program.findIndex(x=>x.id===draft.id);
         if(idx>=0) c.program[idx]={...c.program[idx],...payload};
@@ -3593,7 +3605,10 @@ document.addEventListener("click",e=>{
       const keepId=(draftT&&draftT.id)||uid();
       const tbloc=val("tex-bloc")||"";
       S.tplEdit.lastBloc=tbloc; pushRecentExo(nom);
-      const payloadT={nom,series:+val("tex-series")||3,reps:val("tex-reps"),charge:val("tex-charge"),repos:val("tex-repos"),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim()};
+      const repType2=val("tex-reptype")||"reps";
+      let repsVal2=val("tex-reps");
+      if(repType2==="temps"&&/^\d+$/.test(repsVal2.trim())) repsVal2=repsVal2.trim()+" s";
+      const payloadT={nom,series:+val("tex-series")||3,reps:repsVal2,repType:repType2,charge:val("tex-charge"),repos:val("tex-repos"),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",rirScale:val("tex-scale")||"rir",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim()};
       const idxT=(draftT&&draftT.id)?S.tplEdit.program.findIndex(x=>x.id===draftT.id):-1;
       if(idxT>=0) S.tplEdit.program[idxT]={...S.tplEdit.program[idxT],...payloadT};
       else S.tplEdit.program.push({id:keepId,...payloadT,historique:[]});
@@ -4004,6 +4019,28 @@ document.addEventListener("change",e=>{
     return;
   }
   if(e.target.id==="tst-id"){ S.tstSel=e.target.value; render(); return; }
+
+  // Type de série (reps/temps) : adapte le libellé et le placeholder, sans perdre les autres champs
+  if(e.target.id==="ex-reptype"||e.target.id==="tex-reptype"){
+    const p=e.target.id==="ex-reptype"?"ex":"tex";
+    const isT=e.target.value==="temps";
+    const lab=document.getElementById(p+"-replabel"); if(lab) lab.textContent=isT?"Durée par série (s)":"Répétitions";
+    const inp=document.getElementById(p+"-reps");
+    if(inp){ inp.placeholder=isT?"45":(p==="ex"?"12":"8-10"); inp.setAttribute("inputmode",isT?"numeric":"text"); }
+    return;
+  }
+  // Échelle RIR / RPE : régénère les valeurs disponibles
+  if(e.target.id==="ex-scale"||e.target.id==="tex-scale"){
+    const p=e.target.id==="ex-scale"?"ex":"tex";
+    const isRpe=e.target.value==="rpe";
+    const lab=document.getElementById(p+"-scalelabel"); if(lab) lab.textContent=isRpe?"RPE cible":"RIR cible";
+    const sel=document.getElementById(p+"-rir");
+    if(sel){
+      const vals=isRpe?["10","9-10","8-9","7-8","6-7","≤6"]:["0-1","1-2","2-3","3-4"];
+      sel.innerHTML=`<option value="">—</option>`+vals.map(v=>`<option>${v}</option>`).join("");
+    }
+    return;
+  }
   if(e.target.id==="tpl-maison"){ if(S.tplEdit) S.tplEdit.maison=e.target.checked; return; }
   const pk=e.target.closest("[data-pick]");
   if(pk){ const inp=document.getElementById(pk.dataset.pick);
