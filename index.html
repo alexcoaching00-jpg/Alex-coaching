@@ -23,7 +23,10 @@
 -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root{--ink:#0D0B0A;--ink2:#1D1714;--base:#12100E;--card:#1C1613;--red:#B01F1F;--red2:#7E1712;--grey:#A39588;--grey2:#6B5F55;--line:#2E2620;--danger:#E53935;--white:#F2EDE7;--white2:#C9BCAF;}
+  :root{--ink:#0D0B0A;--ink2:#1D1714;--base:#12100E;--card:#1C1613;--red:#B01F1F;--red2:#7E1712;--grey:#A39588;--grey2:#6B5F55;--line:#2E2620;--danger:#E53935;--white:#F2EDE7;--white2:#C9BCAF;
+    --amber:#B8862F;--amber2:#E0A94A;--glow:rgba(176,31,31,.28);
+    --edge:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 42%);
+    --sh-sm:0 2px 8px rgba(0,0,0,.4);--sh-md:0 8px 24px rgba(0,0,0,.45);--sh-lg:0 18px 46px rgba(0,0,0,.55);}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
   html{background:var(--base)}
   /* overflow-x sur <html> casserait position:fixed (barre du bas) sur iPad/Safari :
@@ -36,6 +39,7 @@
       radial-gradient(900px 650px at 96% 108%, rgba(184,134,47,.08), transparent 55%),
       radial-gradient(700px 500px at 55% 45%, rgba(126,23,18,.05), transparent 60%),
       var(--base);
+    background-attachment:fixed;
     background-attachment:fixed}
   body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
@@ -69,12 +73,20 @@
   .tag.em{background:rgba(193,18,31,.18);color:#FF6B6B}
   .tag.am{background:rgba(184,134,47,.18);color:#F0B429}
   .tag.ink{background:var(--ink2);color:var(--grey)}
-  .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .sec-head h2{font-family:'Bebas Neue';font-size:20px;letter-spacing:.06em;color:var(--white)}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--line);position:relative}
+  .sec-head::after{content:"";position:absolute;left:0;bottom:-1px;width:34px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--red),var(--amber))}
+  .sec-head h2{font-family:'Bebas Neue';font-size:21px;letter-spacing:.07em;color:var(--white)}
   .link{border:none;background:transparent;color:var(--red);font-weight:700;font-size:14px;cursor:pointer}
-  .crow{width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .15s;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .crow{position:relative;width:100%;text-align:left;background:linear-gradient(180deg,#211A16,var(--card) 46%);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:13px;overflow:hidden;
+    transition:border-color .18s,transform .18s,box-shadow .18s;box-shadow:var(--sh-md);animation:cardIn .34s cubic-bezier(.22,.9,.28,1) both}
+  .crow::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--red),var(--red2));opacity:.55;transition:opacity .18s}
+  .crow:active{transform:scale(.985);border-color:rgba(176,31,31,.5);box-shadow:var(--sh-sm)}
+  .crow:active::before{opacity:1}
+  @media (prefers-reduced-motion:reduce){.crow{animation:none;transition:none}}
   .crow:hover{border-color:var(--red)}
-  .avatar{width:44px;height:44px;border-radius:12px;background:rgba(193,18,31,.15);display:grid;place-items:center;font-family:'Bebas Neue';font-size:20px;color:var(--red);flex-shrink:0}
+  .avatar{position:relative;width:46px;height:46px;border-radius:13px;background:linear-gradient(145deg,rgba(206,42,42,.32),rgba(126,23,18,.18));border:1px solid rgba(176,31,31,.32);
+    display:grid;place-items:center;font-family:'Bebas Neue';font-size:22px;letter-spacing:.04em;color:#F0A5A5;flex-shrink:0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 3px 10px rgba(0,0,0,.4)}
   .crow .nm{font-weight:700;font-size:15px;color:var(--white);overflow-wrap:anywhere}
   .crow .ob{font-size:12.5px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .trend{font-size:12px;font-weight:700;font-family:'Inter'}
@@ -83,7 +95,10 @@
   .empty p{color:var(--grey);font-size:14px;margin-bottom:16px}
   .btn{border:none;border-radius:14px;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter';transition:filter .15s,transform .1s}
   .btn:active{transform:scale(.97)}
-  .btn.p{background:linear-gradient(180deg,#C22525,#8E1815);color:#fff;box-shadow:0 4px 14px rgba(176,31,31,.35)}
+  .btn.p{background:linear-gradient(180deg,#CE2A2A,#8E1815);color:#fff;box-shadow:0 6px 20px var(--glow),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .14s,box-shadow .14s,filter .14s}
+  .btn.p:active{transform:translateY(1px);box-shadow:0 3px 12px var(--glow),inset 0 1px 0 rgba(255,255,255,.14);filter:brightness(1.06)}
+  .btn.g{transition:transform .14s,border-color .14s}
+  .btn.g:active{transform:translateY(1px);border-color:rgba(176,31,31,.45)}
   .btn.p:hover{filter:brightness(1.1)}
   .btn.d{background:var(--ink2);color:var(--white);border:1px solid var(--line)}
   .btn.g{background:transparent;color:var(--white2);border:1px solid var(--line)}
@@ -106,9 +121,14 @@
   input[type="date"],input[type="datetime-local"]{min-width:0;max-width:100%;width:100%;min-height:44px}
   .fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--red)}
   .fld textarea{resize:vertical}
-  .panel{background:var(--ink2);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .panel{position:relative;background:linear-gradient(180deg,#241D18,var(--ink2) 52%);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--sh-sm);overflow:hidden}
+  .panel::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12) 25%,rgba(255,255,255,.12) 75%,transparent)}
   .panel .ph{font-family:'Bebas Neue';font-size:17px;letter-spacing:.05em;margin-bottom:10px;color:var(--white)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .card{position:relative;background:linear-gradient(180deg,#211A16,var(--card) 46%);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-md);overflow:hidden;
+    animation:cardIn .34s cubic-bezier(.22,.9,.28,1) both}
+  .card::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14) 22%,rgba(255,255,255,.14) 78%,transparent)}
+  @keyframes cardIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.card{animation:none}}
   .exi{font-family:'Bebas Neue';font-size:14px;color:var(--red);letter-spacing:.06em}
   .exn{font-weight:700;font-size:15px;color:var(--white)}
   .exd{font-size:14px;color:var(--grey);margin-top:6px;line-height:1.5}
@@ -121,14 +141,21 @@
   .chk{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);background:transparent;color:#fff;cursor:pointer;font-weight:800;font-size:14px;flex-shrink:0;transition:all .15s}
   .chk.on{background:var(--red);border-color:var(--red)}
   .muted{color:var(--grey);font-size:14px}
-  .cbanner{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;border-radius:18px;padding:18px;margin-bottom:16px}
+  .cbanner{position:relative;background:linear-gradient(135deg,#8E1815,#C22525 58%,#9C1C18);color:#fff;border-radius:20px;padding:20px;margin-bottom:16px;overflow:hidden;
+    box-shadow:0 12px 32px rgba(126,23,18,.42),inset 0 1px 0 rgba(255,255,255,.16)}
+  .cbanner::after{content:"";position:absolute;top:-40%;right:-18%;width:230px;height:230px;border-radius:50%;
+    background:radial-gradient(circle,rgba(224,169,74,.22),transparent 68%);pointer-events:none}
   .cbanner .lab{font-size:11px;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
   .cbanner .obj{font-family:'Bebas Neue';font-size:20px;margin-top:4px;letter-spacing:.04em}
   .chartbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 12px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
   .chart-empty{border-radius:14px;padding:20px;text-align:center;background:var(--ink2);color:var(--grey);border:1px dashed var(--line);font-size:14px}
   nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
   nav button{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
-  nav button.on{color:var(--red)}nav .ic{font-size:18px;line-height:1}
+  nav button{position:relative}
+  nav button.on{color:var(--red)}
+  nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:2px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,transparent,var(--red),transparent);box-shadow:0 0 10px var(--glow)}
+  nav .ic{font-size:18px;line-height:1;transition:transform .18s}
+  nav button.on .ic{transform:translateY(-1px) scale(1.08)}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:60}
   .sheet{background:var(--ink2);border:1px solid var(--line);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:20px;max-height:88vh;overflow-y:auto;animation:fade .25s ease both}
   .sheet .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
@@ -137,12 +164,17 @@
   .danger-box{border:1px solid var(--danger);border-radius:12px;padding:12px;background:rgba(229,57,53,.08)}
   .danger-box p{font-size:13px;margin-bottom:10px;color:var(--white2)}
   .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background:var(--base)}
-  .authcard{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px}
+  .authcard{position:relative;width:100%;max-width:420px;background:linear-gradient(180deg,#241D18,var(--card) 50%);border:1px solid var(--line);border-radius:24px;padding:28px 24px;box-shadow:var(--sh-lg);overflow:hidden;
+    animation:authIn .5s cubic-bezier(.22,.9,.28,1) both}
+  .authcard::before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,var(--red) 30%,var(--amber2) 50%,var(--red) 70%,transparent);opacity:.85}
+  @keyframes authIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.authcard{animation:none}}
   .authcard .lead{color:var(--grey);font-size:14px;margin:2px 0 18px}
   .autherr{background:rgba(229,57,53,.15);color:#FF6B6B;border:1px solid rgba(229,57,53,.3);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
   .switch{text-align:center;margin-top:14px;font-size:13.5px;color:var(--grey)}
   .switch button{border:none;background:transparent;color:var(--red);font-weight:700;cursor:pointer;font-family:'Inter'}
-  .logo-img{display:block;width:100%;max-width:260px;margin:0 auto 18px;filter:drop-shadow(0 10px 30px rgba(176,31,31,.45))}
+  .logo-img{display:block;width:100%;max-width:220px;margin:0 auto 6px;filter:drop-shadow(0 12px 34px rgba(176,31,31,.5))}
+  .auth-tag{text-align:center;font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin:0 0 20px;font-weight:700}
   code{background:var(--ink2);color:var(--white2);padding:1px 5px;border-radius:5px;font-size:13px}
   .sql{white-space:pre-wrap;background:#0A0A0A;color:#666;padding:12px;border-radius:10px;font-size:11px;line-height:1.45;overflow:auto;margin-top:8px;font-family:ui-monospace,Menlo,monospace}
   details summary{cursor:pointer;font-size:13.5px;color:var(--red);font-weight:700}
@@ -175,7 +207,8 @@
 
   /* bilan progression */
   .pstats{display:flex;gap:10px;margin-bottom:12px}
-  .pstat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .pstat{position:relative;flex:1;background:linear-gradient(180deg,#241D18,var(--card) 55%);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--sh-sm);overflow:hidden}
+  .pstat::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent)}
   .pstat .pv{font-family:'Bebas Neue';font-size:22px;letter-spacing:.03em;color:var(--white)}
   .pstat .pl{font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:2px}
   .pstat.delta .pv{color:#4CAF50}.pstat.delta.up .pv{color:var(--amber)}
@@ -444,7 +477,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v9.3 — 22/07/2026";
+const APP_VERSION="v9.4 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -681,7 +714,7 @@ function authScreen(){
   const isSignup=S.authView==="signup";
   return `<div class="center"><div class="authcard">
     <img src="${LOGO}" alt="Alex Coaching" class="logo-img">
-      <p style="text-align:center;font-family:'Bebas Neue';font-size:13px;letter-spacing:.28em;color:var(--amber);margin:-6px 0 18px">CHANGE TON CORPS. TRANSFORME TA VIE.</p>
+    <p class="auth-tag">Change ton corps · Transforme ta vie</p>
     <p class="lead">${isSignup?"Créez votre accès client.":"Connectez-vous."}</p>
     ${S.authErr?`<div class="autherr">${esc(S.authErr)}</div>`:""}
     ${isSignup&&S.inviteEmail?`<div style="background:rgba(184,134,47,.12);border:1px solid rgba(184,134,47,.4);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--amber);text-align:center">🎟 Invitation de ton coach — ton adresse est déjà remplie, choisis juste un mot de passe.</div>`:""}
