@@ -569,7 +569,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v9.8 — 22/07/2026";
+const APP_VERSION="v9.9 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3856,10 +3856,29 @@ async function addSample(){
   if(error){ alert("Import impossible : "+error.message); return; }
   S.clients.push(rowToClient(data)); render();
 }
-function deleteSelected(){
+async function deleteSelected(){
   const id=S.selectedId;
+  const c=S.clients.find(x=>x.id===id);
+  const mail=((c&&c.clientEmail)||"").trim().toLowerCase();
+
   S.clients=S.clients.filter(x=>x.id!==id); S.selectedId=null; S.view="clients"; S.confirmDel=false; render();
-  sb.from("clients").delete().eq("id",id).then(({error})=>{ if(error) alert("Suppression non synchronisée : "+error.message); });
+
+  // 1. Supprimer la fiche
+  const {error}=await sb.from("clients").delete().eq("id",id);
+  if(error){ alert("Suppression non synchronisée : "+error.message); return; }
+
+  // 2. Supprimer aussi son compte d'accès, pour qu'il ne puisse plus se connecter
+  if(mail){
+    const {data,error:cErr}=await sb.rpc("supprimer_acces_client",{p_email:mail});
+    if(cErr){
+      toast("Fiche supprimée — accès à retirer manuellement");
+      console.warn("Suppression du compte impossible :",cErr.message);
+    } else {
+      toast(data===true?"Client et son accès supprimés ✓":"Client supprimé (aucun compte associé)");
+    }
+  } else {
+    toast("Client supprimé ✓");
+  }
 }
 
 /* ===== events ===== */
