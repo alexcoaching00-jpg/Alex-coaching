@@ -550,13 +550,26 @@ window.supabase={
       };
       return q;
     }
-    return {auth, from:(table)=>qb(table)};
+    // Appel d'une fonction sécurisée côté serveur (contrôle des invitations)
+    async function rpc(fn,args){
+      try{
+        const r=await fetch(`${base}/rest/v1/rpc/${fn}`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},
+          body:JSON.stringify(args||{})
+        });
+        const d=await r.json().catch(()=>null);
+        if(!r.ok) return {data:null,error:{message:(d&&(d.message||d.hint))||('Erreur '+r.status)}};
+        return {data:d,error:null};
+      }catch(e){ return {data:null,error:{message:'Réseau indisponible'}}; }
+    }
+    return {auth, rpc, from:(table)=>qb(table)};
   }
 };
 </script>
 <script>
 "use strict";
-const APP_VERSION="v9.7 — 22/07/2026";
+const APP_VERSION="v9.8 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3741,6 +3754,18 @@ async function doAuth(mode){
   S.authErr=""; S.authBusy=true; render();
   let data, error;
   if(mode==="signup"){
+    // Contrôle d'accès : seules les adresses invitées par le coach peuvent créer un compte
+    const {data:autorise,error:vErr}=await sb.rpc("email_invite",{p_email:email.toLowerCase()});
+    if(vErr){
+      S.authBusy=false;
+      S.authErr="Vérification impossible pour le moment. Réessayez dans un instant.";
+      render(); return;
+    }
+    if(autorise!==true){
+      S.authBusy=false;
+      S.authErr="Cette adresse n'a pas été invitée. Demandez à votre coach de vous ajouter, puis réessayez.";
+      render(); return;
+    }
     ({data,error}=await sb.auth.signUp({email,password:pw}));
     if(!error&&!data.session){ S.authBusy=false; S.authView="login"; S.authErr="Compte créé. Connectez-vous."; render(); return; }
   } else {
