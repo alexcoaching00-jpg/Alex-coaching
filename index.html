@@ -585,7 +585,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.0 — 22/07/2026";
+const APP_VERSION="v10.1 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -636,8 +636,8 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
 
-const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},seanceRounds:r.seance_rounds||{},seanceTourRepos:r.seance_tour_repos||{},parq:r.parq||null,tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
-const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},seance_rounds:c.seanceRounds||{},seance_tour_repos:c.seanceTourRepos||{},parq:c.parq||null,tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
+const rowToClient=r=>({id:r.id,nom:r.nom,objectif:r.objectif||"",formule:r.formule||FORMULES[0],niveau:r.niveau||NIVEAUX[0],notes:r.notes||"",clientEmail:r.client_email||"",dateDebut:r.date_debut||"",objectifPoids:r.objectif_poids||null,forfaitTotal:r.forfait_total||null,prochainRdv:r.prochain_rdv||"",programmeDebut:r.programme_debut||"",programmeFin:r.programme_fin||"",tailleCm:r.taille_cm||null,bilans:r.bilans||[],nutrition:r.nutrition||null,checkins:r.checkins||[],paiements:r.paiements||[],notesPrivees:r.notes_privees||'',coachEmail:r.coach_email||'',telephone:r.telephone||'',seanceTypes:r.seance_types||{},seanceRounds:r.seance_rounds||{},seanceTourRepos:r.seance_tour_repos||{},tests:r.tests||[],program:r.program||[],mesures:r.mesures||[],seances:r.seances||[],messages:r.messages||[],photos:r.photos||[]});
+const clientToRow=c=>({nom:c.nom,objectif:c.objectif||null,formule:c.formule||null,niveau:c.niveau||null,notes:c.notes||null,client_email:(c.clientEmail||"").trim().toLowerCase()||null,date_debut:c.dateDebut||null,objectif_poids:c.objectifPoids||null,forfait_total:c.forfaitTotal||null,prochain_rdv:c.prochainRdv||null,programme_debut:c.programmeDebut||null,programme_fin:c.programmeFin||null,taille_cm:c.tailleCm||null,bilans:c.bilans||[],nutrition:c.nutrition||null,paiements:c.paiements||[],notes_privees:c.notesPrivees||null,telephone:c.telephone||null,coach_email:c.coachEmail||null,seance_types:c.seanceTypes||{},seance_rounds:c.seanceRounds||{},seance_tour_repos:c.seanceTourRepos||{},tests:c.tests||[],program:c.program||[],mesures:c.mesures||[],seances:c.seances||[],messages:c.messages||[],photos:c.photos||[],updated_at:new Date().toISOString()});
 
 let toastT=null;
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",1200);}
@@ -660,7 +660,7 @@ function save(){const c=sel();if(!c||!sb)return;DIRTY=true;clearTimeout(timers[c
 /* Correspondance nom interne → nom de colonne en base */
 const COLONNES={
   notesPrivees:"notes_privees", coachEmail:"coach_email",
-  seanceTypes:"seance_types", seanceRounds:"seance_rounds", seanceTourRepos:"seance_tour_repos", parq:"parq",
+  seanceTypes:"seance_types", seanceRounds:"seance_rounds", seanceTourRepos:"seance_tour_repos",
   clientEmail:"client_email", dateDebut:"date_debut", objectifPoids:"objectif_poids",
   forfaitTotal:"forfait_total", prochainRdv:"prochain_rdv",
   programmeDebut:"programme_debut", programmeFin:"programme_fin", tailleCm:"taille_cm"
@@ -1018,18 +1018,6 @@ function dashboard(){
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
       </div>`;})()}
     ${(()=>{
-      const risque=cs.filter(c2=>{const i=parqAlerte(c2);return i&&i.risque&&!i.avis;});
-      const manque=cs.filter(c2=>!parqAlerte(c2));
-      if(!risque.length&&!manque.length) return "";
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(176,31,31,.42)">
-        ${risque.length?`<div class="ph" style="color:var(--red);font-size:14px">🩺 Avis médical à obtenir</div>
-          ${risque.map(c2=>`<span class="badge-warn" style="margin-right:6px;background:rgba(176,31,31,.15);color:#FF6B6B;border-color:rgba(176,31,31,.35)">${esc(c2.nom)}</span>`).join("")}
-          <p class="muted" style="font-size:11.5px;margin:6px 0 ${manque.length?"10px":"0"}">Ces clients ont signalé un point de santé : demande un certificat de non contre-indication.</p>`:""}
-        ${manque.length?`<div class="ph" style="color:#F0B429;font-size:14px">📋 Questionnaire santé à faire remplir</div>
-          ${manque.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
-          <p class="muted" style="font-size:11.5px;margin-top:6px">À faire avant la première séance — sécurité du client et protection pour toi.</p>`:""}
-      </div>`;})()}
-    ${(()=>{
       if(!exportDue()||!cs.length) return "";
       const i=infoSauvegarde();
       return `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.32)">
@@ -1173,14 +1161,14 @@ function emptyClients(){
 }
 function detail(c){
   if(!c)return"";
-  const tabs=[["infos","👤 Infos client"],["programme","▤ Programme"],["progres","◔ Progrès"],["seances","✓ Séances"],["messages","✉ Messagerie"],["bilan","◫ Bilan & mesures"],["nutrition","🍎 Nutrition"],["tests","📋 Tests physiques"],["sante","🩺 Questionnaire santé"]];
+  const tabs=[["infos","👤 Infos client"],["programme","▤ Programme"],["progres","◔ Progrès"],["seances","✓ Séances"],["messages","✉ Messagerie"],["bilan","◫ Bilan & mesures"],["nutrition","🍎 Nutrition"],["tests","📋 Tests physiques"]];
   const unreadN=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
   const cur=tabs.find(t2=>t2[0]===S.detailTab)||tabs[0];
   const tabbar=`<label class="fld tabsel" style="margin-bottom:14px">
     <span>Section${unreadN?` · <span style="color:var(--red)">${unreadN} message${unreadN>1?"s":""} non lu${unreadN>1?"s":""}</span>`:""}</span>
     <select data-dsel>${tabs.map(([k,l])=>`<option value="${k}" ${S.detailTab===k?"selected":""}>${l}${k==='messages'&&unreadN?` (${unreadN})`:""}</option>`).join("")}</select>
   </label>`;
-  let inner=S.detailTab==="infos"?infosTab(c):S.detailTab==="programme"?programme(c,true):S.detailTab==="progres"?progres(c,true):S.detailTab==="messages"?messagesTab(c,true):S.detailTab==="bilan"?bilanTab(c,true):S.detailTab==="sante"?parqTab(c,true):S.detailTab==="tests"?testsTab(c,true):S.detailTab==="nutrition"?nutritionTab(c,true):seancesTab(c,true);
+  let inner=S.detailTab==="infos"?infosTab(c):S.detailTab==="programme"?programme(c,true):S.detailTab==="progres"?progres(c,true):S.detailTab==="messages"?messagesTab(c,true):S.detailTab==="bilan"?bilanTab(c,true):S.detailTab==="tests"?testsTab(c,true):S.detailTab==="nutrition"?nutritionTab(c,true):seancesTab(c,true);
   return `<button class="back" data-act="back">‹ Clients</button>
     <div class="dhead"><div class="avatar" style="width:46px;height:46px;font-size:18px">${esc(c.nom.slice(0,1))}</div>
     <div><h2>${esc(c.nom)}</h2><div class="mini"><span class="tag ${c.formule==='Petit groupe'?'am':'em'}">${esc(c.formule)}</span><span class="tag ink">${esc(c.niveau)}</span></div></div></div>
@@ -1955,71 +1943,6 @@ function restaurerAuto(){
 }
 
 
-/* ===== QUESTIONNAIRE DE SANTÉ (PAR-Q+) =====
-   Dépistage des contre-indications avant toute mise en activité. */
-const PARQ=[
- ["coeur","Votre médecin a-t-il déjà dit que vous souffriez d'un problème cardiaque, ou que vous ne deviez faire de l'activité physique que sous surveillance médicale ?"],
- ["douleur","Ressentez-vous une douleur à la poitrine au repos, dans la vie quotidienne ou pendant l'activité physique ?"],
- ["equilibre","Perdez-vous l'équilibre à cause d'étourdissements, ou avez-vous perdu connaissance au cours des 12 derniers mois ?"],
- ["chronique","Avez-vous un problème de santé chronique diagnostiqué (diabète, hypertension, asthme, cancer, troubles thyroïdiens, rénaux…) ?"],
- ["medic","Prenez-vous actuellement des médicaments prescrits pour un problème de santé chronique ?"],
- ["articulaire","Avez-vous un problème osseux, articulaire ou de tissus mous qui pourrait s'aggraver avec l'activité physique ?"],
- ["medecin","Votre médecin vous a-t-il déjà dit de ne faire de l'activité physique que sous supervision médicale ?"],
- ["grossesse","Êtes-vous enceinte ou avez-vous accouché il y a moins de 6 mois ?"],
- ["operation","Avez-vous subi une opération ou une blessure importante au cours des 12 derniers mois ?"],
- ["autre","Y a-t-il une autre raison pour laquelle vous ne pourriez pas pratiquer une activité physique en sécurité ?"]
-];
-function parqAlerte(c){
-  const p=(c&&c.parq)||null;
-  if(!p||!p.date) return null;
-  const oui=PARQ.filter(([k])=>p[k]===true);
-  return {rempli:true,date:p.date,oui,risque:oui.length>0,note:p.note||"",avis:!!p.avisMedical};
-}
-function parqTab(c,editable){
-  const p=(c.parq)||{};
-  const info=parqAlerte(c);
-  const bandeau=info
-    ? (info.risque
-      ? `<div class="panel" style="margin-bottom:14px;border-color:rgba(176,31,31,.55);background:linear-gradient(180deg,rgba(176,31,31,.1),transparent)">
-          <div class="ph" style="color:var(--red);font-size:14px">⚠️ Avis médical recommandé</div>
-          <p style="font-size:13.5px;color:var(--white2);line-height:1.55">${info.oui.length} réponse${info.oui.length>1?"s":""} positive${info.oui.length>1?"s":""} au questionnaire. Un certificat médical de non contre-indication est vivement conseillé avant de commencer.</p>
-          ${info.avis?`<p style="font-size:13px;color:#4CAF50;margin-top:8px">✓ Avis médical obtenu — noté le ${frDate(info.date)}</p>`:""}
-        </div>`
-      : `<div class="panel" style="margin-bottom:14px;border-color:rgba(76,175,80,.45)">
-          <div class="ph" style="color:#4CAF50;font-size:14px">✓ Aucune contre-indication signalée</div>
-          <p class="muted" style="font-size:12.5px">Questionnaire rempli le ${frDate(info.date)}.</p>
-        </div>`)
-    : `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.4)">
-        <div class="ph" style="color:#F0B429;font-size:14px">📋 Questionnaire non rempli</div>
-        <p style="font-size:13.5px;color:var(--white2);line-height:1.55">${editable?"À faire remplir avant la première séance — c'est une étape de sécurité et une protection pour toi.":"À remplir avant ta première séance."}</p>
-      </div>`;
-
-  const questions=PARQ.map(([k,q],i)=>`
-    <div class="card" style="padding:14px">
-      <div style="display:flex;gap:11px;align-items:flex-start">
-        <span class="exi" style="font-size:14px;flex:0 0 auto">${String(i+1).padStart(2,"0")}</span>
-        <div style="flex:1;min-width:0">
-          <p style="font-size:14px;color:var(--white);line-height:1.5;margin-bottom:9px">${q}</p>
-          <div style="display:flex;gap:8px">
-            <button class="chip ${p[k]===true?"on":""}" data-act="parq-set" data-k="${k}" data-v="1">Oui</button>
-            <button class="chip ${p[k]===false?"on":""}" data-act="parq-set" data-k="${k}" data-v="0">Non</button>
-          </div>
-        </div>
-      </div>
-    </div>`).join("");
-
-  const complet=PARQ.every(([k])=>typeof p[k]==="boolean");
-  return bandeau+questions+`
-    <label class="fld" style="margin-top:6px"><span>Précisions (facultatif)</span>
-      <textarea id="parq-note" rows="3" placeholder="Blessures, traitements, points d'attention…" style="width:100%;background:linear-gradient(180deg,#191411,var(--ink2));border:1px solid var(--line);border-radius:12px;color:var(--white);padding:12px 13px;font-size:16px;font-family:inherit;resize:vertical">${esc(p.note||"")}</textarea></label>
-    ${(info&&info.risque)?`<label class="fld" style="display:flex;align-items:center;gap:10px;flex-direction:row">
-      <input type="checkbox" id="parq-avis" ${p.avisMedical?"checked":""} style="width:20px;height:20px;accent-color:var(--red)">
-      <span style="margin:0;text-transform:none;font-size:13.5px;letter-spacing:0;color:var(--white2)">Certificat médical de non contre-indication obtenu</span></label>`:""}
-    <button class="btn p full" data-act="parq-save" ${complet?"":"disabled style=opacity:.5"}>${complet?"✓ Valider le questionnaire":"Réponds aux 10 questions"}</button>
-    <p class="muted" style="font-size:11px;margin-top:8px;line-height:1.5">Questionnaire d'aptitude à l'activité physique (PAR-Q+). Il ne remplace pas un avis médical. En cas de doute, consulte un médecin avant de commencer.</p>`;
-}
-
-
 /* ===== PLANNING DE LA SEMAINE ===== */
 function lundiDe(d){ const x=new Date(d); const j=(x.getDay()+6)%7; x.setDate(x.getDate()-j); x.setHours(0,0,0,0); return x; }
 function planningTab(){
@@ -2027,7 +1950,6 @@ function planningTab(){
   const jours=Array.from({length:7},(_,i)=>{ const d=new Date(base); d.setDate(d.getDate()+i); return d; });
   const memeJour=(a,b2)=>a.toDateString()===b2.toDateString();
 
-  // RDV planifiés + séances déjà faites, par jour
   const parJour=jours.map(d=>{
     const rdv=(S.clients||[]).filter(c=>c.prochainRdv&&memeJour(new Date(c.prochainRdv),d))
       .map(c=>({c,h:new Date(c.prochainRdv)})).sort((a,b2)=>a.h-b2.h);
@@ -2451,7 +2373,7 @@ function clientSpace(c){
           :`<button class="btn p full" data-act="start-wk" data-jour="${esc(jour)}" style="padding:12px">▶ Commencer la séance</button>`}
       </div>`;})()}
     <div style="margin-top:10px;font-size:12.5px;font-style:italic;color:rgba(255,255,255,.75)">« ${quoteOfDay()} »</div></div>`;
-  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="faq"?faqTab():S.clientTab==="sante"?parqTab(c,true):S.clientTab==="tests"?testsTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
+  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="faq"?faqTab():S.clientTab==="tests"?testsTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
   return banner+inner;
 }
 function addModal(){
@@ -4185,7 +4107,6 @@ document.addEventListener("click",e=>{
       const items=[["bilan","◫","Bilan & mesures","Tes mensurations, ton IMC et tes photos"],
                    ["nutrition","🍎","Nutrition","Ton plan alimentaire et tes repères"],
                    ["tests","📋","Tests physiques","Tes résultats aux tests et ta progression"],
-                   ["sante","🩺","Questionnaire santé","À remplir avant ta première séance"],
                    ["faq","❓","Aide","Réponses aux questions fréquentes"]];
       const ov=document.createElement("div");
       ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px";
@@ -4292,24 +4213,6 @@ document.addEventListener("click",e=>{
       document.body.appendChild(ov);
       break; }
     case "sem": S.semDecal=(t.dataset.d==="0")?0:((S.semDecal||0)+(+t.dataset.d)); render(); break;
-    case "parq-set":{ if(!c) break;
-      c.parq=c.parq||{};
-      c.parq[t.dataset.k]=(t.dataset.v==="1");
-      render(); break; }
-    case "parq-save":{ if(!c) break;
-      c.parq=c.parq||{};
-      if(!PARQ.every(([k])=>typeof c.parq[k]==="boolean")){ alert("Réponds aux 10 questions."); break; }
-      c.parq.note=(val("parq-note")||"").trim();
-      const av=document.getElementById("parq-avis");
-      c.parq.avisMedical=av?av.checked:!!c.parq.avisMedical;
-      c.parq.date=today();
-      patchField(c,"parq",err=>{
-        if(err) return;
-        const inf=parqAlerte(c);
-        toast(inf&&inf.risque?"Enregistré — avis médical recommandé":"Questionnaire enregistré ✓");
-        if(S.isClient&&inf&&inf.risque) pushTo(coachEmail(),"🩺 Questionnaire santé",((c.nom||"Client").split(" ")[0])+" a signalé un point de vigilance");
-      });
-      render(); break; }
     case "tst-add":{ if(!c) break;
       const tid=val("tst-id")||TESTS[0].id;
       const t2=TESTS.find(x=>x.id===tid); if(!t2) break;
