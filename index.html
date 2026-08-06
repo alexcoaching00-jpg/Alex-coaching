@@ -588,7 +588,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.3 — 22/07/2026";
+const APP_VERSION="v10.4 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -857,8 +857,20 @@ function authScreen(){
 }
 
 /* ===== rendu ===== */
+let VUE_PREC="";
 function render(){
   const root=document.getElementById("root");
+  // On garde la position de lecture quand on reste sur le même écran
+  const vueActuelle=[S.view,S.detailTab,S.clientTab,S.selectedId,S.isClient].join("|");
+  const memeEcran=(vueActuelle===VUE_PREC);
+  const posY=memeEcran?window.scrollY:0;
+  VUE_PREC=vueActuelle;
+  if(memeEcran&&posY>0){
+    requestAnimationFrame(()=>{ window.scrollTo(0,posY); });
+  } else if(!memeEcran){
+    // Changement d'écran : on repart du haut
+    requestAnimationFrame(()=>{ window.scrollTo(0,0); });
+  }
   if(S.recoverMode||S.setPwMode){ root.innerHTML=newPasswordScreen(); return; }
   if(!S.session){ root.innerHTML=authScreen(); return; }
   if(S.loading){ root.innerHTML=`<div class="center"><p class="muted">Chargement…</p></div>`; return; }
@@ -2274,6 +2286,10 @@ function programme(c,editable){
   const form=editable?`
     <div class="panel" ${dEx.nom?'style="border-color:rgba(184,134,47,.5)"':''}><div class="ph">${dEx.nom?"✏️ Modifier l'exercice":"Nouvel exercice"}</div>
       ${exoPicker("ex-nom")}
+      ${dEx.nom?`<div style="background:rgba(184,134,47,.14);border:1px solid rgba(184,134,47,.4);border-radius:12px;padding:10px 13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px;color:var(--amber);font-weight:700">✏️ Modification de « ${esc(dEx.nom)} »</span>
+        <button class="link" style="font-size:12.5px;padding:0" data-act="edit-ex-cancel">Annuler</button>
+      </div>`:""}
       <label class="fld"><span>Exercice (ou saisie libre)</span><input id="ex-nom" list="exos-fr" placeholder="Ex. Presse à cuisses" value="${esc(dEx.nom||"")}"></label>
       <div class="r2"><label class="fld"><span>Séries</span><input id="ex-series" type="number" min="1" value="${dEx.series||3}"></label>
       <label class="fld"><span>Type de série</span><select id="ex-reptype"><option value="reps" ${(dEx.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${dEx.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label></div>
@@ -3073,7 +3089,7 @@ async function toggleVoice(role){
         c.messages.push({from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach"});
         patchField(c,"messages",err=>toast(err?"Erreur envoi":"Vocal envoyé"));
         render();
-        setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},50);
+        msgVersLeBas(true);
       };
       reader.readAsDataURL(blob);
     };
@@ -3116,7 +3132,7 @@ function openClient(id,tab){
 
 function openMessages(id){
   openClient(id,"messages");
-  setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},60);
+  MSG_ENBAS=true; msgVersLeBas(true);
   reloadKeepingView().then?.(()=>{});
   const cc=S.clients.find(x=>x.id===id); if(!cc) return;
   let ch=false; (cc.messages||[]).forEach(m=>{ if(m.from==="client"&&!m.lu){ m.lu=true; ch=true; } });
@@ -3124,6 +3140,38 @@ function openMessages(id){
 }
 
 /* ===== MESSAGES ===== */
+
+/* Position de lecture dans la conversation.
+   On ne redescend automatiquement que si l'utilisateur était déjà en bas :
+   s'il a remonté pour relire, on ne bouge pas sous ses yeux. */
+let MSG_ENBAS=true, MSG_NOUVEAUX=0, MSG_AUTO=false;
+function msgEstEnBas(ml){ return !ml || (ml.scrollHeight-ml.scrollTop-ml.clientHeight)<60; }
+function msgVersLeBas(force){
+  const aller=()=>{
+    const ml=document.getElementById("msg-list"); if(!ml) return;
+    if(!(force||MSG_ENBAS)) return;
+    MSG_AUTO=true;
+    const avant=ml.style.scrollBehavior;
+    ml.style.scrollBehavior="auto";
+    ml.scrollTop=ml.scrollHeight;
+    ml.style.scrollBehavior=avant||"";
+    MSG_ENBAS=true; MSG_NOUVEAUX=0;
+    setTimeout(()=>{ MSG_AUTO=false; },60);
+  };
+  setTimeout(aller,40);
+  setTimeout(aller,220);
+}
+function msgSurveiller(){
+  const ml=document.getElementById("msg-list"); if(!ml||ml.dataset.veille) return;
+  ml.dataset.veille="1";
+  ml.addEventListener("scroll",()=>{
+    if(MSG_AUTO) return;                 // repositionnement automatique : ce n'est pas l'utilisateur
+    MSG_ENBAS=msgEstEnBas(ml);
+    const b=document.getElementById("msg-newbtn");
+    if(MSG_ENBAS){ MSG_NOUVEAUX=0; if(b) b.style.display="none"; }
+  },{passive:true});
+}
+
 function jourSepar(d){
   const x=new Date(d), au=new Date(), hier=new Date(Date.now()-864e5);
   const sameDay=(a,b2)=>a.toDateString()===b2.toDateString();
@@ -3149,8 +3197,21 @@ function messagesTab(c,isCoach){
         <div class="mt">${msgWhen(m.date)}${m.from==='coach'?`<span class="mt-lu">${m.lu===false?"":"✓"}</span>`:""}</div>
       </div>`;}).join("")
     : vide("✉","Pas encore de message","Écris le premier message ci-dessous.");
-  // Toujours ouvrir sur les derniers messages
-  setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},30);
+  // Position de lecture : on descend seulement si l'utilisateur était déjà en bas.
+  // Deux passes : la seconde rattrape la hauteur finale (images, lecteurs audio chargés après coup).
+  const placer=()=>{
+    const ml=document.getElementById("msg-list"); if(!ml) return;
+    msgSurveiller();
+    if(!MSG_ENBAS) return;
+    MSG_AUTO=true;
+    const avant=ml.style.scrollBehavior;
+    ml.style.scrollBehavior="auto";        // placement immédiat, sans animation
+    ml.scrollTop=ml.scrollHeight;
+    ml.style.scrollBehavior=avant||"";
+    setTimeout(()=>{ MSG_AUTO=false; },60);
+  };
+  setTimeout(placer,20);
+  setTimeout(placer,200);
   const role=isCoach?'coach':'client';
   return `<div class="msg-list" id="msg-list">${rows}</div>
     ${!S.isClient?`<div style="text-align:right;margin-bottom:6px"><button class="link" data-act="msg-tpl" style="font-size:12.5px;padding:2px 0">⚡ Message type</button></div>`:""}
@@ -4313,8 +4374,16 @@ document.addEventListener("click",e=>{
       } else {
         c.program.push({id:uid(),...payload,historique:[]});
       }
+      const cibleId=(draft&&draft.id)||null;
       S.exDraft=null;
-      save(); render(); break; }
+      save(); render();
+      // Revenir sur l'exercice qu'on vient de modifier plutôt qu'en haut de page
+      if(cibleId) setTimeout(()=>{
+        const el=document.querySelector(`[data-act="edit-ex"][data-id="${cibleId}"]`);
+        if(el){ const card=el.closest(".card")||el; card.scrollIntoView({behavior:"smooth",block:"center"}); }
+      },60);
+      toast(cibleId?"Exercice modifié ✓":"Exercice ajouté ✓");
+      break; }
     case "dup-ex":{ if(!c) break;
       const idx=(c.program||[]).findIndex(x=>x.id===t.dataset.id); if(idx<0) break;
       const copy={...c.program[idx],id:uid(),historique:[]};
@@ -4834,7 +4903,7 @@ document.addEventListener("click",e=>{
       if(role==="coach"){ pushTo(c.clientEmail,"💬 Message de ton coach",txt); }
       else { pushTo(coachEmail(),"💬 "+((c.nom||"Client").split(" ")[0])+" t'a écrit",txt); }
       render();
-      setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},50);
+      msgVersLeBas(true);
       break; }
     case "print-bilan": if(c) printBilan(c); break;
     case "add-bilan":{ if(!c) return;
@@ -5124,7 +5193,7 @@ document.addEventListener("change",e=>{
       c.messages.push({from:role,image:uri,date:new Date().toISOString(),lu:role==="coach"});
       patchField(c,"messages",err=>toast(err?"Erreur envoi":"Photo envoyée"));
       render();
-      setTimeout(()=>{const ml=document.getElementById("msg-list");if(ml)ml.scrollTop=ml.scrollHeight;},50);
+      msgVersLeBas(true);
     });
     e.target.value=""; return;
   }
