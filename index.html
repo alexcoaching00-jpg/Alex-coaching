@@ -248,6 +248,9 @@
   #rec-btn.rec-warn{background:linear-gradient(180deg,#E0A94A,#B8862F);color:#1A1310}
   @keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(206,42,42,.45)}70%{box-shadow:0 0 0 12px rgba(206,42,42,0)}100%{box-shadow:0 0 0 0 rgba(206,42,42,0)}}
   @media (prefers-reduced-motion:reduce){#rec-btn.rec-on{animation:none}}
+  .nav-dot{position:absolute;top:-6px;right:-11px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;
+    background:var(--red);color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.5);font-family:'Inter'}
   .pl-jour{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
   .pl-jour.vide{opacity:.45}
   .pl-date{flex:0 0 auto;width:48px;text-align:center;background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:7px 0}
@@ -585,7 +588,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.2 — 22/07/2026";
+const APP_VERSION="v10.3 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -912,7 +915,11 @@ function render(){
   body=S.role==="coach"?(S.view==="questions"?questionsCoach():S.view==="planning"?planningTab():S.view==="programmes"?programmesView():S.view==="dashboard"?dashboard():S.view==="clients"?clientList():detail(c)):clientSpace(c);
 
   if(S.role==="coach"){
-    nav=[["dashboard","Accueil","◆"],["planning","Semaine","📅"],["clients","Clients","☰"],["questions","Questions","❓"],["programmes","Programmes","▤"]].map(([k,l,i])=>`<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':(k==='programmes'&&S.view==='programmes')?'on':(k==='planning'&&S.view==='planning')?'on':(k==='questions'&&S.view==='questions')?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
+    const nonLus=(S.clients||[]).reduce((n,c2)=>n+(c2.messages||[]).filter(m=>m.from==='client'&&!m.lu).length,0);
+    const qAtt=(typeof qEnAttente==="function"?qEnAttente().length:0);
+    nav=[["dashboard","Accueil","◆"],["planning","Semaine","📅"],["clients","Clients","☰"],["questions","Questions","❓"],["programmes","Programmes","▤"]].map(([k,l,i])=>{
+      const n2=(k==='clients'?nonLus:k==='questions'?qAtt:0);
+      return `<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':(k==='programmes'&&S.view==='programmes')?'on':(k==='planning'&&S.view==='planning')?'on':(k==='questions'&&S.view==='questions')?'on':''}"><span class="ic" style="position:relative;display:inline-block">${i}${n2?`<span class="nav-dot">${n2>9?"9+":n2}</span>`:""}</span>${l}</button>`;}).join("");
   }else{
     nav=(()=>{
       const principaux=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"]];
@@ -4237,7 +4244,7 @@ document.addEventListener("click",e=>{
       } else { prompt("Copie ce message :",msg); }
       break; }
     case "role": S.role=t.dataset.role; if(S.role==="client"&&!S.selectedId&&S.clients[0]) S.selectedId=S.clients[0].id; render(); break;
-    case "nav": S.view=t.dataset.view; render(); break;
+    case "nav": S.view=t.dataset.view; if(S.view==="questions") chargerQuestions(); render(); break;
     case "client-plus":{
       const items=[["bilan","◫","Bilan & mesures","Tes mensurations, ton IMC et tes photos"],
                    ["nutrition","🍎","Nutrition","Ton plan alimentaire et tes repères"],
