@@ -46,13 +46,20 @@
     background-size:140px 140px}
   .wrap,.center{position:relative;z-index:1}
   h1,h2,h3,.disp{font-family:'Bebas Neue',system-ui,sans-serif;letter-spacing:.04em}
+  /* Échelle : le titre d'écran domine, les sections suivent, les libellés s'effacent */
+  .t-xl{font-family:'Bebas Neue';font-size:32px;line-height:1.02;letter-spacing:.03em;color:var(--white)}
+  .t-eyebrow{font-size:10px;font-weight:800;letter-spacing:.19em;text-transform:uppercase;color:var(--amber)}
+  .num{font-variant-numeric:tabular-nums}
   button{font-family:inherit}50%{transform:scale(1.05);filter:brightness(1.15)}}50%{opacity:1}}
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){main{animation:none}}
   .wrap{max-width:520px;margin:0 auto;padding-bottom:92px}
   main{padding:16px 16px 0;animation:fade .3s ease both}
-  .hd{position:relative;background:linear-gradient(180deg,#191411,#0D0B0A 78%);padding:calc(14px + env(safe-area-inset-top)) 18px 16px;
-    box-shadow:0 6px 22px rgba(0,0,0,.5)}
+  .hd{position:relative;padding:calc(14px + env(safe-area-inset-top)) 18px 16px;
+    background:
+      repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,transparent 1px 4px),
+      linear-gradient(180deg,#1F1815,#0D0B0A 82%);
+    box-shadow:0 6px 22px rgba(0,0,0,.55)}
   .hd::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
     background:linear-gradient(90deg,transparent,var(--red) 18%,var(--amber) 50%,var(--red) 82%,transparent);opacity:.75}
   .hd-top{display:flex;align-items:center;justify-content:space-between}
@@ -68,9 +75,23 @@
   .row-stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
   .row-stats .stat{min-width:calc(50% - 5px)}
   @media(min-width:420px){.row-stats .stat{min-width:0}}
-  .stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-  .stat .v{font-family:'Bebas Neue';font-size:36px;color:var(--red);line-height:1;letter-spacing:.04em}
-  .stat .l{font-size:11px;color:var(--grey);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+  /* Plaque de fonte : métal brossé, chiffre gravé en creux, arête éclairée */
+  .stat{position:relative;flex:1;padding:17px 16px 15px;border-radius:14px;overflow:hidden;
+    background:
+      repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px),
+      linear-gradient(168deg,#2C2420 0%,#1C1613 38%,#171210 100%);
+    border:1px solid #3A302A;
+    box-shadow:0 6px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.09),inset 0 -1px 0 rgba(0,0,0,.5)}
+  .stat::before{content:"";position:absolute;inset:0 0 auto;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.16) 30%,rgba(255,255,255,.16) 70%,transparent)}
+  .stat::after{content:"";position:absolute;left:16px;bottom:12px;width:22px;height:2px;border-radius:2px;
+    background:linear-gradient(90deg,var(--red),transparent)}
+  .stat .v{font-family:'Bebas Neue';font-size:44px;line-height:.92;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+    color:#E8DFD6;
+    text-shadow:0 1px 0 rgba(0,0,0,.85),0 -1px 0 rgba(255,255,255,.1);}
+  .stat.accent .v{color:var(--red);text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 22px rgba(176,31,31,.35)}
+  .stat.or .v{color:var(--amber2);text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 22px rgba(184,134,47,.3)}
+  .stat .l{font-size:10px;color:#8B7C6E;margin-top:9px;font-weight:800;text-transform:uppercase;letter-spacing:.13em}
   .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
   .tag{display:inline-block;padding:4px 11px;border-radius:999px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
   .tag.em{background:rgba(193,18,31,.18);color:#FF6B6B}
@@ -133,6 +154,13 @@
   .fld input::placeholder,.fld textarea::placeholder{color:#6B5F55}
   .fld textarea{resize:vertical}
   .panel{position:relative;background:linear-gradient(180deg,#241D18,var(--ink2) 52%);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--sh-sm);overflow:hidden}
+  /* Niveaux d'urgence : le liseré gauche dit la priorité sans crier */
+  .panel.urgent{border-color:rgba(176,31,31,.4)}
+  .panel.urgent::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--red),var(--red2))}
+  .panel.attention{border-color:rgba(184,134,47,.32)}
+  .panel.attention::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--amber2),var(--amber))}
+  .panel.info::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#3A302A}
+  .panel .ph{display:flex;align-items:center;gap:7px}
   .panel::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12) 25%,rgba(255,255,255,.12) 75%,transparent)}
   .panel .ph{font-family:'Bebas Neue';font-size:17px;letter-spacing:.05em;margin-bottom:10px;color:var(--white)}
   .card{position:relative;background:linear-gradient(180deg,#211A16,var(--card) 46%);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-md);overflow:hidden;
@@ -588,7 +616,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.4 — 22/07/2026";
+const APP_VERSION="v10.5 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -959,21 +987,21 @@ function dashboard(){
     return (now-last)/(1000*60*60*24)>14;
   });
   return `
-    <div style="margin-bottom:12px">
-      <div style="font-family:'Bebas Neue';font-size:24px;letter-spacing:.04em;color:var(--white)">${greet()} Coach 👋</div>
-      <div style="font-size:12.5px;color:var(--grey2);text-transform:capitalize">${todayLong()}</div>
+    <div style="margin-bottom:18px">
+      <div class="t-eyebrow" style="margin-bottom:5px">${todayLong()}</div>
+      <div class="t-xl">${greet()} Coach</div>
     </div>
     <div class="row-stats">
-      <div class="stat"><div class="v">${cs.length}</div><div class="l">Clients</div></div>
-      <div class="stat"><div class="v">${totalSeances}</div><div class="l">Séances</div></div>
-      <div class="stat"><div class="v" style="color:${totalMsgs>0?'var(--red)':'var(--grey)'}">${totalMsgs}</div><div class="l">Messages</div></div>
-      <div class="stat"><div class="v" style="color:#4CAF50">${(()=>{const now=new Date();return cs.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>{const d=new Date(p2.date+"T12:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((t3,p2)=>t3+(+p2.montant||0),0),0).toFixed(0);})()} €</div><div class="l">CA du mois</div></div>
+      <div class="stat"><div class="v num">${cs.length}</div><div class="l">Clients suivis</div></div>
+      <div class="stat"><div class="v num">${totalSeances}</div><div class="l">Séances au total</div></div>
+      <div class="stat${totalMsgs>0?" accent":""}"><div class="v num">${totalMsgs}</div><div class="l">Messages non lus</div></div>
+      <div class="stat or"><div class="v num">${(()=>{const now=new Date();return cs.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>{const d=new Date(p2.date+"T12:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((t3,p2)=>t3+(+p2.montant||0),0),0).toFixed(0);})()} €</div><div class="l">Encaissé ce mois</div></div>
     </div>
     ${byF.length?`<div class="tags">${byF.map(x=>`<span class="tag ${x.f==='Petit groupe'?'am':'em'}">${x.f} · ${x.n}</span>`).join("")}</div>`:""}
     ${(()=>{
       const unread=cs.map(c2=>({c2,n:(c2.messages||[]).filter(m=>m.from==='client'&&!m.lu).length})).filter(x=>x.n>0);
       if(!unread.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(176,31,31,.4)">
+      return `<div class="panel urgent" style="margin-bottom:14px">
         <div class="ph" style="color:var(--red);font-size:14px">✉ Messages non lus</div>
         ${unread.map(({c2,n})=>`<button data-act="open-msgs" data-id="${c2.id}" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);padding:9px 2px;cursor:pointer;color:var(--white);font-size:14px;font-family:'Inter'">
           <span>${esc(c2.nom)}</span>
@@ -987,7 +1015,7 @@ function dashboard(){
       const auj=rdvs.filter(x=>x.d.toDateString()===todayStr);
       const later=rdvs.filter(x=>x.d.toDateString()!==todayStr);
       const faites=cs.filter(c2=>(c2.seances||[]).some(s2=>s2.fait&&s2.date===today()));
-      return `${faites.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(76,175,80,.4)">
+      return `${faites.length?`<div class="panel info" style="margin-bottom:14px">
         <div class="ph" style="color:#4CAF50;font-size:14px">✅ Séances faites aujourd'hui</div>
         ${faites.map(c2=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13.5px">
           <span style="color:var(--white)">${esc(c2.nom)}</span>
@@ -1025,14 +1053,14 @@ function dashboard(){
         const moy=((ci.energie||3)+(ci.sommeil||3)+(ci.motivation||3)+(ci.courbatures||3))/4;
         return moy<=2.5?{c2,moy:moy.toFixed(1)}:null;}).filter(Boolean);
       if(!low.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(176,31,31,.4)">
+      return `<div class="panel urgent" style="margin-bottom:14px">
         <div class="ph" style="color:var(--red);font-size:14px">📋 Check-ins à surveiller</div>
         ${low.map(({c2,moy})=>`<span class="badge-warn" style="margin-right:6px;background:rgba(176,31,31,.15);color:#FF6B6B">${esc(c2.nom)} · moy. ${moy}/5</span>`).join("")}
       </div>`;})()}
     ${(()=>{
       const stale=cs.filter(checkinStale);
       if(!stale.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.35)">
+      return `<div class="panel attention" style="margin-bottom:14px">
         <div class="ph" style="color:#F0B429;font-size:14px">📋 Check-ins en retard (14+ jours)</div>
         ${stale.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
@@ -1040,7 +1068,7 @@ function dashboard(){
     ${(()=>{
       const att=qEnAttente();
       if(!att.length) return "";
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.42)">
+      return `<div class="panel attention" style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <div style="flex:1;min-width:0">
             <div class="ph" style="color:#F0B429;font-size:13.5px;margin-bottom:2px">❓ ${att.length} question${att.length>1?"s":""} en attente</div>
@@ -1052,7 +1080,7 @@ function dashboard(){
     ${(()=>{
       if(!exportDue()||!cs.length) return "";
       const i=infoSauvegarde();
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.32)">
+      return `<div class="panel attention" style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <div style="flex:1;min-width:0">
             <div class="ph" style="color:#F0B429;font-size:13.5px;margin-bottom:2px">💾 Pense à ta sauvegarde</div>
@@ -1079,7 +1107,7 @@ function dashboard(){
     ${(()=>{
       const old2=cs.filter(c2=>c2.prochainRdv&&new Date(c2.prochainRdv)<new Date(Date.now()-24*3600*1000));
       if(!old2.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.3)">
+      return `<div class="panel attention" style="margin-bottom:14px">
         <div class="ph" style="color:#F0B429;font-size:14px">📅 RDV passés à replanifier</div>
         ${old2.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)} · ${frDate(c2.prochainRdv.slice(0,10))}</span>`).join("")}
         <p class="muted" style="font-size:11.5px;margin-top:6px">Ouvre leur fiche : un bouton « +1 semaine » suffit à reprogrammer.</p>
@@ -1092,7 +1120,7 @@ function dashboard(){
         return d>=0&&d<=7;
       });
       if(!ended.length&&!soon.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(176,31,31,.4)">
+      return `<div class="panel urgent" style="margin-bottom:14px">
         ${ended.length?`<div class="ph" style="color:var(--red);font-size:14px">🔒 Accès suspendu — programme terminé</div>
           ${ended.map(c2=>`<span class="badge-warn" style="margin-right:6px;background:rgba(176,31,31,.15);color:#FF6B6B">${esc(c2.nom)}</span>`).join("")}
           <p class="muted" style="font-size:11.5px;margin:6px 0 ${soon.length?"10px":"0"}">Ils ne peuvent plus ouvrir leur espace. Repousse la date de fin dans leur fiche (onglet Programme) pour réactiver.</p>`:""}
@@ -1108,7 +1136,7 @@ function dashboard(){
         ${due.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
         <p class="muted" style="font-size:11.5px;margin-top:6px">Un bilan régulier montre les progrès au client — c'est ce qui donne envie de continuer.</p>
       </div>`;})()}
-    ${inactifs.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(240,180,41,.3)">
+    ${inactifs.length?`<div class="panel attention" style="margin-bottom:14px">
       <div class="ph" style="color:#F0B429;font-size:14px">⚠ ${inactifs.length} client${inactifs.length>1?'s':''} inactif${inactifs.length>1?'s':''} (+14 jours)</div>
       ${inactifs.map(c=>`<span class="badge-warn" style="margin-right:6px;margin-top:4px">${esc(c.nom)}</span>`).join("")}
     </div>`:""}
@@ -2512,7 +2540,7 @@ function clientSpace(c){
   const prenom=(c.nom||"").split(" ")[0];
   const stk=streakWeeks(c);
   const banner=`<div class="cbanner">
-    <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.04em;color:#fff;margin-bottom:6px">${greet()} ${esc(prenom)} 👋 ${stk>=2?`<span style="font-size:14px;background:rgba(0,0,0,.25);border-radius:999px;padding:2px 10px;vertical-align:middle">🔥 ${stk} sem. d'affilée</span>`:""}</div>
+    <div style="font-family:'Bebas Neue';font-size:26px;line-height:1.05;letter-spacing:.03em;color:#fff;margin-bottom:8px">${greet()} ${esc(prenom)} ${stk>=2?`<span style="font-size:14px;background:rgba(0,0,0,.25);border-radius:999px;padding:2px 10px;vertical-align:middle">🔥 ${stk} sem. d'affilée</span>`:""}</div>
     <div class="lab">Votre objectif</div><div class="obj">${esc(c.objectif||"—")}</div>
     ${(r!==null||rdv)?`<div style="display:flex;gap:14px;margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.85)">
       ${r!==null?`<span>Séances restantes : <b>${r}</b></span>`:''}
