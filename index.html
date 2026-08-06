@@ -616,7 +616,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.5 — 22/07/2026";
+const APP_VERSION="v10.6 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -4587,7 +4587,11 @@ document.addEventListener("click",e=>{
       const ex2=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex2) break;
       S.exDraft={...ex2};
       render();
-      const f4=document.getElementById("ex-nom"); if(f4){ f4.scrollIntoView({behavior:"smooth",block:"center"}); f4.focus(); }
+      // On amène le formulaire en vue sans ouvrir le clavier ni perdre le repère
+      setTimeout(()=>{
+        const f4=document.getElementById("ex-nom");
+        if(f4){ const bloc=f4.closest(".panel")||f4; bloc.scrollIntoView({behavior:"smooth",block:"start"}); }
+      },40);
       break; }
     case "edit-ex-cancel": S.exDraft=null; render(); break;
     case "del-ex": if(c){ c.program=(c.program||[]).filter(x=>x.id!==t.dataset.id); if(S.exDraft&&S.exDraft.id===t.dataset.id) S.exDraft=null; save(); render(); } break;
@@ -4654,7 +4658,10 @@ document.addEventListener("click",e=>{
       const ex2=S.tplEdit.program[+t.dataset.idx];   // non destructif
       if(ex2) S.tplEdit.draft={...ex2};
       render();
-      const f2=document.getElementById("tex-nom"); if(f2) f2.scrollIntoView({behavior:"smooth",block:"center"});
+      setTimeout(()=>{
+        const f2=document.getElementById("tex-nom");
+        if(f2){ const bloc=f2.closest(".panel")||f2; bloc.scrollIntoView({behavior:"smooth",block:"start"}); }
+      },40);
       break; }
     case "tpl-edit-cancel": if(S.tplEdit){ S.tplEdit.nom=val("tpl-nom"); S.tplEdit.draft=null; render(); } break;
     case "tpl-add-here":{ if(!S.tplEdit) break;
