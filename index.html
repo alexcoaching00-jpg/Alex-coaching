@@ -295,6 +295,70 @@
   .pl-rdv.ok .h{color:#4CAF50}
   .pl-rdv .nm{flex:1;min-width:0;font-size:14.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pl-rdv .fo{flex:0 0 auto;font-size:11px;color:var(--grey2);text-transform:uppercase;letter-spacing:.05em}
+
+  /* ===== CARTE D'EXERCICE ===== */
+  .xcard{position:relative;background:linear-gradient(180deg,#221B17,var(--card) 44%);border:1px solid var(--line);
+    border-radius:18px;padding:14px;margin-bottom:11px;box-shadow:var(--sh-md);overflow:hidden;
+    animation:cardIn .32s cubic-bezier(.22,.9,.28,1) both}
+  .xcard::before{content:"";position:absolute;inset:0 0 auto;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.14) 22%,rgba(255,255,255,.14) 78%,transparent)}
+  @media (prefers-reduced-motion:reduce){.xcard{animation:none}}
+
+  .xtop{display:flex;gap:10px;align-items:flex-start}
+  .xvis{position:relative;flex:0 0 auto;width:60px;height:60px;border-radius:13px;overflow:hidden;padding:0;border:1px solid var(--line);
+    background:var(--ink2);cursor:pointer;line-height:0;display:grid;place-items:center}
+  .xvis img{width:100%;height:100%;object-fit:cover;display:block}
+  .xvis.xicon{cursor:default;background:linear-gradient(160deg,#241D18,var(--ink2))}
+  .xplay{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.9);pointer-events:none}
+  .xvis.novid .xplay{display:none}
+
+  .xmain{flex:1;min-width:0}
+  .xnum{font-family:'Bebas Neue';font-size:13px;letter-spacing:.14em;color:var(--red);line-height:1;margin-bottom:3px}
+  .xname{font-size:16.5px;font-weight:700;color:var(--white);line-height:1.25;margin:0;font-family:'Inter',system-ui,sans-serif;letter-spacing:0}
+  .xtags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .xtag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;
+    background:rgba(46,38,32,.9);color:var(--grey);border:1px solid var(--line)}
+  .xtag.or{background:rgba(184,134,47,.16);color:var(--amber2);border-color:rgba(184,134,47,.4)}
+
+  .xacts{display:flex;gap:4px;align-items:center;margin-top:9px;padding-top:9px;border-top:1px solid rgba(46,38,32,.7)}
+  .xacts button{height:30px;min-width:30px;padding:0 8px;border-radius:9px;border:none;background:transparent;color:#7E7167;
+    font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;display:grid;place-items:center;transition:background .14s,color .14s}
+  .xacts button[data-act="edit-ex"]{margin-left:auto;color:var(--grey);padding:0 12px}
+  .xacts button:active{background:rgba(255,255,255,.08);color:var(--white)}
+  .xacts button.del{color:#8B5A5A}
+
+  /* Chiffres clés : bandeau gravé, tout sur une ligne */
+  .xstats{display:flex;gap:1px;margin-top:12px;border-radius:11px;overflow:hidden;
+    background:#2E2620;border:1px solid #362C25}
+  .xs{flex:1;min-width:0;padding:9px 6px;text-align:center;
+    background:linear-gradient(180deg,#221B17,#1A1512)}
+  .xs b{display:block;font-family:'Bebas Neue';font-size:18px;line-height:1.05;color:var(--white);
+    letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    text-shadow:0 1px 0 rgba(0,0,0,.7)}
+  .xs i{display:block;font-size:9px;font-style:normal;color:#7E7167;text-transform:uppercase;letter-spacing:.11em;margin-top:3px;font-weight:800}
+
+  .xnote{font-size:13.5px;color:var(--white2);line-height:1.5;margin-top:11px;padding-left:10px;border-left:2px solid rgba(176,31,31,.5)}
+  .xalt{font-size:12.5px;color:var(--amber);margin-top:8px;line-height:1.45}
+  .xprog{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px}
+  .xhist{font-size:12.5px;color:#4CAF50;font-weight:700;font-variant-numeric:tabular-nums}
+  .xpr{font-size:12px;color:var(--amber2);font-weight:700}
+  .xlink{font-size:12px;padding:0;margin-left:auto}
+
+  /* Actions : une seule ligne, boutons tactiles */
+  .xbar{display:flex;gap:7px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .xbar button,.xbar a{flex:1 1 auto;min-width:88px;text-align:center;text-decoration:none;
+    background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;
+    font-size:12.5px;font-weight:700;color:var(--white2);cursor:pointer;font-family:inherit;
+    transition:border-color .14s,transform .14s;white-space:nowrap}
+  .xbar button:active,.xbar a:active{transform:translateY(1px);border-color:rgba(176,31,31,.5)}
+  .xbar button.am{color:var(--amber);border-color:rgba(184,134,47,.35)}
+  .xbar .tmr{color:var(--amber);border-color:#4A3B32;border-radius:10px;padding:9px 10px;font-size:12.5px}
+  @media (min-width:820px){
+    .xvis{width:76px;height:76px}
+    .xname{font-size:18px}
+    .xs b{font-size:21px}
+  }
   .empty-ico{font-size:40px;line-height:1;margin-bottom:10px;position:relative}
   .empty-t{font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);position:relative}
   .empty-p{font-size:13.5px;color:var(--grey);line-height:1.55;margin-top:7px;max-width:300px;margin-left:auto;margin-right:auto;position:relative}
@@ -616,7 +680,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.6 — 22/07/2026";
+const APP_VERSION="v10.8 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2252,36 +2316,61 @@ function programme(c,editable){
   const exCard=(e,i)=>{
     const hist=(e.historique||[]);
     const last3=hist.slice(-3);
-    return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-      <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
-      ${(()=>{const th=exoThumb(e);
-        return th?`<button type="button" data-act="play-video" data-id="${e.id}" style="position:relative;padding:0;border:0;background:none;flex:0 0 auto;cursor:pointer;line-height:0">
-            <img src="${th}" alt="" style="width:82px;height:82px;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block" onerror="this.parentElement.outerHTML=''">
-            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;text-shadow:0 2px 8px rgba(0,0,0,.8);pointer-events:none">▶️</span>
-          </button>`
-        :`<span title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}" style="flex:0 0 auto;background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;align-items:center;justify-content:center">${exoIcon(e.nom,44)}</span>`;})()}
-      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span class="exi" style="font-size:15px">${String(i+1).padStart(2,"0")}</span><span class="exn" style="font-size:18px;line-height:1.25">${esc(e.nom)}</span>${e.rir?`<span class="tag ink" style="font-size:11px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}${e.ss?`<span class="tag" style="background:rgba(184,134,47,.2);color:var(--amber);border:1px solid rgba(184,134,47,.5);font-size:11px">🔗 SS ${esc(e.ss)}</span>`:""}</div>
-      <div class="exstats">
-        <div class="exstat"><span class="v">${e.series}</span><span class="k">${e.series>1?"séries":"série"}</span></div>
-        <div class="exstat"><span class="v">${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):(e.reps||"—"))}</span><span class="k">${e.repType==="temps"?"durée":"reps"}</span></div>
-        ${e.charge?`<div class="exstat"><span class="v">${esc(e.charge)}</span><span class="k">charge</span></div>`:""}
-        ${e.repos?`<div class="exstat"><span class="v">${esc(normDuree(e.repos)||e.repos)}</span><span class="k">repos</span></div>`:""}
+    const th=exoThumb(e);
+    const stat=(v,k)=>`<div class="xs"><b>${v}</b><i>${k}</i></div>`;
+    return `<div class="xcard">
+      <div class="xtop">
+        ${th
+          ?`<button type="button" class="xvis" data-act="play-video" data-id="${e.id}">
+              <img src="${th}" alt="" onerror="this.parentElement.classList.add('novid')">
+              <span class="xplay">▶</span></button>`
+          :`<span class="xvis xicon" title="${esc(ZONE_LABEL[exoZone(e.nom)]||'')}">${exoIcon(e.nom,40)}</span>`}
+        <div class="xmain">
+          <div class="xnum">${String(i+1).padStart(2,"0")}</div>
+          <h3 class="xname">${esc(e.nom)}</h3>
+          <div class="xtags">
+            ${e.rir?`<span class="xtag">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}
+            ${e.ss?`<span class="xtag or">🔗 SS ${esc(e.ss)}</span>`:""}
+          </div>
+        </div>
       </div>
-      ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
-      ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ Trop difficile ? ${esc(e.alt)}</div>`:""}
-      ${last3.length?`<div class="exd" style="color:#4CAF50;font-size:12px">Charges : ${last3.map(h=>`${esc(h.charge)} <span style="color:var(--grey2)">(${frDate(h.date)})</span>`).join(" → ")}</div>`:""}
-      ${prBadge(e)}
-      ${((e.historique||[]).length>=2)?`<button class="link" style="font-size:12px;padding:0;margin-top:2px" data-act="toggle-spark" data-id="${e.id}">${S.sparkOpen===e.id?"▾ Masquer la courbe":"▸ Voir la progression"}</button>${S.sparkOpen===e.id?exoSpark(e):""}`:""}
-      <div style="display:flex;gap:16px;align-items:center;margin-top:11px;flex-wrap:wrap">
+
+      <div class="xstats">
+        ${stat(e.series,e.series>1?"séries":"série")}
+        ${stat(esc(e.repType==="temps"?(fmtCourt(parseRepos(e.reps))||e.reps||"—"):(e.reps||"—")),e.repType==="temps"?"durée":"reps")}
+        ${e.charge?stat(esc(e.charge),"charge"):""}
+        ${e.repos?stat(esc(fmtCourt(parseRepos(e.repos))||e.repos),"repos"):""}
+      </div>
+
+      ${e.note?`<p class="xnote">${esc(e.note)}</p>`:""}
+      ${e.alt?`<p class="xalt">↔ Trop difficile ? ${esc(e.alt)}</p>`:""}
+      ${(()=>{
+        if(!last3.length) return "";
+        const pr=exoPR(e);
+        const record=pr?`<span class="xpr">🏆 ${esc(pr.charge)}</span>`:"";
+        const suite=hist.length>=2?`<button class="link xlink" data-act="toggle-spark" data-id="${e.id}">${S.sparkOpen===e.id?"▾ masquer":"▸ courbe"}</button>`:"";
+        return `<div class="xprog">
+          <span class="xhist">${last3.map(h=>esc(h.charge)).join(" → ")}</span>
+          ${record}${suite}
+        </div>${S.sparkOpen===e.id?exoSpark(e):""}`;})()}
+
+      <div class="xbar">
         ${ytId(e)
-          ?`<button class="link" style="font-size:13.5px;padding:0" data-act="play-video" data-id="${e.id}">▶️ Voir la vidéo</button>`
-          :`<a class="link" style="font-size:13.5px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Chercher une vidéo</a>`}
-        <button class="link" style="font-size:13.5px;padding:0" data-act="log-charge" data-id="${e.id}">+ Noter la charge</button>
-        ${(editable&&!exoThumb(e))?`<button class="link" style="font-size:13.5px;padding:0;color:var(--amber)" data-act="set-video" data-id="${e.id}">🎬 Ajouter la vidéo</button>`:""}
-        ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ Repos ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
-      </div></div>
+          ?`<button data-act="play-video" data-id="${e.id}">▶ Vidéo</button>`
+          :(editable
+            ?`<button data-act="set-video" data-id="${e.id}" class="am">🎬 Ajouter la vidéo</button>`
+            :`<a href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶ Chercher</a>`)}
+        <button data-act="log-charge" data-id="${e.id}">＋ Charge</button>
+        ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
       </div>
-      ${editable?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="edit-ex" data-id="${e.id}" title="Modifier">✏️</button><button class="x" data-act="del-ex" data-id="${e.id}">×</button></span>`:""}</div></div>`;
+      ${editable?`<div class="xacts">
+        <button data-act="ex-up" data-id="${e.id}" title="Monter">▲</button>
+        <button data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button>
+        <button data-act="dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button>
+        <button data-act="edit-ex" data-id="${e.id}" title="Modifier">✎ Modifier</button>
+        <button data-act="del-ex" data-id="${e.id}" title="Supprimer" class="del">×</button>
+      </div>`:""}
+    </div>`;
   };
   // Grouper par séance (bloc)
   const blocs={};
@@ -2873,6 +2962,13 @@ function parseRepos(txt){
   return Math.round(v); // secondes par défaut
 }
 /* Affiche une durée en secondes sous forme lisible : 45 s · 1 min 30 s · 2 min */
+function fmtCourt(secs){
+  const s2=Math.round(+secs||0);
+  if(s2<=0) return "";
+  if(s2<60) return s2+"s";
+  const m=Math.floor(s2/60), r=s2%60;
+  return r?`${m}min${r}`:`${m}min`;
+}
 function fmtDuree(secs){
   const s2=Math.round(+secs||0);
   if(s2<=0) return "";
