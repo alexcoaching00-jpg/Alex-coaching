@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.2 — 22/07/2026";
+const APP_VERSION="v11.4 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -874,7 +874,10 @@ async function loadClients(silent){
     S.accessEnded=false;
     S.isClient=true; S.role="client";
     if(!S.clientTab) S.clientTab="programme";
-    S.clients=[mineC]; S.selectedId=mine.id; S.loading=false; render(); chargerQuestions(); return;
+    S.clients=[mineC]; S.selectedId=mine.id; S.loading=false; render(); chargerQuestions();
+    // Espace client : on prépare le son et on demande l'autorisation des notifications
+    setTimeout(()=>{ try{ unlockAudio(); }catch(e){} },400);
+    return;
   }
 
   if(coachRows.length===0){
@@ -1287,6 +1290,24 @@ function dashboard(){
             <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--grey2);margin-top:2px">
               <span>Discret</span><b style="color:var(--white)">${v} %</b><span>Salle bruyante</span></div>
             <p class="muted" style="font-size:11px;margin-top:8px;line-height:1.5">Un aperçu se joue à chaque réglage. Pense aussi au volume de ton téléphone et au bouton silence — l'appli ne peut pas les contourner.</p>
+          </div>`;})()}
+        ${(()=>{const on=reposNotifOn();
+          return `<div class="panel" style="margin-bottom:12px">
+            <div class="ph" style="font-size:13px">🔔 Ce que je reçois</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;color:var(--white);font-weight:600">Fin de séance d'un client</div>
+                <p class="muted" style="font-size:11.5px;margin-top:2px">Une notification quand un client termine, avec durée et volume.</p>
+              </div>
+              <span style="flex:0 0 auto;font-size:11px;font-weight:800;color:#4CAF50;letter-spacing:.06em">TOUJOURS</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 4px;border-top:1px solid var(--line)">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;color:var(--white);font-weight:600">Fin de chaque repos</div>
+                <p class="muted" style="font-size:11.5px;margin-top:2px">Utile seulement si tu t'entraînes toi-même avec l'appli.</p>
+              </div>
+              <button class="chip ${on?"on":""}" style="flex:0 0 auto" data-act="toggle-repos-notif">${on?"Activé":"Désactivé"}</button>
+            </div>
           </div>`;})()}
         <button class="btn g full" data-act="diag-push">🔔 Diagnostic notifications</button>
         <button class="btn g full" data-act="see-faq">❓ Voir la FAQ client</button>
@@ -1774,7 +1795,17 @@ const FAQ=[
 
 
 function faqTab(){
-  return `<div class="sec-head"><h2 style="font-size:18px">Questions fréquentes</h2></div>
+  const reglage=S.isClient?`<div class="panel" style="margin-bottom:14px">
+    <div class="ph" style="font-size:13px">🔔 Mes notifications</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13.5px;color:var(--white);font-weight:600">Rappel de fin de repos</div>
+        <p class="muted" style="font-size:11.5px;margin-top:2px">Reçois une alerte quand ton temps de repos est écoulé, même écran verrouillé.</p>
+      </div>
+      <button class="chip ${reposNotifOn()?"on":""}" style="flex:0 0 auto" data-act="toggle-repos-notif">${reposNotifOn()?"Activé":"Désactivé"}</button>
+    </div>
+  </div>`:"";
+  return reglage+`<div class="sec-head"><h2 style="font-size:18px">Questions fréquentes</h2></div>
   <p class="muted" style="font-size:13px;margin-bottom:14px">Les réponses aux questions les plus courantes. Si tu ne trouves pas, écris-moi dans la messagerie.</p>
   ${FAQ.map((sec,si)=>`
     <div class="sec-head" style="margin-top:6px"><h2 style="font-size:15px;color:var(--red)">${esc(sec[0])}</h2></div>
@@ -2877,8 +2908,22 @@ function wkFinish(){
   save();
   if(S.isClient){
     c.messages=c.messages||[];
-    c.messages.push({from:"client",text:"💪 Séance "+WK.jour+" terminée — "+WK.exos.length+" exercice"+(WK.exos.length>1?"s":"")+" (mode guidé)",date:new Date().toISOString(),lu:false});
+    const recap="💪 Séance "+WK.jour+" terminée — "+WK.exos.length+" exercice"+(WK.exos.length>1?"s":"")+" (mode guidé)";
+    c.messages.push({from:"client",text:recap,date:new Date().toISOString(),lu:false});
     patchField(c,"messages",()=>{});
+    // Une seule notification au coach : à la fin de la séance, pas à chaque exercice
+    if(S.isClient){
+      const prenom=(c.nom||"Client").split(" ")[0];
+      const mn=WK.start?Math.max(1,Math.round((Date.now()-WK.start)/60000)):0;
+      let vol=0;
+      (WK.exos||[]).forEach(e=>{
+        const ch=chargeNum(e.charge), rp=parseInt(String(e.reps).match(/\d+/)||0);
+        const nS=WK.rounds>1?WK.rounds:(e.series||1);
+        if(ch&&rp) vol+=nS*rp*ch;
+      });
+      const det=[mn?mn+" min":"",vol?vol.toLocaleString("fr-FR")+" kg":""].filter(Boolean).join(" · ");
+      pushTo(coachEmail(),"✅ "+prenom+" a terminé sa séance",WK.jour+(det?" — "+det:""));
+    }
   }
   // Récapitulatif : durée réelle, volume soulevé, records battus
   const dureeMin=WK.start?Math.max(1,Math.round((Date.now()-WK.start)/60000)):0;
@@ -4745,6 +4790,11 @@ document.addEventListener("click",e=>{
       }
       printRecu(c,pay); break; }
     case "faq-toggle": S.faqOpen=(S.faqOpen===t.dataset.key)?null:t.dataset.key; render(); break;
+    case "toggle-repos-notif":{
+      const on=!reposNotifOn();
+      try{ localStorage.setItem("notif_repos",on?"1":"0"); }catch(e){}
+      toast(on?"Notifications de repos activées":"Notifications de repos désactivées");
+      render(); break; }
     case "diag-push": showDiagPush(); break;
     case "see-faq":{
       const ov=document.createElement("div");
@@ -5520,8 +5570,15 @@ async function subscribeToPush(){
     PUSH_SUBSCRIBED=true;
   }catch(e){}
 }
+function reposNotifOn(){
+  // Côté client : toujours actif — il s'entraîne et a besoin du rappel de fin de repos.
+  if(S.isClient) return true;
+  // Côté coach : désactivé par défaut, activable dans Compte.
+  return localStorage.getItem("notif_repos")==="1";
+}
 function schedulePush(title,body,secs){
   try{
+    if(!reposNotifOn()) return;      // par défaut : pas de notification à chaque repos
     if(!sb||!S.session) return;
     const me=((S.session.user&&S.session.user.email)||"").toLowerCase();
     const sendAt=new Date(Date.now()+secs*1000).toISOString();
