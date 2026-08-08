@@ -63,10 +63,20 @@
   .hd::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
     background:linear-gradient(90deg,transparent,var(--red) 18%,var(--amber) 50%,var(--red) 82%,transparent);opacity:.75}
   .hd-top{display:flex;align-items:center;justify-content:space-between}
-  .logo{display:flex;align-items:center;gap:10px}
-  .logo .mark-img{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(176,31,31,.5))}
-  .logo .wm{font-family:'Bebas Neue';font-size:22px;letter-spacing:.06em;color:var(--white)}
-  .toggle{background:var(--ink2);border-radius:999px;padding:3px;display:flex;gap:2px;border:1px solid var(--line)}
+  .logo{display:flex;align-items:center;gap:11px;min-width:0}
+  .logo .mark-img{width:40px;height:40px;object-fit:contain;flex:0 0 auto;
+    filter:drop-shadow(0 3px 10px rgba(176,31,31,.55))}
+  .logo .wmz{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px}
+  .logo .wm{font-family:'Bebas Neue';font-size:clamp(15px,4.6vw,20px);letter-spacing:.07em;line-height:.96;color:var(--white);
+    text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 0 rgba(0,0,0,.6);display:block}
+  .logo .wm em{display:block;font-style:normal;color:var(--red);letter-spacing:.12em}
+
+  .hd-top{gap:12px}
+  .logo .mark-img{width:clamp(30px,9vw,38px);height:clamp(30px,9vw,38px)}
+  .logo .wsub{font-size:clamp(8px,2.4vw,9.5px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);
+    line-height:1;white-space:nowrap;opacity:.85;margin-top:3px}
+  .toggle{background:rgba(13,11,10,.7);border-radius:999px;padding:3px;display:flex;gap:2px;border:1px solid var(--line);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.45);flex:0 0 auto}
   .toggle button{border:none;cursor:pointer;border-radius:999px;padding:6px 14px;font-family:'Inter';font-weight:600;font-size:12px;background:transparent;color:var(--grey2);transition:all .15s}
   .toggle button.on{background:var(--red);color:#fff}
   .sub{color:var(--grey2);font-size:13px;margin-top:8px}
@@ -242,7 +252,7 @@
   .msg audio{width:230px;max-width:56vw;height:36px}
   .dhead h2{overflow-wrap:anywhere}
   .crow .nm,.crow .ob{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .logo .wm{font-size:20px;white-space:nowrap}
+  .logo .wm{white-space:nowrap}
   nav button{font-size:10px}
   .fld input,.fld select,.fld textarea{max-width:100%}
   .exd,.exnote{overflow-wrap:anywhere}
@@ -297,6 +307,31 @@
   .pl-rdv .fo{flex:0 0 auto;font-size:11px;color:var(--grey2);text-transform:uppercase;letter-spacing:.05em}
 
   /* ===== CARTE D'EXERCICE ===== */
+  /* ===== LIGNE CLIENT ===== */
+  .cav{position:relative;flex:0 0 auto;width:50px;height:50px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(150deg,rgba(206,42,42,.34),rgba(126,23,18,.16));border:1px solid rgba(176,31,31,.34);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 3px 10px rgba(0,0,0,.4)}
+  .cav span{font-family:'Bebas Neue';font-size:24px;letter-spacing:.04em;color:#F2C0C0;line-height:1}
+  .cdot{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#4CAF50;
+    border:2px solid var(--card);box-shadow:0 0 8px rgba(76,175,80,.6)}
+  .cinfo{flex:1;min-width:0}
+  .cnom{font-size:16.5px;font-weight:700;color:var(--white);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cmeta{display:flex;align-items:center;gap:7px;margin-top:4px;min-width:0}
+  .cf{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);
+    background:rgba(184,134,47,.14);border:1px solid rgba(184,134,47,.3);border-radius:999px;padding:2px 8px;flex:0 0 auto}
+  .cob{font-size:13px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+  .cbadges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .crow .cb{display:inline-block;font-size:10px!important;font-weight:800;letter-spacing:.05em;border-radius:999px;
+    padding:3px 9px!important;line-height:1.35;white-space:nowrap;width:auto!important;flex:0 0 auto}
+  .crow .cb.rouge{background:rgba(176,31,31,.18);color:#FF6B6B;border:1px solid rgba(176,31,31,.35)}
+  .crow .cb.msg{background:var(--red);color:#fff}
+  .crow .cnom{font-size:16.5px!important;font-weight:700;color:var(--white)}
+  .cright{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto;text-align:right}
+  .ctrend{font-family:'Bebas Neue';font-size:19px;line-height:1;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+  .ctrend i{font-style:normal;font-size:11px;font-family:'Inter';margin-left:2px;opacity:.75}
+  .cseances{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+  .cseances i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;opacity:.8}
+  .cgo{color:#4A3B32;font-size:20px;line-height:1;margin-top:2px}
   .xcard{position:relative;background:linear-gradient(180deg,#221B17,var(--card) 44%);border:1px solid var(--line);
     border-radius:18px;padding:14px;margin-bottom:11px;box-shadow:var(--sh-md);overflow:hidden;
     animation:cardIn .32s cubic-bezier(.22,.9,.28,1) both}
@@ -680,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v10.8 — 22/07/2026";
+const APP_VERSION="v11.0 — 22/07/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -993,7 +1028,7 @@ function render(){
   // ---- Espace CLIENT verrouillé (accès par invitation) ----
   if(S.isClient){
     const cc=sel();
-    const head=`<header class="hd"><div class="hd-top"><div class="logo"><img class="mark-img" src="${LOGO}" alt=""><span class="wm">Alex Coaching</span></div>
+    const head=`<header class="hd"><div class="hd-top"><div class="logo"><img class="mark-img" src="${LOGO}" alt=""><span class="wmz"><span class="wm">Alex<em>Coaching</em></span><span class="wsub">Espace client</span></span></div>
       <button data-act="logout" style="border:none;background:var(--ink2);color:#E8DCD0;border-radius:999px;padding:6px 12px;font-family:'Archivo';font-weight:700;font-size:12px;cursor:pointer">Quitter</button></div>
       ${S.clients.length>0?`<div class="pick"><label>Vous êtes</label><select data-act="pick-client">${S.clients.map(cl=>`<option value="${cl.id}" ${cl.id===S.selectedId?'selected':''}>${esc(cl.nom)}</option>`).join("")}</select></div>`:`<p class="sub">Espace client</p>`}</header>`;
     const body=clientSpace(cc);
@@ -1014,7 +1049,7 @@ function render(){
   if(S.role==="coach"){const n=S.clients.length;headSub=`<p class="sub">${n} client${n>1?'s':''} suivi${n>1?'s':''}</p>`;}
   else if(S.clients.length===0){headSub=`<p class="sub">Aucun client. Ajoutez-en un en mode Coach.</p>`;}
   else{headSub=`<div class="pick"><label>Vous êtes</label><select data-act="pick-client">${S.clients.map(cl=>`<option value="${cl.id}" ${cl.id===S.selectedId?'selected':''}>${esc(cl.nom)}</option>`).join("")}</select></div>`;}
-  head=`<header class="hd"><div class="hd-top"><div class="logo"><img class="mark-img" src="${LOGO}" alt=""><span class="wm">Alex Coaching</span></div><div class="toggle">${roleBtns}</div></div>${headSub}</header>`;
+  head=`<header class="hd"><div class="hd-top"><div class="logo"><img class="mark-img" src="${LOGO}" alt=""><span class="wmz"><span class="wm">Alex<em>Coaching</em></span><span class="wsub">${S.role==="coach"?`${S.clients.length} client${S.clients.length>1?"s":""} suivi${S.clients.length>1?"s":""}`:"Espace client"}</span></span></div><div class="toggle">${roleBtns}</div></div></header>`;
 
   body=S.role==="coach"?(S.view==="questions"?questionsCoach():S.view==="planning"?planningTab():S.view==="programmes"?programmesView():S.view==="dashboard"?dashboard():S.view==="clients"?clientList():detail(c)):clientSpace(c);
 
@@ -1265,16 +1300,34 @@ function clientList(){
     })()}`;
 }
 function clientRow(c){
-  const ms=c.mesures||[],trend=(ms.length>=2)?+(ms[ms.length-1].poids-ms[0].poids).toFixed(1):null;
+  const ms=(c.mesures||[]).filter(m=>typeof m.poids==="number");
+  const trend=(ms.length>=2)?+(ms[ms.length-1].poids-ms[0].poids).toFixed(1):null;
   const invited=!!(c.clientEmail||"").trim();
   const unreadN=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
+  const reste=forfaitRestant(c);
+  const suspendu=programEnded(c);
   return `<button class="crow" data-act="open" data-id="${c.id}">
-    <div class="avatar">${esc(c.nom.slice(0,1))}</div>
-    <div style="flex:1;min-width:0"><div class="nm">${esc(c.nom)} ${programEnded(c)?'<span title="Programme terminé — accès client suspendu" style="background:rgba(176,31,31,.18);color:#FF6B6B;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:700">🔒 Accès suspendu</span>':(invited?'<span title="Accès client activé" style="color:#4CAF50;font-size:12px">●</span>':'')} ${unreadN?`<span style="background:var(--red);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;font-weight:700">✉ ${unreadN}</span>`:''}</div><div class="ob">${esc(c.objectif||"—")}</div></div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
-      ${trend!==null?`<span class="trend" style="color:${trend<=0?'#4CAF50':'var(--amber)'}">${trend>0?'+':''}${trend} kg</span>`:""}
-      ${(()=>{const r=forfaitRestant(c);return r!==null?`<span style="font-size:11px;color:${r<=2?'var(--red)':'var(--grey2)'};font-weight:700">${r} séance${r>1?'s':''}</span>`:'';})()}
-    </div></button>`;
+    <div class="cav">
+      <span>${esc(c.nom.slice(0,1).toUpperCase())}</span>
+      ${invited&&!suspendu?`<i class="cdot" title="Accès activé"></i>`:""}
+    </div>
+    <div class="cinfo">
+      <div class="cnom">${esc(c.nom)}</div>
+      <div class="cmeta">
+        ${c.formule?`<span class="cf">${esc(c.formule)}</span>`:""}
+        <span class="cob">${esc(c.objectif||"—")}</span>
+      </div>
+      ${(suspendu||unreadN)?`<div class="cbadges">
+        ${suspendu?`<span class="cb rouge">🔒 Accès suspendu</span>`:""}
+        ${unreadN?`<span class="cb msg">✉ ${unreadN} message${unreadN>1?"s":""}</span>`:""}
+      </div>`:""}
+    </div>
+    <div class="cright">
+      ${trend!==null?`<span class="ctrend" style="color:${trend<=0?'#4CAF50':'var(--amber2)'}">${trend>0?'+':''}${String(trend).replace(".",",")}<i>kg</i></span>`:""}
+      ${reste!==null?`<span class="cseances" style="color:${reste<=2?'#FF6B6B':'#7E7167'}">${reste} <i>rest.</i></span>`:""}
+      <span class="cgo">›</span>
+    </div>
+  </button>`;
 }
 function emptyClients(){
   return `<div class="panel" style="text-align:center;padding:28px 18px">
