@@ -2760,6 +2760,8 @@ function openWorkout(jour){
   const rounds=seanceRounds(c,jour);
   WK.on=true; WK.c=c; WK.jour=jour; WK.exos=exos; WK.idx=0; WK.serie=1; WK.rest=0;
   WK.rounds=rounds>1?rounds:0; WK.round=1; WK.start=Date.now();
+  unlockAudio();     // le clic sur « Lancer la séance » autorise le son : on en profite
+  garderActif();     // et on maintient l'appli active dès le départ
   wakeOn();
   let ov=document.getElementById("wk");
   if(!ov){ ov=document.createElement("div"); ov.id="wk"; document.body.appendChild(ov); }
@@ -3253,6 +3255,7 @@ function stopTimer(){
 function startTimer(exId,secs,label){
   if(TIMER.exId===exId){ stopTimer(); return; } // 2e appui = annuler
   stopTimer();
+  unlockAudio();
   TIMER.exId=exId; TIMER.total=secs; TIMER.label=label||"";
   TIMER.end=Date.now()+secs*1000; // horloge réelle : fiable même écran verrouillé
   garderActif();
