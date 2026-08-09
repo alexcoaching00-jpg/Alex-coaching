@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.12 — 09/08/2026";
+const APP_VERSION="v11.13 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3617,9 +3617,131 @@ function compressImage(file, cb){
 }
 
 /* ===== MESSAGES VOCAUX ===== */
-const REC={media:null,rec:null,chunks:[],timer:null,secs:0,role:'coach'};
-const VOICE_MAX=300;        // 5 minutes
-const VOICE_BITRATE=14000;  // suffisant pour la voix, moitié moins lourd qu'en stéréo
+const REC={media:null,rec:null,chunks:[],timer:null,secs:0,role:'coach',ac:null,source:null,proc:null,silentGain:null,stream:null,startTs:0};
+const VOICE_MAX=180;        // 3 minutes (WAV non compressé => on limite pour la taille)
+const VOICE_SR=16000;       // 16 kHz mono => qualité voix, ~32 KB/s
+
+/* ===== ENCODAGE WAV =====
+   Format minimal avec en-tête RIFF/fmt/data. La durée est déductible du nombre
+   de samples => plus jamais de bug "durée = Infinity" comme avec les blobs WebM.
+*/
+function encodeWAV(samples, sampleRate){
+  const buffer=new ArrayBuffer(44+samples.length*2);
+  const view=new DataView(buffer);
+  const writeStr=(off,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(off+i,s.charCodeAt(i)); };
+  writeStr(0,"RIFF");
+  view.setUint32(4,36+samples.length*2,true);
+  writeStr(8,"WAVE");
+  writeStr(12,"fmt ");
+  view.setUint32(16,16,true);         // taille du bloc fmt
+  view.setUint16(20,1,true);          // PCM
+  view.setUint16(22,1,true);          // mono
+  view.setUint32(24,sampleRate,true);
+  view.setUint32(28,sampleRate*2,true); // byte rate (mono 16-bit)
+  view.setUint16(32,2,true);          // block align
+  view.setUint16(34,16,true);         // 16 bits par sample
+  writeStr(36,"data");
+  view.setUint32(40,samples.length*2,true);
+  let off=44;
+  for(let i=0;i<samples.length;i++,off+=2){
+    let s=Math.max(-1,Math.min(1,samples[i]));
+    view.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);
+  }
+  return new Blob([buffer],{type:"audio/wav"});
+}
+
+function stopVoiceRec(){
+  if(!REC.rec||REC.rec.state!=="recording") return;
+  REC.rec.state="inactive";
+  clearInterval(REC.timer);
+  const btn=document.getElementById("rec-btn");
+  if(btn){ btn.textContent="🎤"; btn.classList.remove("rec-on","rec-warn"); btn.style.background=""; btn.style.color=""; }
+  const dureeMs=Date.now()-(REC.startTs||Date.now());
+  // Déconnecter proprement pour libérer le micro
+  try{ REC.proc&&REC.proc.disconnect(); }catch(_){}
+  try{ REC.silentGain&&REC.silentGain.disconnect(); }catch(_){}
+  try{ REC.source&&REC.source.disconnect(); }catch(_){}
+  try{ REC.stream&&REC.stream.getTracks().forEach(t=>t.stop()); }catch(_){}
+  try{ REC.ac&&REC.ac.close(); }catch(_){}
+  const chunks=REC.chunks; REC.chunks=[];
+  const total=chunks.reduce((n,c)=>n+c.length,0);
+  try{ console.log("[Vocal] durée:",Math.round(dureeMs/1000)+"s","samples:",total,"rate:",VOICE_SR); }catch(_){}
+  if(total<VOICE_SR/4){ toast("Vocal trop court"); return; } // moins de 250ms
+  const merged=new Float32Array(total);
+  let offset=0;
+  for(const c of chunks){ merged.set(c,offset); offset+=c.length; }
+  const wavBlob=encodeWAV(merged,VOICE_SR);
+  try{ console.log("[Vocal] WAV taille:",Math.round(wavBlob.size/1024)+"KB"); }catch(_){}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const c=sel(); if(!c) return;
+    c.messages=c.messages||[];
+    c.messages.push({from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach",dur:Math.round(dureeMs/1000)});
+    patchField(c,"messages",err=>toast(err?"Erreur envoi":"Vocal envoyé"));
+    render();
+    msgVersLeBas(true);
+  };
+  reader.readAsDataURL(wavBlob);
+}
+
+async function toggleVoice(role){
+  const btn=document.getElementById("rec-btn");
+  if(REC.rec&&REC.rec.state==="recording"){ stopVoiceRec(); return; }
+  try{
+    REC.role=role;
+    REC.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC){ alert("Ton navigateur ne supporte pas l'enregistrement audio."); return; }
+    REC.ac=new AC(); // note : le sampleRate réel dépend de l'appareil (44100 ou 48000)
+    if(REC.ac.state==="suspended") await REC.ac.resume();
+    REC.source=REC.ac.createMediaStreamSource(REC.stream);
+    // ScriptProcessorNode est deprecated mais fonctionne partout (y compris iOS Safari)
+    // AudioWorklet serait plus moderne mais nécessite un module externe (complexité++)
+    REC.proc=REC.ac.createScriptProcessor(4096,1,1);
+    REC.chunks=[]; REC.secs=0; REC.startTs=Date.now();
+    // Downsampling en direct vers VOICE_SR pour rester léger
+    const srcRate=REC.ac.sampleRate;
+    const ratio=srcRate/VOICE_SR;
+    REC.proc.onaudioprocess=e=>{
+      if(!REC.rec||REC.rec.state!=="recording") return;
+      const src=e.inputBuffer.getChannelData(0);
+      const outLen=Math.floor(src.length/ratio);
+      const out=new Float32Array(outLen);
+      // Downsampling par moyennage simple (anti-aliasing basique)
+      for(let i=0;i<outLen;i++){
+        const start=Math.floor(i*ratio);
+        const end=Math.min(src.length,Math.floor((i+1)*ratio));
+        let sum=0, n=0;
+        for(let j=start;j<end;j++){ sum+=src[j]; n++; }
+        out[i]=n?sum/n:0;
+      }
+      REC.chunks.push(out);
+    };
+    // Connecter à un GainNode muet pour "consommer" l'output sans le rejouer dans les HP
+    REC.silentGain=REC.ac.createGain();
+    REC.silentGain.gain.value=0;
+    REC.source.connect(REC.proc);
+    REC.proc.connect(REC.silentGain);
+    REC.silentGain.connect(REC.ac.destination);
+    REC.rec={state:"recording"}; // objet minimal pour compat avec le reste du code
+    const fmtRec=n=>Math.floor(n/60)+":"+String(n%60).padStart(2,"0");
+    if(btn){ btn.textContent="◼ 0:00"; btn.classList.add("rec-on"); }
+    REC.timer=setInterval(()=>{
+      REC.secs++;
+      const b=document.getElementById("rec-btn");
+      const reste=VOICE_MAX-REC.secs;
+      if(b){
+        b.textContent="◼ "+fmtRec(REC.secs);
+        b.classList.toggle("rec-warn",reste<=20);
+        if(reste===20) toast("20 secondes restantes");
+      }
+      if(REC.secs>=VOICE_MAX){ stopVoiceRec(); toast("Durée maximale atteinte — vocal envoyé"); }
+    },1000);
+  }catch(e){
+    console.error("[Vocal] Erreur enregistrement:",e);
+    alert("Micro inaccessible : autorisez le micro dans votre navigateur.");
+  }
+}
 
 /* ===== LECTURE DES VOCAUX =====
    Les data:URL audio posent problème sur iOS Safari : impossible de seek au-delà
@@ -3679,67 +3801,6 @@ function fixAudioDuration(audio){
   audio.addEventListener("timeupdate",onSeeked,{once:true});
   audio.addEventListener("seeked",onSeeked,{once:true});
   try{ audio.currentTime=1e101; }catch(_){ audio.dataset.fixed=""; }
-}
-async function toggleVoice(role){
-  const btn=document.getElementById("rec-btn");
-  if(REC.rec && REC.rec.state==="recording"){
-    // On force la génération d'un dernier chunk avant l'arrêt (compense un bug iOS)
-    try{ REC.rec.requestData(); }catch(_){}
-    setTimeout(()=>{ try{ REC.rec.stop(); }catch(_){} },50);
-    return;
-  }
-  try{
-    REC.role=role;
-    // Mono + réduction de bruit : moitié moins lourd, sans perte de clarté sur la voix
-    REC.media=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-    const prefs=["audio/mp4;codecs=mp4a.40.2","audio/mp4","audio/webm;codecs=opus","audio/webm"];
-    let mime=""; for(const mm of prefs){ if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(mm)){ mime=mm; break; } }
-    REC.rec=new MediaRecorder(REC.media, mime?{mimeType:mime,audioBitsPerSecond:VOICE_BITRATE}:{audioBitsPerSecond:VOICE_BITRATE});
-    REC.chunks=[]; REC.secs=0; REC.startTs=Date.now();
-    REC.rec.ondataavailable=e=>{ if(e.data&&e.data.size) REC.chunks.push(e.data); };
-    REC.rec.onstop=()=>{
-      clearInterval(REC.timer);
-      REC.media.getTracks().forEach(t=>t.stop());
-      const blob=new Blob(REC.chunks,{type:REC.rec.mimeType||"audio/webm"});
-      const dureeMs=Date.now()-(REC.startTs||Date.now());
-      if(btn){ btn.textContent="🎤"; btn.classList.remove("rec-on","rec-warn"); btn.style.background=""; btn.style.color=""; }
-      // Debug (visible en console) : durée réelle, taille du blob, mime, nb chunks
-      try{ console.log("[Vocal] durée:",Math.round(dureeMs/1000)+"s","taille:",Math.round(blob.size/1024)+"KB","mime:",blob.type,"chunks:",REC.chunks.length); }catch(_){}
-      if(blob.size<800){ toast("Vocal trop court"); return; }
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        const c=sel(); if(!c) return;
-        c.messages=c.messages||[];
-        c.messages.push({from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach",dur:Math.round(dureeMs/1000)});
-        patchField(c,"messages",err=>toast(err?"Erreur envoi":"Vocal envoyé"));
-        render();
-        msgVersLeBas(true);
-      };
-      reader.readAsDataURL(blob);
-    };
-    // Timeslice de 1s : force la collecte de chunks toutes les secondes
-    // (contourne le bug iOS/Safari où seuls les 5 premiers secondes étaient capturées)
-    REC.rec.start(1000);
-    const fmtRec=n=>Math.floor(n/60)+":"+String(n%60).padStart(2,"0");
-    if(btn){ btn.textContent="◼ 0:00"; btn.classList.add("rec-on"); }
-    REC.timer=setInterval(()=>{
-      REC.secs++;
-      const b=document.getElementById("rec-btn");
-      const reste=VOICE_MAX-REC.secs;
-      if(b){
-        b.textContent="◼ "+fmtRec(REC.secs);
-        b.classList.toggle("rec-warn",reste<=20);          // dernières secondes
-        if(reste===20) toast("20 secondes restantes");
-      }
-      if(REC.secs>=VOICE_MAX && REC.rec.state==="recording"){
-        try{ REC.rec.requestData(); }catch(_){}
-        setTimeout(()=>{ try{ REC.rec.stop(); }catch(_){} },50);
-        toast("Durée maximale atteinte — vocal envoyé");
-      }
-    },1000);
-  }catch(e){
-    alert("Micro inaccessible : autorisez le micro dans votre navigateur.");
-  }
 }
 
 
