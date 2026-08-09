@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.9 — 09/08/2026";
+const APP_VERSION="v11.11 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3621,11 +3621,38 @@ const REC={media:null,rec:null,chunks:[],timer:null,secs:0,role:'coach'};
 const VOICE_MAX=300;        // 5 minutes
 const VOICE_BITRATE=14000;  // suffisant pour la voix, moitié moins lourd qu'en stéréo
 
-/* ===== CORRECTIF DURÉE WEBM =====
+/* ===== LECTURE DES VOCAUX =====
+   Les data:URL audio posent problème sur iOS Safari : impossible de seek au-delà
+   de la portion mise en cache, ce qui fait couper la lecture au bout de quelques
+   secondes. On convertit chaque data:URL en Blob URL (streaming natif du navigateur)
+   au moment du rendu. Cache pour éviter de recréer les URL à chaque render.
+*/
+const AUDIO_URL_CACHE=new Map();
+function audioSrcFor(dataUrl){
+  if(!dataUrl) return "";
+  if(!dataUrl.startsWith("data:")) return dataUrl; // déjà une URL classique
+  if(AUDIO_URL_CACHE.has(dataUrl)) return AUDIO_URL_CACHE.get(dataUrl);
+  try{
+    const virgule=dataUrl.indexOf(",");
+    const meta=dataUrl.slice(0,virgule);
+    const b64=dataUrl.slice(virgule+1);
+    const mimeMatch=meta.match(/data:([^;]+)/);
+    const mime=mimeMatch?mimeMatch[1]:"audio/webm";
+    const bin=atob(b64);
+    const arr=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([arr],{type:mime}));
+    AUDIO_URL_CACHE.set(dataUrl,url);
+    return url;
+  }catch(_){ return dataUrl; }
+}
+
+/* ===== CORRECTIF DURÉE WEBM (fallback) =====
    Les vocaux enregistrés via MediaRecorder au format WebM n'ont pas leur durée écrite
    dans l'en-tête. Résultat : <audio>.duration = Infinity et la lecture s'arrête souvent
    au bout de quelques secondes. Astuce éprouvée : on seek très loin pour forcer le
    navigateur à parcourir tout le flux et découvrir la vraie fin, puis on remet à 0.
+   (Utile en complément de la conversion Blob URL, notamment sur Chrome desktop.)
 */
 function fixAudioDuration(audio){
   if(!audio||audio.dataset.fixed==="done") return;
@@ -3639,8 +3666,6 @@ function fixAudioDuration(audio){
   if(isFinite(audio.duration)&&audio.duration>0){ audio.dataset.fixed="done"; setLabel(); return; }
   if(audio.dataset.fixed==="pending") return;
   audio.dataset.fixed="pending";
-  // Si l'utilisateur a déjà lancé la lecture avant qu'on fixe la durée,
-  // on met en pause pour faire le seek, puis on reprend la lecture depuis le début.
   const wasPlaying=!audio.paused;
   if(wasPlaying) audio.pause();
   const onSeeked=()=>{
@@ -3782,7 +3807,7 @@ function messagesTab(c,isCoach){
         const suite=i>0&&msgs[i-1].from===m.from;   // messages consécutifs du même auteur
         return sep+`<div class="msg ${m.from==='coach'?'coach':'client'}${suite?" suite":""}">
         ${m.audio?`<div class="voice-msg">
-          <audio controls preload="metadata" src="${m.audio}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
+          <audio controls preload="auto" src="${audioSrcFor(m.audio)}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" ondurationchange="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
           <span class="voice-dur">🎤</span>
         </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">`:esc(m.text||"")}
         <div class="mt">${msgWhen(m.date)}${m.from==='coach'?`<span class="mt-lu">${m.lu===false?"":"✓"}</span>`:""}</div>
@@ -6071,7 +6096,46 @@ function setupPWA(){
     // Manifest : fichier manifest.json réel (icônes fiables sur l'écran d'accueil)
     // Service worker : active le vrai bouton "Installer" natif (Android/Chrome) + résistance hors-ligne
     if("serviceWorker" in navigator){
-      window.addEventListener("load",()=>{ navigator.serviceWorker.register("./sw.js").catch(()=>{}); });
+      window.addEventListener("load",async()=>{
+        try{
+          const reg=await navigator.serviceWorker.register("./sw.js");
+          // Force la recherche d'une nouvelle version à chaque chargement
+          try{ await reg.update(); }catch(_){}
+          // Si un SW est déjà en attente d'activation, on lui demande de se lancer tout de suite
+          if(reg.waiting){ reg.waiting.postMessage({type:"SKIP_WAITING"}); }
+          reg.addEventListener("updatefound",()=>{
+            const sw=reg.installing;
+            if(!sw) return;
+            sw.addEventListener("statechange",()=>{
+              if(sw.state==="installed"&&navigator.serviceWorker.controller){
+                // Nouvelle version prête : on prévient l'utilisateur (banner discret)
+                if(!document.getElementById("upd-banner")){
+                  const b=document.createElement("div");
+                  b.id="upd-banner";
+                  b.style.cssText="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(180deg,#CE2A2A,#8E1815);color:#fff;padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,.4);cursor:pointer;font-family:'Inter'";
+                  b.textContent="🔄 Nouvelle version — appuyer pour recharger";
+                  b.onclick=()=>{ if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"}); location.reload(); };
+                  document.body.appendChild(b);
+                }
+              }
+            });
+          });
+          // Recharger la page quand le SW contrôlant change (nouvelle version activée)
+          let refreshing=false;
+          navigator.serviceWorker.addEventListener("controllerchange",()=>{
+            if(refreshing) return; refreshing=true; location.reload();
+          });
+          // Bump de version détecté côté client : on purge les caches pour repartir propre
+          try{
+            const stored=localStorage.getItem("appVersion");
+            if(stored&&stored!==APP_VERSION&&window.caches){
+              const keys=await caches.keys();
+              await Promise.all(keys.map(k=>caches.delete(k)));
+            }
+            localStorage.setItem("appVersion",APP_VERSION);
+          }catch(_){}
+        }catch(_){}
+      });
     }
   }catch(e){}
 }
