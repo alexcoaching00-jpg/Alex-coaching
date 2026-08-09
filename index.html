@@ -2520,11 +2520,17 @@ function programme(c,editable){
   const JOURS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const blocRank=b=>{ if(b==="") return 100; const j=JOURS.indexOf(b); return j>=0?j:50; };
   const blocKeys=Object.keys(blocs).sort((a,b)=>blocRank(a)-blocRank(b)||a.localeCompare(b));
+  // Rendre une carte + injecter le formulaire d'édition inline juste dessous si c'est celle qu'on édite
+  const renderCard=(e,i)=>{
+    const card=exCard(e,i);
+    if(editable&&S.exDraft&&S.exDraft.id===e.id) return card+`<div style="margin-bottom:14px">${exForm}</div>`;
+    return card;
+  };
   let list;
   if(!prog.length){
     list=`<p class="muted" style="margin-bottom:14px">Aucun exercice.${editable?" Ajoutez-en ci-dessous.":""}</p>`;
   } else if(blocKeys.length===1 && blocKeys[0]===""){
-    list=prog.map(exCard).join("");
+    list=prog.map(renderCard).join("");
   } else {
     list=blocKeys.map(b=>`
       ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:19px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
@@ -2539,10 +2545,12 @@ function programme(c,editable){
           </div>
           ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total. Repos de transition entre exercices = celui de chaque exercice ; repos entre les tours = ${esc(tourRepos(c,b)||"60 s par défaut")}.</p>`:""}`
         :(seanceType(c,b)||seanceRounds(c,b)>1?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
-      ${blocs[b].map(exCard).join("")}`).join("");
+      ${blocs[b].map(renderCard).join("")}`).join("");
   }
   const dEx=S.exDraft||{};
-  const form=editable?`
+  // Est-on en train d'éditer un exercice existant ? (S.exDraft.id correspond à un exo du programme)
+  const editingId=(dEx&&dEx.id&&prog.some(x=>x.id===dEx.id))?dEx.id:null;
+  const exForm=editable?`
     <div class="panel" ${dEx.nom?'style="border-color:rgba(184,134,47,.5)"':''}><div class="ph">${dEx.nom?"✏️ Modifier l'exercice":"Nouvel exercice"}</div>
       ${exoPicker("ex-nom")}
       ${dEx.nom?`<div style="background:rgba(184,134,47,.14);border:1px solid rgba(184,134,47,.4);border-radius:12px;padding:10px 13px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
@@ -2590,7 +2598,8 @@ function programme(c,editable){
       <div style="display:flex;gap:10px">
         <button class="btn p full" data-act="add-ex">${dEx.nom?"✔ Valider la modification":"Ajouter l'exercice"}</button>
         ${dEx.nom?`<button class="btn g" style="flex:0 0 auto;padding:0 18px" data-act="edit-ex-cancel">Annuler</button>`:""}
-      </div></div>
+      </div></div>`:"";
+  const tplBox=editable?`
     <div class="panel" style="margin-top:12px">
       <div class="ph" style="font-size:14px">Mes modèles de programmes</div>
       ${S.templates.length?`<div class="r2" style="align-items:flex-end;margin-bottom:8px">
@@ -2608,6 +2617,8 @@ function programme(c,editable){
       </div>
       <p class="muted" style="font-size:12px;margin-top:8px">Copie tous les exercices (le programme existant du client cible sera remplacé).</p>
     </div>`:""}`:"";
+  // Le formulaire va soit en INLINE juste après la carte modifiée, soit en bas en mode "ajout"
+  const form=editingId?"":exForm;
   const endedWarn=(editable&&programEnded(c))?`<div class="panel" style="margin-bottom:12px;border-color:rgba(176,31,31,.45);background:linear-gradient(180deg,rgba(176,31,31,.08),transparent)">
     <div class="ph" style="color:var(--red);font-size:13.5px">🔒 Accès client suspendu</div>
     <p style="font-size:13px;color:var(--white2);line-height:1.5">Le programme s'est terminé le <b>${frDate(c.programmeFin)}</b> : ${esc((c.nom||"").split(" ")[0])} ne peut plus ouvrir son espace et voit un message l'invitant à te contacter.</p>
@@ -2618,7 +2629,7 @@ function programme(c,editable){
       ${editable&&S.clients.length>1?`<button class="btn g full" data-act="copy-prog">⧉ Copier vers…</button>`:""}
       ${editable?`<button class="btn g full" data-act="save-as-tpl">💾 Enregistrer</button>`:""}
     </div>`:"";
-  return progHeader+endedWarn+pdfBtn+list+form+rm1Panel();
+  return progHeader+endedWarn+pdfBtn+list+form+tplBox+rm1Panel();
 }
 function progres(c,editable){
   const ms=c.mesures||[];
@@ -4978,10 +4989,10 @@ document.addEventListener("click",e=>{
       const ex2=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex2) break;
       S.exDraft={...ex2};
       render();
-      // On amène le formulaire en vue sans ouvrir le clavier ni perdre le repère
+      // Le formulaire est maintenant rendu inline juste sous la carte : on scrolle vers la carte
       setTimeout(()=>{
-        const f4=document.getElementById("ex-nom");
-        if(f4){ const bloc=f4.closest(".panel")||f4; bloc.scrollIntoView({behavior:"smooth",block:"start"}); }
+        const card=document.querySelector(`[data-act="edit-ex"][data-id="${ex2.id}"]`);
+        if(card){ const bloc=card.closest(".xcard")||card; bloc.scrollIntoView({behavior:"smooth",block:"start"}); }
       },40);
       break; }
     case "edit-ex-cancel": S.exDraft=null; render(); break;
