@@ -1335,28 +1335,37 @@ function clientRow(c){
   const unreadN=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
   const reste=forfaitRestant(c);
   const suspendu=programEnded(c);
-  return `<button class="crow" data-act="open" data-id="${c.id}">
-    <div class="cav">
-      <span>${esc(c.nom.slice(0,1).toUpperCase())}</span>
-      ${invited&&!suspendu?`<i class="cdot" title="Accès activé"></i>`:""}
-    </div>
-    <div class="cinfo">
-      <div class="cnom">${esc(c.nom)}</div>
-      <div class="cmeta">
-        ${c.formule?`<span class="cf">${esc(c.formule)}</span>`:""}
-        <span class="cob">${esc(c.objectif||"—")}</span>
+  const nExos=((c.program||[]).length);
+  const nJours=new Set((c.program||[]).map(e=>e.bloc).filter(Boolean)).size;
+  return `<div class="crow-wrap" style="position:relative">
+    <button class="crow" data-act="open" data-id="${c.id}">
+      <div class="cav">
+        <span>${esc(c.nom.slice(0,1).toUpperCase())}</span>
+        ${invited&&!suspendu?`<i class="cdot" title="Accès activé"></i>`:""}
       </div>
-      ${(suspendu||unreadN)?`<div class="cbadges">
-        ${suspendu?`<span class="cb rouge">🔒 Accès suspendu</span>`:""}
-        ${unreadN?`<span class="cb msg">✉ ${unreadN} message${unreadN>1?"s":""}</span>`:""}
-      </div>`:""}
+      <div class="cinfo">
+        <div class="cnom">${esc(c.nom)}</div>
+        <div class="cmeta">
+          ${c.formule?`<span class="cf">${esc(c.formule)}</span>`:""}
+          <span class="cob">${esc(c.objectif||"—")}</span>
+        </div>
+        ${nExos?`<div class="cmeta" style="margin-top:2px"><span style="color:var(--grey2);font-size:11.5px">▤ ${nExos} exo${nExos>1?"s":""}${nJours?` · ${nJours} séance${nJours>1?"s":""}/sem`:""}</span></div>`:""}
+        ${(suspendu||unreadN)?`<div class="cbadges">
+          ${suspendu?`<span class="cb rouge">🔒 Accès suspendu</span>`:""}
+          ${unreadN?`<span class="cb msg">✉ ${unreadN} message${unreadN>1?"s":""}</span>`:""}
+        </div>`:""}
+      </div>
+      <div class="cright">
+        ${trend!==null?`<span class="ctrend" style="color:${trend<=0?'#4CAF50':'var(--amber2)'}">${trend>0?'+':''}${String(trend).replace(".",",")}<i>kg</i></span>`:""}
+        ${reste!==null?`<span class="cseances" style="color:${reste<=2?'#FF6B6B':'#7E7167'}">${reste} <i>rest.</i></span>`:""}
+        <span class="cgo">›</span>
+      </div>
+    </button>
+    <div style="display:flex;gap:6px;padding:0 12px 10px 62px;margin-top:-6px">
+      <button class="link" style="font-size:12px;padding:2px 8px;border-radius:8px;background:rgba(184,134,47,.12);color:var(--amber)" data-act="open-prog" data-id="${c.id}">▤ Programme</button>
+      <button class="link" style="font-size:12px;padding:2px 8px;border-radius:8px;background:rgba(76,175,80,.12);color:#4CAF50" data-act="open-progres" data-id="${c.id}">◔ Progrès</button>
     </div>
-    <div class="cright">
-      ${trend!==null?`<span class="ctrend" style="color:${trend<=0?'#4CAF50':'var(--amber2)'}">${trend>0?'+':''}${String(trend).replace(".",",")}<i>kg</i></span>`:""}
-      ${reste!==null?`<span class="cseances" style="color:${reste<=2?'#FF6B6B':'#7E7167'}">${reste} <i>rest.</i></span>`:""}
-      <span class="cgo">›</span>
-    </div>
-  </button>`;
+  </div>`;
 }
 function emptyClients(){
   return `<div class="panel" style="text-align:center;padding:28px 18px">
@@ -2633,10 +2642,23 @@ function programme(c,editable){
 }
 function progres(c,editable){
   const ms=c.mesures||[];
-  const form="";
+  // Formulaire d'ajout de mesures — disponible côté coach ET côté client
+  const dernierPoids=ms.length?ms[ms.length-1].poids:"";
+  const derniereTaille=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].taille==="number") return ms[i].taille; } return ""; })();
+  const derniereHanches=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].hanches==="number") return ms[i].hanches; } return ""; })();
+  const form=`<div class="panel" style="margin-bottom:14px"><div class="ph">${S.isClient?"⚖ Nouvelle pesée":"＋ Ajouter une mesure"}</div>
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px">${S.isClient?"Pèse-toi le matin à jeun, une fois par semaine idéalement, pour un suivi fiable.":"Ajouter une pesée / prise de mesure du jour pour ce client."}</p>
+    <div class="r2">
+      <label class="fld" style="margin-bottom:0"><span>Poids (kg) *</span><input id="me-poids" type="number" step="0.1" inputmode="decimal" placeholder="${dernierPoids||"72,5"}"></label>
+      <label class="fld" style="margin-bottom:0"><span>Tour de taille (cm)</span><input id="me-taille" type="number" step="0.5" inputmode="decimal" placeholder="${derniereTaille||"—"}"></label>
+    </div>
+    <label class="fld" style="margin-top:10px"><span>Tour de hanches (cm) — optionnel</span><input id="me-hanches" type="number" step="0.5" inputmode="decimal" placeholder="${derniereHanches||"—"}"></label>
+    <label class="fld"><span>Note (ressenti, contexte…) — optionnel</span><input id="me-note" placeholder="Ex. après une semaine chargée"></label>
+    <button class="btn p full" data-act="add-me">💾 Enregistrer la mesure</button>
+  </div>`;
   const rows=ms.map((m,i)=>({m,i})).reverse().map(({m,i})=>`
     <div class="mrow"><div><span class="mv">${m.poids} kg</span><span class="md">${frDate(m.date)}</span>${m.taille||m.hanches?`<div class="md" style="margin-left:0">${m.taille?`Taille ${m.taille} cm`:''}${m.taille&&m.hanches?' · ':''}${m.hanches?`Hanches ${m.hanches} cm`:''}</div>`:""}${m.note?`<div class="md" style="margin-left:0">${esc(m.note)}</div>`:""}</div>
-    ${editable?`<button class="x" data-act="del-me" data-idx="${i}">×</button>`:""}</div>`).join("");
+    <button class="x" data-act="del-me" data-idx="${i}">×</button></div>`).join("");
   const chips=(()=>{
     if(!ms.length) return '';
     const start=ms[0].poids, cur=ms[ms.length-1].poids;
@@ -2650,7 +2672,9 @@ function progres(c,editable){
     </div>`;})();
   const tPts=ms.filter(m=>typeof m.taille==="number").map(m=>({date:m.date,poids:m.taille}));
   const tailleChart=tPts.length>=2?`<div class="sec-head" style="margin-top:4px"><h2 style="font-size:15px;color:var(--amber)">Tour de taille</h2></div><div class="chartbox">${chart(tPts,undefined,"cm")}</div>`:"";
-  return chips+`<div class="chartbox">${chart(ms,c.objectifPoids||undefined)}</div>`+tailleChart+`${form}${rows}`;
+  const emptyHint=!ms.length?`<p class="muted" style="text-align:center;padding:10px 0;font-size:13px">Aucune mesure encore — ajoute-en une ci-dessus pour lancer le suivi.</p>`:"";
+  const chartBox=ms.length?`<div class="chartbox">${chart(ms,c.objectifPoids||undefined)}</div>`:"";
+  return form+chips+chartBox+tailleChart+emptyHint+rows;
 }
 
 
@@ -4217,6 +4241,54 @@ function tplEditor(){
 function programmesView(){
   if(S.tplEdit) return tplEditor();
   const tps=S.templates||[];
+  // ===== Section : Programmes de mes clients =====
+  const clientsProgs=(()=>{
+    if(!(S.clients||[]).length) return "";
+    // Trier : clients avec programme d'abord, puis par nom
+    const cs=[...S.clients].sort((a,b)=>{
+      const na=(a.program||[]).length, nb=(b.program||[]).length;
+      if((na>0)!==(nb>0)) return nb-na;
+      return (a.nom||"").localeCompare(b.nom||"");
+    });
+    const openIds=new Set(S.progsOpen||[]);
+    const jourRank=b=>{const j=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].indexOf(b);return j>=0?j:50;};
+    const rows=cs.map(c=>{
+      const prog=c.program||[];
+      const blocs={};
+      prog.forEach(e=>{const b=e.bloc||"";(blocs[b]=blocs[b]||[]).push(e);});
+      const blocKeys=Object.keys(blocs).sort((a,b)=>jourRank(a)-jourRank(b));
+      const totVol=prog.reduce((n,e)=>n+volumeExo(e),0);
+      const jours=blocKeys.filter(b=>b).map(b=>`${b.length<=2?"S."+b:b.slice(0,3)} (${blocs[b].length})`).join(" · ");
+      const isOpen=openIds.has(c.id);
+      const suspendu=programEnded(c);
+      return `<div class="panel" style="margin-bottom:10px;padding:12px 14px${suspendu?';border-color:rgba(176,31,31,.35)':''}">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="avatar" style="width:34px;height:34px;font-size:14px;flex:0 0 auto">${esc((c.nom||"?").slice(0,1).toUpperCase())}</div>
+          <div style="flex:1;min-width:140px">
+            <div style="font-weight:800;font-size:14.5px;color:var(--white)">${esc(c.nom)}${suspendu?` <span style="font-size:10.5px;background:rgba(176,31,31,.18);color:#FF6B6B;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:middle">🔒</span>`:""}</div>
+            <div class="md" style="margin-left:0;font-size:12px">
+              ${prog.length?`<b style="color:var(--amber)">${prog.length}</b> exo${prog.length>1?"s":""}${jours?` · ${esc(jours)}`:""}${totVol?` · <span style="color:var(--grey2)">${totVol.toLocaleString("fr-FR")} kg</span>`:""}`:`<span class="muted">Aucun programme</span>`}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${prog.length?`<button class="link" style="font-size:12.5px;padding:2px 6px" data-act="toggle-prog-open" data-id="${c.id}">${isOpen?"▾ Masquer":"▸ Aperçu"}</button>`:""}
+            <button class="btn p" style="padding:6px 12px;font-size:12.5px" data-act="open-prog" data-id="${c.id}">${prog.length?"✏️ Modifier":"＋ Créer"}</button>
+          </div>
+        </div>
+        ${isOpen&&prog.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+          ${blocKeys.map(b=>`<div style="margin-bottom:8px">
+            <div style="font-size:11.5px;color:var(--red);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${b?(b.length<=2?"Séance "+b:b):"Autres exercices"}</div>
+            ${blocs[b].map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12.5px">
+              <span style="flex:1;min-width:0;color:var(--white2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.nom)}</span>
+              <span style="color:var(--grey2);font-size:11.5px;white-space:nowrap">${e.series}×${esc(e.repType==="temps"?(e.reps||"—"):repsDisplay(e))}${chargeDisplay(e)?` · ${esc(chargeDisplay(e))}`:""}${(hasVarReps(e)||hasVarCharge(e))?` <span style="color:var(--amber)">🎯</span>`:""}</span>
+            </div>`).join("")}
+          </div>`).join("")}
+        </div>`:""}
+      </div>`;
+    }).join("");
+    return `<div class="sec-head" style="margin-top:18px"><h2 style="font-size:16px">Programmes de mes clients <span style="color:var(--grey2);font-weight:400;font-size:12.5px">(${cs.filter(c=>(c.program||[]).length).length}/${cs.length} programmés)</span></h2></div>
+      ${rows}`;
+  })();
   const cards=tps.map(t=>{
     const prog=t.program||[];
     const jours=[...new Set(prog.map(e=>e.bloc).filter(Boolean))];
@@ -4262,9 +4334,11 @@ function programmesView(){
             <div style="font-size:14px;font-weight:700;color:var(--white)">${esc(exo.nom)}</div>
             <div class="md" style="margin-left:0">${esc(client.nom)}${exo.bloc?` · ${esc(exo.bloc.length<=2?"Séance "+exo.bloc:exo.bloc)}`:""} · ${exo.series}×${esc(exo.reps||"—")}${exo.charge?` · ${esc(exo.charge)}`:""}</div>
           </div>
-          <button class="link" style="font-size:12.5px;white-space:nowrap" data-act="open" data-id="${client.id}">Ouvrir ›</button>
+          <button class="link" style="font-size:12.5px;white-space:nowrap" data-act="open-prog" data-id="${client.id}">Modifier ›</button>
         </div>`).join("")}
       </div>`;})()}
+    ${clientsProgs}
+    <div class="sec-head" style="margin-top:18px"><h2 style="font-size:16px">Mes modèles</h2></div>
     ${tps.length?cards:`<div class="panel" style="text-align:center;padding:26px 18px">
       <div style="font-size:38px;margin-bottom:8px">▤</div>
       <p style="font-size:15px;color:var(--white);font-weight:700;margin-bottom:4px">Votre bibliothèque de programmes</p>
@@ -4746,6 +4820,15 @@ document.addEventListener("click",e=>{
       break;
     case "open-msgs": openMessages(t.dataset.id); break;
     case "open": openClient(t.dataset.id,"infos"); break;
+    case "open-prog": openClient(t.dataset.id,"programme"); break;
+    case "open-progres": openClient(t.dataset.id,"progres"); break;
+    case "open-prog": openClient(t.dataset.id,"programme"); break;
+    case "toggle-prog-open":{
+      S.progsOpen=S.progsOpen||[];
+      const id=t.dataset.id;
+      const i=S.progsOpen.indexOf(id);
+      if(i>=0) S.progsOpen.splice(i,1); else S.progsOpen.push(id);
+      render(); break; }
     case "back": S.view="clients"; render(); break;
     case "dtab": S.detailTab=t.dataset.dtab; S.confirmDel=false;
       render();
@@ -5310,13 +5393,29 @@ document.addEventListener("click",e=>{
       if(ex.historique.length>20) ex.historique=ex.historique.slice(-20);
       if(isNewPR(ex)){ confetti(); toast("🏆 Nouveau record sur "+ex.nom+" !"); }
       save(); render(); break; }
-    case "add-me":{ if(!c) return; const p=parseFloat(String(val("me-poids")).replace(",",".")); if(isNaN(p)) return;
+    case "add-me":{ if(!c) return;
+      const raw=val("me-poids"); if(!raw||!raw.trim()){ alert("Renseigne au moins le poids."); return; }
+      const p=parseFloat(String(raw).replace(",","."));
+      if(isNaN(p)||p<20||p>300){ alert("Poids invalide (attendu entre 20 et 300 kg)."); return; }
       const taille=parseFloat(String(val("me-taille")).replace(",","."));
       const hanches=parseFloat(String(val("me-hanches")).replace(",","."));
-      const m={date:today(),poids:p,note:val("me-note")};
-      if(!isNaN(taille)) m.taille=taille;
-      if(!isNaN(hanches)) m.hanches=hanches;
-      c.mesures=c.mesures||[]; c.mesures.push(m); c.mesures.sort((x,y)=>x.date.localeCompare(y.date)); save(); render(); break; }
+      const m={date:today(),poids:+p.toFixed(1),note:(val("me-note")||"").trim()};
+      if(!isNaN(taille)&&taille>0) m.taille=+taille.toFixed(1);
+      if(!isNaN(hanches)&&hanches>0) m.hanches=+hanches.toFixed(1);
+      c.mesures=c.mesures||[];
+      c.mesures.push(m);
+      c.mesures.sort((x,y)=>x.date.localeCompare(y.date));
+      // Sync distant (comme les autres champs). patchField pousse la mise à jour immédiatement.
+      if(typeof patchField==="function") patchField(c,"mesures",()=>{});
+      else save();
+      // Notification au coach quand c'est le client qui saisit
+      if(S.isClient){
+        const prenom=(c.nom||"Client").split(" ")[0];
+        const detail=[`Poids : ${m.poids} kg`, m.taille?`Taille : ${m.taille} cm`:"", m.hanches?`Hanches : ${m.hanches} cm`:"", m.note?`« ${m.note} »`:""].filter(Boolean).join(" · ");
+        try{ pushTo(coachEmail(),`⚖ ${prenom} a enregistré une pesée`, detail); }catch(_){}
+      }
+      toast("Mesure enregistrée ✓");
+      render(); break; }
     case "del-me": if(c){ c.mesures=(c.mesures||[]).filter((_,i)=>i!==+t.dataset.idx); save(); render(); } break;
     case "add-se":{ if(!c) return; c.seances=c.seances||[]; c.seances.push({date:today(),fait:true,ressenti:val("se-ressenti"),note:val("se-note")}); c.seances.sort((x,y)=>y.date.localeCompare(x.date)); save(); render(); break; }
     case "toggle-se": if(c){ const i=+t.dataset.idx; c.seances[i].fait=!c.seances[i].fait; save(); render(); } break;
