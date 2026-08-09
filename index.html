@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.5 — 09/08/2026";
+const APP_VERSION="v11.6 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2899,7 +2899,7 @@ function clientSpace(c){
           :`<button class="btn p full" data-act="start-wk" data-jour="${esc(jour)}" style="padding:12px">▶ Commencer la séance</button>`}
       </div>`;})()}
     <div style="margin-top:10px;font-size:12.5px;font-style:italic;color:rgba(255,255,255,.75)">« ${quoteOfDay()} »</div></div>`;
-  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,false):S.clientTab==="questions"?questionsTab(c):S.clientTab==="faq"?faqTab():S.clientTab==="tests"?testsTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
+  let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,true):S.clientTab==="questions"?questionsTab(c):S.clientTab==="faq"?faqTab():S.clientTab==="tests"?testsTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
   return banner+inner;
 }
 function addModal(){
@@ -5540,7 +5540,23 @@ document.addEventListener("click",e=>{
         save();
       } else if(tcm!=null){ save(); }
       c.bilans=c.bilans||[]; c.bilans.push(b);
-      patchField(c,"bilans"); render(); break; }
+      patchField(c,"bilans");
+      // Notification au coach quand c'est le client qui saisit
+      if(S.isClient){
+        const prenom=(c.nom||"Client").split(" ")[0];
+        const parts=[
+          b.poids!=null?`Poids : ${b.poids} kg`:"",
+          b.taille!=null?`Tour de taille : ${b.taille} cm`:"",
+          b.brasD!=null?`Bras D : ${b.brasD} cm`:"",
+          b.brasG!=null?`Bras G : ${b.brasG} cm`:"",
+          b.cuisseD!=null?`Cuisse D : ${b.cuisseD} cm`:"",
+          b.cuisseG!=null?`Cuisse G : ${b.cuisseG} cm`:"",
+          b.note?`« ${b.note} »`:""
+        ].filter(Boolean).join(" · ");
+        try{ pushTo(coachEmail(),`◫ ${prenom} a enregistré un bilan`, parts); }catch(_){}
+        toast("Bilan enregistré ✓");
+      }
+      render(); break; }
     case "del-bilan": if(c){ c.bilans=(c.bilans||[]).filter((_,i)=>i!==+t.dataset.idx); patchField(c,"bilans"); render(); } break;
     case "del-photo": if(c){ c.photos=(c.photos||[]).filter((_,i)=>i!==+t.dataset.idx); patchField(c,"photos"); render(); } break;
     case "pay-add":{ if(!c) return;
@@ -5870,13 +5886,43 @@ document.addEventListener("change",e=>{
   const photoInput=e.target.closest('[data-act="add-photo"]');
   if(photoInput && photoInput.files && photoInput.files[0]){
     const file=photoInput.files[0]; const c=sel(); if(!c) return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
+    // Compression : max 1400px sur le grand côté, JPEG qualité 82 -> data:URL raisonnable pour Supabase
+    const compressPhoto=(f)=>new Promise((resolve,reject)=>{
+      const rd=new FileReader();
+      rd.onload=()=>{
+        const img=new Image();
+        img.onload=()=>{
+          const MAX=1400;
+          let w=img.naturalWidth, h=img.naturalHeight;
+          if(w>MAX||h>MAX){ const r=Math.min(MAX/w,MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+          const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+          const ctx=cv.getContext("2d");
+          ctx.fillStyle="#fff"; ctx.fillRect(0,0,w,h); // fond blanc pour JPEG
+          ctx.drawImage(img,0,0,w,h);
+          resolve(cv.toDataURL("image/jpeg",0.82));
+        };
+        img.onerror=()=>reject(new Error("Image illisible"));
+        img.src=rd.result;
+      };
+      rd.onerror=()=>reject(new Error("Fichier illisible"));
+      rd.readAsDataURL(f);
+    });
+    toast("Compression de la photo…");
+    compressPhoto(file).then(dataUrl=>{
       c.photos=c.photos||[];
-      c.photos.push({url:ev.target.result,date:new Date().toISOString().slice(0,10),label:""});
-      patchField(c,"photos"); render();
-    };
-    reader.readAsDataURL(file); return;
+      c.photos.push({url:dataUrl,date:new Date().toISOString().slice(0,10),label:""});
+      patchField(c,"photos");
+      if(S.isClient){
+        const prenom=(c.nom||"Client").split(" ")[0];
+        try{ pushTo(coachEmail(),`📷 ${prenom} a ajouté une photo de bilan`, `Total : ${c.photos.length} photo${c.photos.length>1?"s":""}`); }catch(_){}
+        toast("Photo ajoutée ✓");
+      } else { toast("Photo ajoutée ✓"); }
+      render();
+    }).catch(err=>{
+      alert("Impossible d'importer la photo : "+(err&&err.message||"erreur inconnue"));
+    });
+    photoInput.value=""; // permet de re-choisir le même fichier
+    return;
   }
   const pick=e.target.closest('[data-act="pick-client"]');
   if(pick){ S.selectedId=pick.value; render(); return; }
