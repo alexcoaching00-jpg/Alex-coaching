@@ -1996,14 +1996,63 @@ function printRecu(c,pay){
 }
 
 
-/* Volume d'une séance = somme (séries × reps × charge) — indicateur de charge de travail */
+/* ===== REPS / CHARGES VARIABLES PAR SÉRIE =====
+   Un exercice peut avoir :
+   - reps/charge uniformes (comportement historique) : ex.reps="12", ex.charge="40 kg"
+   - OU des valeurs différentes par série : ex.repsList=["12","10","8"], ex.chargeList=["40","45","50 kg"]
+   Une entrée vide dans la liste retombe sur la valeur uniforme.
+*/
+function hasVarReps(e){ return Array.isArray(e.repsList)&&e.repsList.some(v=>v!=null&&String(v).trim()!==""); }
+function hasVarCharge(e){ return Array.isArray(e.chargeList)&&e.chargeList.some(v=>v!=null&&String(v).trim()!==""); }
+function repsForSerie(e,i){
+  if(hasVarReps(e)){
+    const v=e.repsList[Math.min(i,e.repsList.length-1)];
+    if(v!=null&&String(v).trim()!=="") return String(v);
+  }
+  return e.reps||"";
+}
+function chargeForSerie(e,i){
+  if(hasVarCharge(e)){
+    const v=e.chargeList[Math.min(i,e.chargeList.length-1)];
+    if(v!=null&&String(v).trim()!=="") return String(v);
+  }
+  return e.charge||"";
+}
+function repsDisplay(e){
+  if(hasVarReps(e)){
+    const n=e.series||e.repsList.length;
+    const arr=Array.from({length:n},(_,i)=>repsForSerie(e,i)||"—");
+    return arr.join(" / ");
+  }
+  return e.reps||"—";
+}
+function chargeDisplay(e){
+  if(hasVarCharge(e)){
+    const n=e.series||e.chargeList.length;
+    const arr=Array.from({length:n},(_,i)=>chargeForSerie(e,i)||"—");
+    return arr.join(" / ");
+  }
+  return e.charge||"";
+}
+/* Volume total d'un exercice — tient compte des variations par série */
+function volumeExo(e){
+  const n=e.series||1;
+  let vol=0;
+  for(let i=0;i<n;i++){
+    const ch=chargeNum(chargeForSerie(e,i));
+    const rp=parseInt(String(repsForSerie(e,i)).match(/\d+/)||0);
+    if(ch&&rp) vol+=rp*ch;
+  }
+  return vol;
+}
+
+/* Volume d'une séance = somme des volumes de chaque exercice — indicateur de charge de travail */
 function volumeSeance(c,jour){
   let vol=0, n=0;
   (c.program||[]).forEach(e=>{
     if((e.bloc||"")!==jour) return;
-    const ch=chargeNum(e.charge); const rp=parseInt(String(e.reps).match(/\d+/)||0);
     n++;
-    if(ch&&rp) vol+=(e.series||1)*rp*ch;
+    vol+=volumeExo(e);
   });
   return {vol:Math.round(vol),n};
 }
@@ -2429,10 +2478,11 @@ function programme(c,editable){
 
       <div class="xstats">
         ${stat(e.series,e.series>1?"séries":"série")}
-        ${stat(esc(e.repType==="temps"?(fmtCourt(parseRepos(e.reps))||e.reps||"—"):(e.reps||"—")),e.repType==="temps"?"durée":"reps")}
-        ${e.charge?stat(esc(e.charge),"charge"):""}
+        ${stat(esc(e.repType==="temps"?(fmtCourt(parseRepos(e.reps))||e.reps||"—"):repsDisplay(e)),e.repType==="temps"?"durée":"reps")}
+        ${chargeDisplay(e)?stat(esc(chargeDisplay(e)),"charge"):""}
         ${e.repos?stat(esc(fmtCourt(parseRepos(e.repos))||e.repos),"repos"):""}
       </div>
+      ${(hasVarReps(e)||hasVarCharge(e))?`<p class="muted" style="font-size:11.5px;margin:-4px 0 8px;color:var(--amber)">🎯 Variables par série</p>`:""}
 
       ${e.note?`<p class="xnote">${esc(e.note)}</p>`:""}
       ${e.alt?`<p class="xalt">↔ Trop difficile ? ${esc(e.alt)}</p>`:""}
@@ -2502,9 +2552,34 @@ function programme(c,editable){
       <label class="fld"><span>Exercice (ou saisie libre)</span><input id="ex-nom" list="exos-fr" placeholder="Ex. Presse à cuisses" value="${esc(dEx.nom||"")}"></label>
       <div class="r2"><label class="fld"><span>Séries</span><input id="ex-series" type="number" min="1" value="${dEx.series||3}"></label>
       <label class="fld"><span>Type de série</span><select id="ex-reptype"><option value="reps" ${(dEx.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${dEx.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label></div>
-      <label class="fld"><span id="ex-replabel">${dEx.repType==="temps"?"Durée par série":"Répétitions"}</span><input id="ex-reps" placeholder="${dEx.repType==="temps"?"45 ou 1min30":"12"}" value="${esc(dEx.reps!=null?dEx.reps:"")}"></label>
-      <div class="r2"><label class="fld"><span>Charge</span><input id="ex-charge" placeholder="40 kg" value="${esc(dEx.charge||"")}"></label>
-      <label class="fld"><span>Repos</span><input id="ex-repos" placeholder="90 ou 1min30" value="${esc(dEx.repos||"")}"></label></div>
+      ${(()=>{
+        const varOn=hasVarReps(dEx)||hasVarCharge(dEx)||dEx._varMode;
+        const n=Math.max(1,+dEx.series||3);
+        const rlist=Array.isArray(dEx.repsList)?dEx.repsList:[];
+        const clist=Array.isArray(dEx.chargeList)?dEx.chargeList:[];
+        const isT=dEx.repType==="temps";
+        return `
+        <label style="display:flex;align-items:center;gap:9px;margin:2px 0 12px;font-size:13px;color:var(--white2);cursor:pointer">
+          <input type="checkbox" id="ex-varmode" ${varOn?"checked":""} style="width:18px;height:18px;accent-color:var(--red)">
+          🎯 Reps / charges variables par série
+        </label>
+        <div id="ex-uniform" style="${varOn?"display:none":""}">
+          <label class="fld"><span id="ex-replabel">${isT?"Durée par série":"Répétitions"}</span><input id="ex-reps" placeholder="${isT?"45 ou 1min30":"12"}" value="${esc(dEx.reps!=null?dEx.reps:"")}"></label>
+          <label class="fld"><span>Charge</span><input id="ex-charge" placeholder="40 kg" value="${esc(dEx.charge||"")}"></label>
+        </div>
+        <div id="ex-variable" style="${varOn?"":"display:none"}">
+          <p class="muted" style="font-size:12px;margin:0 0 8px">Renseigne les valeurs pour chaque série (laisse vide pour reprendre la précédente).</p>
+          <div id="ex-serieslist" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+            ${Array.from({length:n},(_,i)=>`
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="min-width:52px;font-size:12px;color:var(--amber);font-weight:700">Série ${i+1}</span>
+                <input class="ex-r-list" data-i="${i}" placeholder="${isT?"45":"12"}" value="${esc(rlist[i]||"")}" style="flex:1;min-width:0">
+                <input class="ex-c-list" data-i="${i}" placeholder="40 kg" value="${esc(clist[i]||"")}" style="flex:1;min-width:0">
+              </div>`).join("")}
+          </div>
+        </div>
+        <label class="fld"><span>Repos entre séries</span><input id="ex-repos" placeholder="90 ou 1min30" value="${esc(dEx.repos||"")}"></label>`;
+      })()}
       <div class="r2"><label class="fld"><span>Jour</span><select id="ex-bloc"><option value="">—</option>${["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche","A","B","C"].map(j=>`<option value="${j}" ${(dEx.bloc||S.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
       <label class="fld"><span>Superset</span><select id="ex-ss"><option value="">— Aucun —</option>${["A","B","C","D"].map(v=>`<option value="${v}" ${dEx.ss===v?"selected":""}>Superset ${v}</option>`).join("")}</select></label></div>
       <div class="r2"><label class="fld"><span>Échelle d'effort</span><select id="ex-scale"><option value="rir" ${(dEx.rirScale||"rir")==="rir"?"selected":""}>RIR</option><option value="rpe" ${dEx.rirScale==="rpe"?"selected":""}>RPE</option></select></label>
@@ -2917,9 +2992,12 @@ function wkFinish(){
       const mn=WK.start?Math.max(1,Math.round((Date.now()-WK.start)/60000)):0;
       let vol=0;
       (WK.exos||[]).forEach(e=>{
-        const ch=chargeNum(e.charge), rp=parseInt(String(e.reps).match(/\d+/)||0);
-        const nS=WK.rounds>1?WK.rounds:(e.series||1);
-        if(ch&&rp) vol+=nS*rp*ch;
+        if(WK.rounds>1){
+          const ch=chargeNum(e.charge), rp=parseInt(String(e.reps).match(/\d+/)||0);
+          if(ch&&rp) vol+=WK.rounds*rp*ch;
+        } else {
+          vol+=volumeExo(e);
+        }
       });
       const det=[mn?mn+" min":"",vol?vol.toLocaleString("fr-FR")+" kg":""].filter(Boolean).join(" · ");
       pushTo(coachEmail(),"✅ "+prenom+" a terminé sa séance",WK.jour+(det?" — "+det:""));
@@ -2929,10 +3007,14 @@ function wkFinish(){
   const dureeMin=WK.start?Math.max(1,Math.round((Date.now()-WK.start)/60000)):0;
   let volume=0, series=0;
   (WK.exos||[]).forEach(e=>{
-    const ch=chargeNum(e.charge), rp=parseInt(String(e.reps).match(/\d+/)||0);
     const nS=WK.rounds>1?WK.rounds:(e.series||1);
     series+=nS;
-    if(ch&&rp) volume+=nS*rp*ch;
+    if(WK.rounds>1){
+      const ch=chargeNum(e.charge), rp=parseInt(String(e.reps).match(/\d+/)||0);
+      if(ch&&rp) volume+=nS*rp*ch;
+    } else {
+      volume+=volumeExo(e);
+    }
   });
   const prs=(WK.exos||[]).filter(e=>{
     const h=(e.historique||[]).map(x=>chargeNum(x.charge)).filter(v=>v!==null);
@@ -3007,7 +3089,7 @@ function wkRender(){
       ${ex.rir?`<span class="tag ink" style="align-self:center;margin-bottom:12px">${ex.rirScale==="rpe"?"RPE":"RIR"} ${esc(ex.rir)}</span>`:""}
       <div style="margin:8px 0 6px">${dots}</div>
       <p style="color:var(--amber);font-family:'Bebas Neue';font-size:22px;letter-spacing:.08em">${circuit?`TOUR ${curUnit} / ${total}`:`SÉRIE ${WK.serie} / ${total}`}</p>
-      <p style="color:var(--white);font-size:26px;font-weight:800;margin:6px 0">${esc(ex.reps||"—")} reps${ex.charge?` · ${esc(ex.charge)}`:""}</p>
+      <p style="color:var(--white);font-size:26px;font-weight:800;margin:6px 0">${esc(repsForSerie(ex,WK.serie-1)||"—")} reps${chargeForSerie(ex,WK.serie-1)?` · ${esc(chargeForSerie(ex,WK.serie-1))}`:""}${(hasVarReps(ex)||hasVarCharge(ex))?` <span style="font-size:13px;color:var(--amber);vertical-align:middle">🎯</span>`:""}</p>
       ${hist?`<p style="color:#4CAF50;font-size:13px">Dernière fois : ${esc(hist.charge)} (${frDate(hist.date)})</p>`:""}
       ${ex.note?`<p style="color:var(--grey);font-size:13.5px;margin-top:10px;font-style:italic">${esc(ex.note)}</p>`:""}
       ${ex.alt?`<p style="color:var(--amber);font-size:13px;margin-top:8px">↔ Trop difficile ? ${esc(ex.alt)}</p>`:""}
@@ -3018,7 +3100,7 @@ function wkRender(){
         <button class="link" data-act="wk-charge" style="font-size:13px">+ Noter la charge</button>
       </div>
       ${(()=>{
-        const base=chargeNum(ex.charge);
+        const base=chargeNum(chargeForSerie(ex,WK.serie-1));
         if(base===null) return "";
         return `<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px">
           <button class="chip" data-act="wk-charge-adj" data-delta="-2.5">− 2,5 kg</button>
@@ -4019,7 +4101,7 @@ function tplExoCard(e,i,editing){
         ${e.bloc?`<span class="tag am" style="font-size:10px">${esc(e.bloc)}</span>`:""}
         ${e.ss?`<span class="tag" style="font-size:10px;background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4)">🔗 SS ${esc(e.ss)}</span>`:""}${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}
       </div>
-      <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):(e.reps||"—"))}${e.charge?` · ${esc(e.charge)}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}</div>
+      <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):repsDisplay(e))}${chargeDisplay(e)?` · ${esc(chargeDisplay(e))}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}${(hasVarReps(e)||hasVarCharge(e))?` <span style="color:var(--amber);font-size:11px">🎯</span>`:""}</div>
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
       ${ytId(e)
@@ -4075,11 +4157,34 @@ function tplEditor(){
         <label class="fld"><span>Séries</span><input id="tex-series" inputmode="numeric" placeholder="3" value="${d.series||""}"></label>
         <label class="fld"><span>Type de série</span><select id="tex-reptype"><option value="reps" ${(d.repType||"reps")==="reps"?"selected":""}>Répétitions</option><option value="temps" ${d.repType==="temps"?"selected":""}>Temps (secondes)</option></select></label>
       </div>
-      <label class="fld"><span id="tex-replabel">${d.repType==="temps"?"Durée par série":"Répétitions"}</span><input id="tex-reps" placeholder="${d.repType==="temps"?"45 ou 1min30":"8-10"}" value="${esc(d.reps||"")}"></label>
-      <div class="r2">
-        <label class="fld"><span>Charge</span><input id="tex-charge" placeholder="40 kg" value="${esc(d.charge||"")}"></label>
-        <label class="fld"><span>Repos</span><input id="tex-repos" placeholder="90 ou 1min30" value="${esc(d.repos||"")}"></label>
-      </div>
+      ${(()=>{
+        const varOn=hasVarReps(d)||hasVarCharge(d)||d._varMode;
+        const n=Math.max(1,+d.series||3);
+        const rlist=Array.isArray(d.repsList)?d.repsList:[];
+        const clist=Array.isArray(d.chargeList)?d.chargeList:[];
+        const isT=d.repType==="temps";
+        return `
+        <label style="display:flex;align-items:center;gap:9px;margin:2px 0 12px;font-size:13px;color:var(--white2);cursor:pointer">
+          <input type="checkbox" id="tex-varmode" ${varOn?"checked":""} style="width:18px;height:18px;accent-color:var(--red)">
+          🎯 Reps / charges variables par série
+        </label>
+        <div id="tex-uniform" style="${varOn?"display:none":""}">
+          <label class="fld"><span id="tex-replabel">${isT?"Durée par série":"Répétitions"}</span><input id="tex-reps" placeholder="${isT?"45 ou 1min30":"8-10"}" value="${esc(d.reps||"")}"></label>
+          <label class="fld"><span>Charge</span><input id="tex-charge" placeholder="40 kg" value="${esc(d.charge||"")}"></label>
+        </div>
+        <div id="tex-variable" style="${varOn?"":"display:none"}">
+          <p class="muted" style="font-size:12px;margin:0 0 8px">Renseigne les valeurs pour chaque série (laisse vide pour reprendre la précédente).</p>
+          <div id="tex-serieslist" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+            ${Array.from({length:n},(_,i)=>`
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="min-width:52px;font-size:12px;color:var(--amber);font-weight:700">Série ${i+1}</span>
+                <input class="tex-r-list" data-i="${i}" placeholder="${isT?"45":"8-10"}" value="${esc(rlist[i]||"")}" style="flex:1;min-width:0">
+                <input class="tex-c-list" data-i="${i}" placeholder="40 kg" value="${esc(clist[i]||"")}" style="flex:1;min-width:0">
+              </div>`).join("")}
+          </div>
+        </div>
+        <label class="fld"><span>Repos entre séries</span><input id="tex-repos" placeholder="90 ou 1min30" value="${esc(d.repos||"")}"></label>`;
+      })()}
       <div class="r2">
         <label class="fld"><span>Jour / séance</span><select id="tex-bloc"><option value="">—</option>${JOURS2.map(j=>`<option value="${j}" ${(d.bloc||t.lastBloc)===j?"selected":""}>${j.length<=2?"Séance "+j:j}</option>`).join("")}</select></label>
         <label class="fld"><span>Superset</span><select id="tex-ss"><option value="">— Aucun —</option>${["A","B","C","D"].map(v=>`<option value="${v}" ${d.ss===v?"selected":""}>Superset ${v}</option>`).join("")}</select></label>
@@ -4170,8 +4275,8 @@ function programPrintHTML(t){
       ${blocs[b2].map(e=>`<tr>
         <td style="padding:6px 9px;border-bottom:1px solid #ddd"><b>${esc(e.nom)}</b>${e.note?`<div style="color:#777;font-size:11.5px">${esc(e.note)}</div>`:""}${e.alt?`<div style="color:#B8862F;font-size:11.5px">↔ ${esc(e.alt)}</div>`:""}</td>
         <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${e.series}</td>
-        <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${esc(e.reps||"—")}</td>
-        <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${esc(e.charge||"—")}</td>
+        <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${esc(repsDisplay(e))}</td>
+        <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${esc(chargeDisplay(e)||"—")}</td>
         <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${esc(e.repos||"—")}</td>
         <td style="padding:6px 9px;border-bottom:1px solid #ddd;text-align:center">${esc(e.rir||"—")}</td>
       </tr>`).join("")}
@@ -4656,9 +4761,26 @@ document.addEventListener("click",e=>{
       c.program=c.program||[];
       const draft=(S.exDraft&&(c.program||[]).some(x=>x.id===S.exDraft.id))?S.exDraft:null;
       const repType1=val("ex-reptype")||"reps";
+      const varOn1=!!(document.getElementById("ex-varmode")&&document.getElementById("ex-varmode").checked);
+      const nSer1=+val("ex-series")||3;
+      let repsList1=null, chargeList1=null;
+      if(varOn1){
+        repsList1=Array.from(document.querySelectorAll(".ex-r-list")).sort((a,b)=>(+a.dataset.i)-(+b.dataset.i)).map(el=>{
+          let v=el.value.trim(); if(repType1==="temps"&&v) v=normDuree(v)||v; return v;
+        });
+        chargeList1=Array.from(document.querySelectorAll(".ex-c-list")).sort((a,b)=>(+a.dataset.i)-(+b.dataset.i)).map(el=>el.value.trim());
+        // Tronquer / compléter à nSer1
+        while(repsList1.length<nSer1) repsList1.push("");
+        while(chargeList1.length<nSer1) chargeList1.push("");
+        repsList1=repsList1.slice(0,nSer1);
+        chargeList1=chargeList1.slice(0,nSer1);
+        // Si tout est vide, on annule le mode variable
+        if(!repsList1.some(v=>v)) repsList1=null;
+        if(!chargeList1.some(v=>v)) chargeList1=null;
+      }
       let repsVal1=val("ex-reps");
       if(repType1==="temps") repsVal1=normDuree(repsVal1)||repsVal1;
-      const payload={nom,series:+val("ex-series")||3,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:normDuree(val("ex-repos")),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim()};
+      const payload={nom,series:nSer1,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:normDuree(val("ex-repos")),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim(),repsList:repsList1,chargeList:chargeList1};
       if(draft&&draft.id){
         const idx=c.program.findIndex(x=>x.id===draft.id);
         if(idx>=0) c.program[idx]={...c.program[idx],...payload};
@@ -4908,9 +5030,24 @@ document.addEventListener("click",e=>{
       const tbloc=val("tex-bloc")||"";
       S.tplEdit.lastBloc=tbloc; pushRecentExo(nom);
       const repType2=val("tex-reptype")||"reps";
+      const varOn2=!!(document.getElementById("tex-varmode")&&document.getElementById("tex-varmode").checked);
+      const nSer2=+val("tex-series")||3;
+      let repsList2=null, chargeList2=null;
+      if(varOn2){
+        repsList2=Array.from(document.querySelectorAll(".tex-r-list")).sort((a,b)=>(+a.dataset.i)-(+b.dataset.i)).map(el=>{
+          let v=el.value.trim(); if(repType2==="temps"&&v) v=normDuree(v)||v; return v;
+        });
+        chargeList2=Array.from(document.querySelectorAll(".tex-c-list")).sort((a,b)=>(+a.dataset.i)-(+b.dataset.i)).map(el=>el.value.trim());
+        while(repsList2.length<nSer2) repsList2.push("");
+        while(chargeList2.length<nSer2) chargeList2.push("");
+        repsList2=repsList2.slice(0,nSer2);
+        chargeList2=chargeList2.slice(0,nSer2);
+        if(!repsList2.some(v=>v)) repsList2=null;
+        if(!chargeList2.some(v=>v)) chargeList2=null;
+      }
       let repsVal2=val("tex-reps");
       if(repType2==="temps") repsVal2=normDuree(repsVal2)||repsVal2;
-      const payloadT={nom,series:+val("tex-series")||3,reps:repsVal2,repType:repType2,charge:val("tex-charge"),repos:normDuree(val("tex-repos")),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",rirScale:val("tex-scale")||"rir",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim()};
+      const payloadT={nom,series:nSer2,reps:repsVal2,repType:repType2,charge:val("tex-charge"),repos:normDuree(val("tex-repos")),note:val("tex-note"),alt:val("tex-alt")||"",bloc:tbloc,rir:val("tex-rir")||"",rirScale:val("tex-scale")||"rir",ss:val("tex-ss")||"",video:(val("tex-video")||"").trim(),repsList:repsList2,chargeList:chargeList2};
       const idxT=(draftT&&draftT.id)?S.tplEdit.program.findIndex(x=>x.id===draftT.id):-1;
       if(idxT>=0) S.tplEdit.program[idxT]={...S.tplEdit.program[idxT],...payloadT};
       else S.tplEdit.program.push({id:keepId,...payloadT,historique:[]});
@@ -5107,13 +5244,25 @@ document.addEventListener("click",e=>{
     case "wk-next": if(WK.on&&WK.idx<WK.exos.length-1){ WK.idx++; WK.serie=1; wkSkipRest(); } break;
     case "wk-charge-adj":{ if(!WK.on) break;
       const ex3=WK.exos[WK.idx]; if(!ex3) break;
-      const cur=chargeNum(ex3.charge); if(cur===null) break;
+      const sIdx=WK.serie-1;
+      const curStr=chargeForSerie(ex3,sIdx);
+      const cur=chargeNum(curStr); if(cur===null) break;
       const nv=Math.max(0,+(cur+parseFloat(t.dataset.delta)).toFixed(1));
-      const unit=/kg/i.test(ex3.charge||"")?" kg":"";
-      ex3.charge=String(nv).replace(".",",")+unit;
+      const unit=/kg/i.test(curStr||"")?" kg":"";
+      const newCharge=String(nv).replace(".",",")+unit;
+      // Si mode variable actif -> maj seulement la série courante ; sinon maj uniforme
+      if(hasVarCharge(ex3)){
+        ex3.chargeList=[...ex3.chargeList];
+        while(ex3.chargeList.length<(ex3.series||1)) ex3.chargeList.push("");
+        ex3.chargeList[sIdx]=newCharge;
+      } else {
+        ex3.charge=newCharge;
+      }
       // répercuter sur la fiche du client
-      const cc=WK.c; if(cc&&cc.program){ const src=cc.program.find(x=>x.id===ex3.id); if(src) src.charge=ex3.charge; }
-      save(); wkRender(); toast("Charge ajustée : "+ex3.charge); break; }
+      const cc=WK.c; if(cc&&cc.program){ const src=cc.program.find(x=>x.id===ex3.id);
+        if(src){ if(hasVarCharge(ex3)) src.chargeList=[...ex3.chargeList]; else src.charge=ex3.charge; }
+      }
+      save(); wkRender(); toast("Charge ajustée : "+newCharge); break; }
     case "wk-charge":{ if(!WK.on) break;
       const ex=WK.exos[WK.idx];
       const v=prompt(`Charge du jour pour « ${ex.nom} » ?`, ex.historique&&ex.historique.length?ex.historique[ex.historique.length-1].charge:"");
@@ -5454,6 +5603,48 @@ document.addEventListener("change",e=>{
     const lab=document.getElementById(p+"-replabel"); if(lab) lab.textContent=isT?"Durée par série":"Répétitions";
     const inp=document.getElementById(p+"-reps");
     if(inp){ inp.placeholder=isT?"45 ou 1min30":(p==="ex"?"12":"8-10"); }
+    // Mettre à jour les placeholders des listes variables aussi
+    document.querySelectorAll("."+p+"-r-list").forEach(el=>{ el.placeholder=isT?"45":(p==="ex"?"12":"8-10"); });
+    return;
+  }
+  // Bascule mode uniforme <-> variable par série
+  if(e.target.id==="ex-varmode"||e.target.id==="tex-varmode"){
+    const p=e.target.id==="ex-varmode"?"ex":"tex";
+    const on=e.target.checked;
+    const uni=document.getElementById(p+"-uniform");
+    const vari=document.getElementById(p+"-variable");
+    if(uni) uni.style.display=on?"none":"";
+    if(vari) vari.style.display=on?"":"none";
+    // Si passe en mode variable, pré-remplir la 1re série avec les valeurs uniformes si vide
+    if(on){
+      const rInp=document.querySelector("."+p+"-r-list[data-i=\"0\"]");
+      const cInp=document.querySelector("."+p+"-c-list[data-i=\"0\"]");
+      const rUni=document.querySelector("#"+p+"-uniform #"+p+"-reps");
+      const cUni=document.querySelector("#"+p+"-uniform #"+p+"-charge");
+      if(rInp&&!rInp.value&&rUni&&rUni.value) rInp.value=rUni.value;
+      if(cInp&&!cInp.value&&cUni&&cUni.value) cInp.value=cUni.value;
+    }
+    return;
+  }
+  // Changement du nombre de séries -> régénérer les lignes variables
+  if(e.target.id==="ex-series"||e.target.id==="tex-series"){
+    const p=e.target.id==="ex-series"?"ex":"tex";
+    const varOn=document.getElementById(p+"-varmode")&&document.getElementById(p+"-varmode").checked;
+    if(!varOn) return;
+    const n=Math.max(1,+e.target.value||1);
+    const list=document.getElementById(p+"-serieslist");
+    if(!list) return;
+    // Récupérer les valeurs actuelles
+    const rVals=Array.from(list.querySelectorAll("."+p+"-r-list")).map(el=>el.value);
+    const cVals=Array.from(list.querySelectorAll("."+p+"-c-list")).map(el=>el.value);
+    const isT=(document.getElementById(p+"-reptype")||{}).value==="temps";
+    const phR=isT?"45":(p==="ex"?"12":"8-10");
+    list.innerHTML=Array.from({length:n},(_,i)=>`
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="min-width:52px;font-size:12px;color:var(--amber);font-weight:700">Série ${i+1}</span>
+        <input class="${p}-r-list" data-i="${i}" placeholder="${phR}" value="${esc(rVals[i]||"")}" style="flex:1;min-width:0">
+        <input class="${p}-c-list" data-i="${i}" placeholder="40 kg" value="${esc(cVals[i]||"")}" style="flex:1;min-width:0">
+      </div>`).join("");
     return;
   }
   // Échelle RIR / RPE : régénère les valeurs disponibles
