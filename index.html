@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.6 — 09/08/2026";
+const APP_VERSION="v11.7 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1079,244 +1079,284 @@ function dashboard(){
   const cs=S.clients;
   const totalSeances=cs.reduce((n,c)=>n+((c.seances||[]).filter(s=>s.fait).length),0);
   const totalMsgs=cs.reduce((n,c)=>n+((c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length),0);
-  const byF=FORMULES.map(f=>({f,n:cs.filter(c=>c.formule===f).length})).filter(x=>x.n>0);
   const email=S.session&&S.session.user?S.session.user.email:"";
-  // Clients inactifs = aucune séance depuis 14 jours
-  const now=new Date(), inactifs=cs.filter(c=>{
-    const ss=(c.seances||[]).filter(s=>s.fait);
-    if(!ss.length) return true;
-    const last=new Date(ss[ss.length-1].date||ss[ss.length-1]);
-    return (now-last)/(1000*60*60*24)>14;
+  const now=new Date();
+  const todayStr=now.toDateString();
+  // Chiffres du mois
+  const encaisseMois=cs.reduce((t,c)=>t+(c.paiements||[]).filter(p=>{const d=new Date(p.date+"T12:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((t2,p)=>t2+(+p.montant||0),0),0);
+
+  // ===== ÉVÉNEMENTS DU JOUR (RDV + séances faites) =====
+  const rdvsFuturs=cs.filter(c=>c.prochainRdv).map(c=>({c,d:new Date(c.prochainRdv)})).filter(x=>x.d>=new Date(Date.now()-3600*1000)).sort((a,b)=>a.d-b.d);
+  const rdvAuj=rdvsFuturs.filter(x=>x.d.toDateString()===todayStr);
+  const rdvSemaine=rdvsFuturs.filter(x=>x.d.toDateString()!==todayStr).slice(0,4);
+  const seancesFaitesAuj=cs.filter(c=>(c.seances||[]).some(s=>s.fait&&s.date===today()));
+
+  // ===== COLLECTE DES ALERTES (une seule source de vérité) =====
+  const alertes=[];
+  // Urgent — rouge
+  cs.forEach(c=>{
+    const n=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
+    if(n) alertes.push({niv:1,icone:"✉",titre:`${n} message${n>1?"s":""} non lu${n>1?"s":""}`,client:c.nom,act:"open-msgs",id:c.id,cta:"Répondre"});
   });
+  cs.filter(c=>programEnded(c)&&(c.clientEmail||"").trim()).forEach(c=>{
+    alertes.push({niv:1,icone:"🔒",titre:"Accès suspendu",client:c.nom,det:"programme terminé",act:"open",id:c.id,cta:"Réactiver"});
+  });
+  cs.filter(c=>c.prochainRdv&&new Date(c.prochainRdv)<new Date(Date.now()-24*3600*1000)).forEach(c=>{
+    alertes.push({niv:1,icone:"📅",titre:"RDV passé à replanifier",client:c.nom,det:frDate(c.prochainRdv.slice(0,10)),act:"open",id:c.id,cta:"Ouvrir"});
+  });
+  // Attention — ambre
+  cs.map(c=>({c,r:forfaitRestant(c)})).filter(x=>x.r!==null&&x.r<=2).forEach(({c,r})=>{
+    alertes.push({niv:2,icone:"💳",titre:r<=0?"Forfait épuisé":`${r} séance${r>1?"s":""} restante${r>1?"s":""}`,client:c.nom,act:"open",id:c.id,cta:"Renouveler"});
+  });
+  cs.map(c=>{const l=c.checkins||[];const ci=l.length?l[l.length-1]:null;if(!ci)return null;const moy=((ci.energie||3)+(ci.sommeil||3)+(ci.motivation||3)+(ci.courbatures||3))/4;return moy<=2.5?{c,moy:moy.toFixed(1)}:null;}).filter(Boolean).forEach(({c,moy})=>{
+    alertes.push({niv:2,icone:"📋",titre:`Check-in bas (${moy}/5)`,client:c.nom,act:"open",id:c.id,cta:"Ouvrir"});
+  });
+  qEnAttente().forEach(q=>{
+    alertes.push({niv:2,icone:"❓",titre:"Question en attente",client:q.prenom||"Client",act:"nav",data:{view:"questions"},cta:"Répondre"});
+  });
+  cs.filter(c=>{
+    if(programEnded(c)||!(c.programmeFin||"")) return false;
+    const d=(new Date(c.programmeFin+"T23:59:59").getTime()-Date.now())/(24*3600*1000);
+    return d>=0&&d<=7;
+  }).forEach(c=>{
+    alertes.push({niv:2,icone:"⏳",titre:"Programme fin sous 7j",client:c.nom,det:frDate(c.programmeFin),act:"open",id:c.id,cta:"Ouvrir"});
+  });
+  // Info — gris
+  cs.filter(bilanDue).forEach(c=>{
+    alertes.push({niv:3,icone:"📏",titre:"Bilan à refaire (5+ semaines)",client:c.nom,act:"open",id:c.id,cta:"Ouvrir"});
+  });
+  const inactifs=cs.filter(c=>{const ss=(c.seances||[]).filter(s=>s.fait);if(!ss.length)return true;const last=new Date(ss[ss.length-1].date||ss[ss.length-1]);return (now-last)/(1000*60*60*24)>14;});
+  inactifs.forEach(c=>{
+    alertes.push({niv:3,icone:"⚠",titre:"Inactif (+14 jours)",client:c.nom,act:"open",id:c.id,cta:"Relancer"});
+  });
+  cs.filter(c=>c.checkins&&c.checkins.length&&checkinStale(c)).forEach(c=>{
+    if(!alertes.some(a=>a.client===c.nom&&a.titre.startsWith("Inactif"))){
+      alertes.push({niv:3,icone:"📋",titre:"Check-in en retard",client:c.nom,act:"open",id:c.id,cta:"Ouvrir"});
+    }
+  });
+  // Sauvegarde
+  if(exportDue()&&cs.length){
+    const iSav=infoSauvegarde();
+    alertes.push({niv:3,icone:"💾",titre:"Sauvegarde à exporter",client:iSav.exportJours===null?"jamais exportée":`il y a ${iSav.exportJours} jours`,act:"export",cta:"Exporter"});
+  }
+
+  alertes.sort((a,b)=>a.niv-b.niv);
+  const urgents=alertes.filter(a=>a.niv===1);
+  const attentions=alertes.filter(a=>a.niv===2);
+  const infos=alertes.filter(a=>a.niv===3);
+
+  const renderAlerte=(a,color)=>{
+    const dataAttrs=a.data?Object.entries(a.data).map(([k,v])=>`data-${k}="${esc(v)}"`).join(" "):"";
+    const idAttr=a.id?`data-id="${a.id}"`:"";
+    return `<button class="alrt" data-act="${a.act}" ${idAttr} ${dataAttrs}>
+      <span class="alrt-ic" style="color:${color}">${a.icone}</span>
+      <span class="alrt-body">
+        <span class="alrt-title">${esc(a.titre)}</span>
+        <span class="alrt-sub">${esc(a.client||"")}${a.det?` · ${esc(a.det)}`:""}</span>
+      </span>
+      <span class="alrt-cta">${esc(a.cta)} ›</span>
+    </button>`;
+  };
+
+  const phraseJour=(()=>{
+    const bits=[];
+    if(rdvAuj.length) bits.push(`${rdvAuj.length} RDV`);
+    if(seancesFaitesAuj.length) bits.push(`${seancesFaitesAuj.length} séance${seancesFaitesAuj.length>1?"s":""} validée${seancesFaitesAuj.length>1?"s":""}`);
+    if(totalMsgs) bits.push(`${totalMsgs} message${totalMsgs>1?"s":""} non lu${totalMsgs>1?"s":""}`);
+    if(urgents.length&&!bits.length) bits.push(`${urgents.length} action${urgents.length>1?"s":""} urgente${urgents.length>1?"s":""}`);
+    return bits.length?bits.join(" · "):"Rien d'urgent — bonne journée 💪";
+  })();
+
   return `
-    <div style="margin-bottom:18px">
-      <div class="t-eyebrow" style="margin-bottom:5px">${todayLong()}</div>
-      <div class="t-xl">${greet()} Coach</div>
+    <style>
+      .hero{background:linear-gradient(135deg,rgba(176,31,31,.14) 0%,rgba(184,134,47,.06) 60%,transparent 100%);
+        border:1px solid var(--line);border-left:3px solid var(--red);border-radius:16px;padding:18px 18px 16px;margin-bottom:16px}
+      .hero .eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:capitalize;color:var(--amber)}
+      .hero .greet{font-family:'Bebas Neue';font-size:30px;line-height:1.02;letter-spacing:.03em;color:var(--white);margin-top:3px}
+      .hero .today{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.06);font-size:13.5px;color:var(--white2)}
+      .hero .today b{color:var(--amber);font-weight:700}
+      .todo-hd{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px;padding:0 2px}
+      .todo-hd h2{font-family:'Bebas Neue';font-size:19px;letter-spacing:.05em;color:var(--white);margin:0}
+      .todo-hd .cnt{font-size:11px;color:var(--grey2);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+      .todo-grp{margin-bottom:8px}
+      .todo-grp-lbl{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:6px 4px 4px}
+      .todo-grp-lbl .dot{width:8px;height:8px;border-radius:50%}
+      .alrt{width:100%;display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:11px 12px;margin-bottom:6px;cursor:pointer;color:var(--white);font-family:inherit;text-align:left;transition:transform .12s,border-color .15s}
+      .alrt:hover{border-color:rgba(184,134,47,.4)}
+      .alrt:active{transform:scale(.99)}
+      .alrt-ic{flex:0 0 auto;font-size:18px;width:22px;text-align:center}
+      .alrt-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+      .alrt-title{font-size:13.5px;font-weight:700;color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .alrt-sub{font-size:11.5px;color:var(--grey2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .alrt-cta{flex:0 0 auto;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--amber);text-transform:uppercase}
+      .today-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+      .today-line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;font-size:14px}
+      .today-line + .today-line{border-top:1px solid var(--line)}
+      .today-line .h{font-family:'Bebas Neue';font-size:17px;color:var(--amber);letter-spacing:.05em;flex:0 0 auto}
+      .today-line .h.ok{color:#4CAF50}
+      .today-line .nm{flex:1;min-width:0;font-weight:700;color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .today-line .act{display:flex;gap:8px;align-items:center;flex:0 0 auto}
+      .acct-details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+      .acct-details > summary{cursor:pointer;padding:14px 16px;font-weight:700;font-size:14px;color:var(--white);
+        display:flex;align-items:center;gap:10px;list-style:none;user-select:none}
+      .acct-details > summary::-webkit-details-marker{display:none}
+      .acct-details > summary::after{content:"›";margin-left:auto;font-size:20px;color:var(--grey2);transition:transform .2s}
+      .acct-details[open] > summary::after{transform:rotate(90deg)}
+      .acct-details > div{padding:0 16px 14px;border-top:1px solid var(--line)}
+    </style>
+
+    <div class="hero">
+      <div class="eyebrow">${todayLong()}</div>
+      <div class="greet">${greet()} Coach</div>
+      <div class="today">📌 <b>${phraseJour}</b></div>
     </div>
+
     <div class="row-stats">
-      <div class="stat"><div class="v num">${cs.length}</div><div class="l">Clients suivis</div></div>
-      <div class="stat"><div class="v num">${totalSeances}</div><div class="l">Séances au total</div></div>
-      <div class="stat${totalMsgs>0?" accent":""}"><div class="v num">${totalMsgs}</div><div class="l">Messages non lus</div></div>
-      <div class="stat or"><div class="v num">${(()=>{const now=new Date();return cs.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>{const d=new Date(p2.date+"T12:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((t3,p2)=>t3+(+p2.montant||0),0),0).toFixed(0);})()} €</div><div class="l">Encaissé ce mois</div></div>
+      <div class="stat"><div class="v num">${cs.length}</div><div class="l">Clients</div></div>
+      <div class="stat"><div class="v num">${totalSeances}</div><div class="l">Séances totales</div></div>
+      <div class="stat${totalMsgs>0?" accent":""}"><div class="v num">${totalMsgs}</div><div class="l">Msg non lus</div></div>
+      <div class="stat or"><div class="v num">${encaisseMois.toFixed(0)} €</div><div class="l">Ce mois</div></div>
     </div>
-    ${byF.length?`<div class="tags">${byF.map(x=>`<span class="tag ${x.f==='Petit groupe'?'am':'em'}">${x.f} · ${x.n}</span>`).join("")}</div>`:""}
-    ${(()=>{
-      const unread=cs.map(c2=>({c2,n:(c2.messages||[]).filter(m=>m.from==='client'&&!m.lu).length})).filter(x=>x.n>0);
-      if(!unread.length) return '';
-      return `<div class="panel urgent" style="margin-bottom:14px">
-        <div class="ph" style="color:var(--red);font-size:14px">✉ Messages non lus</div>
-        ${unread.map(({c2,n})=>`<button data-act="open-msgs" data-id="${c2.id}" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);padding:9px 2px;cursor:pointer;color:var(--white);font-size:14px;font-family:'Inter'">
-          <span>${esc(c2.nom)}</span>
-          <span style="background:var(--red);color:#fff;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700">${n}</span>
-        </button>`).join("")}
-      </div>`;})()}
-    ${(()=>{
-      const rdvs=cs.filter(c=>c.prochainRdv).map(c=>({c,d:new Date(c.prochainRdv)})).filter(x=>x.d>=new Date(Date.now()-3600*1000)).sort((a,b)=>a.d-b.d).slice(0,4);
-      if(!rdvs.length) return '';
-      const todayStr=new Date().toDateString();
-      const auj=rdvs.filter(x=>x.d.toDateString()===todayStr);
-      const later=rdvs.filter(x=>x.d.toDateString()!==todayStr);
-      const faites=cs.filter(c2=>(c2.seances||[]).some(s2=>s2.fait&&s2.date===today()));
-      return `${faites.length?`<div class="panel info" style="margin-bottom:14px">
-        <div class="ph" style="color:#4CAF50;font-size:14px">✅ Séances faites aujourd'hui</div>
-        ${faites.map(c2=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13.5px">
-          <span style="color:var(--white)">${esc(c2.nom)}</span>
-          <span style="display:flex;align-items:center;gap:10px">
-            ${(()=>{const r2=forfaitRestant(c2);return r2!==null?`<span style="color:var(--grey2);font-size:12px">${r2} restante${r2>1?"s":""}</span>`:"";})()}
-            <button class="link" style="font-size:12.5px;padding:0" data-act="open" data-id="${c2.id}">Ouvrir ›</button>
-          </span>
+
+    ${(rdvAuj.length||seancesFaitesAuj.length||rdvSemaine.length)?`
+    <div class="todo-hd"><h2>Aujourd'hui</h2>${rdvAuj.length?`<span class="cnt">${rdvAuj.length} RDV</span>`:""}</div>
+    <div class="today-card">
+      ${rdvAuj.map(({c,d})=>`<div class="today-line">
+        <span class="h">${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
+        <span class="nm">${esc(c.nom)}</span>
+        <span class="act">
+          <button class="link" style="padding:2px 4px;font-size:16px" title="Rappel" data-act="rdv-remind" data-id="${c.id}">🔔</button>
+          ${(c.seances||[]).some(s=>s.fait&&s.date===today())?`<span title="Validé" style="font-size:16px">✅</span>`:`<button class="link" style="padding:2px 4px;font-size:16px;color:#4CAF50" title="Valider" data-act="quick-done" data-id="${c.id}">✔</button>`}
+          <button class="link" style="font-size:12px" data-act="open" data-id="${c.id}">Ouvrir ›</button>
+        </span>
+      </div>`).join("")}
+      ${seancesFaitesAuj.filter(c=>!rdvAuj.some(r=>r.c.id===c.id)).map(c=>`<div class="today-line">
+        <span class="h ok">✅</span>
+        <span class="nm">${esc(c.nom)}</span>
+        <span class="act">
+          <span style="font-size:11.5px;color:var(--grey2)">séance validée</span>
+          <button class="link" style="font-size:12px" data-act="open" data-id="${c.id}">Ouvrir ›</button>
+        </span>
+      </div>`).join("")}
+      ${rdvSemaine.length?`<div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--line)">
+        <div style="font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--grey2);margin-bottom:4px">À venir</div>
+        ${rdvSemaine.map(({c,d})=>`<div class="today-line" style="padding:4px 0;border-top:none">
+          <span style="font-size:11.5px;color:var(--red);font-weight:700;flex:0 0 auto;min-width:80px">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</span>
+          <span class="nm" style="font-size:13px">${esc(c.nom)}</span>
+          <span style="font-size:12.5px;color:var(--amber);font-weight:700">${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
         </div>`).join("")}
       </div>`:""}
-      ${auj.length?`<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.5);background:linear-gradient(180deg,rgba(184,134,47,.08),transparent)">
-        <div class="ph" style="color:var(--amber);font-size:14px">📅 Aujourd'hui</div>
-        ${auj.map(({c,d})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:15px">
-          <span style="color:var(--white);font-weight:700">${esc(c.nom)}</span>
-          <span style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--amber);font-weight:800;font-family:'Bebas Neue';font-size:18px;letter-spacing:.05em">${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
-            <button class="link" style="font-size:15px;padding:2px" title="Envoyer un rappel" data-act="rdv-remind" data-id="${c.id}">🔔</button>
-            ${(c.seances||[]).some(s2=>s2.fait&&s2.date===today())
-              ?`<span title="Séance validée" style="font-size:15px">✅</span>`
-              :`<button class="link" style="font-size:15px;padding:2px;color:#4CAF50" title="Valider la séance du jour" data-act="quick-done" data-id="${c.id}">✔</button>`}
-          </span>
-        </div>`).join("")}</div>`:''}
-      ${later.length?`<div class="panel" style="margin-bottom:14px"><div class="ph" style="font-size:14px">Prochains RDV</div>
-        ${rdvs.map(({c,d})=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px">
-          <span style="color:var(--white)">${esc(c.nom)}</span>
-          <span style="color:var(--red);font-weight:700">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})} · ${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
-        </div>`).join("")}</div>`:''}`;})()}
-    ${(()=>{
-      const finForfait=cs.filter(c=>{const r=forfaitRestant(c);return r!==null&&r<=2;});
-      if(!finForfait.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(193,18,31,.35)"><div class="ph" style="color:var(--red);font-size:14px">Forfaits à renouveler</div>
-        ${finForfait.map(c=>`<span class="badge-warn" style="margin-right:6px;background:rgba(193,18,31,.15);color:#FF6B6B">${esc(c.nom)} · ${forfaitRestant(c)} restante${forfaitRestant(c)>1?'s':''}</span>`).join("")}</div>`;})()}
-    ${(()=>{
-      const low=cs.map(c2=>{const l=(c2.checkins||[]);const ci=l.length?l[l.length-1]:null;
-        if(!ci) return null;
-        const moy=((ci.energie||3)+(ci.sommeil||3)+(ci.motivation||3)+(ci.courbatures||3))/4;
-        return moy<=2.5?{c2,moy:moy.toFixed(1)}:null;}).filter(Boolean);
-      if(!low.length) return '';
-      return `<div class="panel urgent" style="margin-bottom:14px">
-        <div class="ph" style="color:var(--red);font-size:14px">📋 Check-ins à surveiller</div>
-        ${low.map(({c2,moy})=>`<span class="badge-warn" style="margin-right:6px;background:rgba(176,31,31,.15);color:#FF6B6B">${esc(c2.nom)} · moy. ${moy}/5</span>`).join("")}
-      </div>`;})()}
-    ${(()=>{
-      const stale=cs.filter(checkinStale);
-      if(!stale.length) return '';
-      return `<div class="panel attention" style="margin-bottom:14px">
-        <div class="ph" style="color:#F0B429;font-size:14px">📋 Check-ins en retard (14+ jours)</div>
-        ${stale.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
-        <p class="muted" style="font-size:11.5px;margin-top:6px">Ils n'ont pas donné de nouvelles — un petit message peut relancer l'habitude.</p>
-      </div>`;})()}
-    ${(()=>{
-      const att=qEnAttente();
-      if(!att.length) return "";
-      return `<div class="panel attention" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-          <div style="flex:1;min-width:0">
-            <div class="ph" style="color:#F0B429;font-size:13.5px;margin-bottom:2px">❓ ${att.length} question${att.length>1?"s":""} en attente</div>
-            <p class="muted" style="font-size:11.5px">${att.slice(0,2).map(q=>esc(q.prenom||"Client")).join(", ")}${att.length>2?` et ${att.length-2} autre${att.length>3?"s":""}`:""}</p>
-          </div>
-          <button class="btn g" style="flex:0 0 auto;padding:9px 14px;font-size:13px" data-act="nav" data-view="questions">Répondre</button>
-        </div>
-      </div>`;})()}
-    ${(()=>{
-      if(!exportDue()||!cs.length) return "";
-      const i=infoSauvegarde();
-      return `<div class="panel attention" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-          <div style="flex:1;min-width:0">
-            <div class="ph" style="color:#F0B429;font-size:13.5px;margin-bottom:2px">💾 Pense à ta sauvegarde</div>
-            <p class="muted" style="font-size:11.5px">${i.exportJours===null?"Tu n'as pas encore exporté tes données.":`Dernier export il y a ${i.exportJours} jours.`}</p>
-          </div>
-          <button class="btn g" style="flex:0 0 auto;padding:9px 14px;font-size:13px" data-act="export">↓ Exporter</button>
-        </div>
-      </div>`;})()}
-    ${(()=>{
-      const bas=cs.map(c2=>({c2,r:forfaitRestant(c2)})).filter(x=>x.r!==null&&x.r<=2);
-      if(!bas.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.45);background:linear-gradient(180deg,rgba(184,134,47,.07),transparent)">
-        <div class="ph" style="color:var(--amber);font-size:14px">💳 Forfaits à renouveler</div>
-        ${bas.map(({c2,r})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13.5px">
-          <span style="color:var(--white);font-weight:600">${esc(c2.nom)}</span>
-          <span style="display:flex;align-items:center;gap:10px">
-            <b style="color:${r<=0?"#FF6B6B":"var(--amber)"}">${r<=0?"épuisé":r+" séance"+(r>1?"s":"")}</b>
-            ${(c2.telephone||"").trim()?`<a href="tel:${esc((c2.telephone||"").replace(/\s/g,""))}" style="text-decoration:none;font-size:15px">📞</a>`:""}
-            <button class="link" style="font-size:12.5px;padding:0" data-act="open" data-id="${c2.id}">Ouvrir ›</button>
-          </span>
-        </div>`).join("")}
-        <p class="muted" style="font-size:11.5px;margin-top:6px">C'est le meilleur moment pour proposer la suite — avant la dernière séance.</p>
-      </div>`;})()}
-    ${(()=>{
-      const old2=cs.filter(c2=>c2.prochainRdv&&new Date(c2.prochainRdv)<new Date(Date.now()-24*3600*1000));
-      if(!old2.length) return '';
-      return `<div class="panel attention" style="margin-bottom:14px">
-        <div class="ph" style="color:#F0B429;font-size:14px">📅 RDV passés à replanifier</div>
-        ${old2.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)} · ${frDate(c2.prochainRdv.slice(0,10))}</span>`).join("")}
-        <p class="muted" style="font-size:11.5px;margin-top:6px">Ouvre leur fiche : un bouton « +1 semaine » suffit à reprogrammer.</p>
-      </div>`;})()}
-    ${(()=>{
-      const ended=cs.filter(c2=>programEnded(c2)&&(c2.clientEmail||"").trim());
-      const soon=cs.filter(c2=>{
-        if(programEnded(c2)||!(c2.programmeFin||"")) return false;
-        const d=(new Date(c2.programmeFin+"T23:59:59").getTime()-Date.now())/(24*3600*1000);
-        return d>=0&&d<=7;
-      });
-      if(!ended.length&&!soon.length) return '';
-      return `<div class="panel urgent" style="margin-bottom:14px">
-        ${ended.length?`<div class="ph" style="color:var(--red);font-size:14px">🔒 Accès suspendu — programme terminé</div>
-          ${ended.map(c2=>`<span class="badge-warn" style="margin-right:6px;background:rgba(176,31,31,.15);color:#FF6B6B">${esc(c2.nom)}</span>`).join("")}
-          <p class="muted" style="font-size:11.5px;margin:6px 0 ${soon.length?"10px":"0"}">Ils ne peuvent plus ouvrir leur espace. Repousse la date de fin dans leur fiche (onglet Programme) pour réactiver.</p>`:""}
-        ${soon.length?`<div class="ph" style="color:var(--amber);font-size:14px">⏳ Programmes qui se terminent sous 7 jours</div>
-          ${soon.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)} · ${frDate(c2.programmeFin)}</span>`).join("")}
-          <p class="muted" style="font-size:11.5px;margin-top:6px">Anticipe le renouvellement avant que leur accès se coupe.</p>`:""}
-      </div>`;})()}
-    ${(()=>{
-      const due=cs.filter(bilanDue);
-      if(!due.length) return '';
-      return `<div class="panel" style="margin-bottom:14px;border-color:rgba(184,134,47,.35)">
-        <div class="ph" style="color:var(--amber);font-size:14px">📏 Bilans à refaire (5+ semaines)</div>
-        ${due.map(c2=>`<span class="badge-warn" style="margin-right:6px">${esc(c2.nom)}</span>`).join("")}
-        <p class="muted" style="font-size:11.5px;margin-top:6px">Un bilan régulier montre les progrès au client — c'est ce qui donne envie de continuer.</p>
-      </div>`;})()}
-    ${inactifs.length?`<div class="panel attention" style="margin-bottom:14px">
-      <div class="ph" style="color:#F0B429;font-size:14px">⚠ ${inactifs.length} client${inactifs.length>1?'s':''} inactif${inactifs.length>1?'s':''} (+14 jours)</div>
-      ${inactifs.map(c=>`<span class="badge-warn" style="margin-right:6px;margin-top:4px">${esc(c.nom)}</span>`).join("")}
     </div>`:""}
-    <div class="sec-head"><h2>Vos clients</h2><button class="link" data-act="add-open">+ Ajouter</button></div>
+
+    ${alertes.length?`
+    <div class="todo-hd"><h2>À faire</h2><span class="cnt">${alertes.length}</span></div>
+    ${urgents.length?`<div class="todo-grp">
+      <div class="todo-grp-lbl" style="color:var(--red)"><span class="dot" style="background:var(--red);box-shadow:0 0 8px rgba(206,42,42,.6)"></span>Urgent</div>
+      ${urgents.map(a=>renderAlerte(a,"#FF6B6B")).join("")}
+    </div>`:""}
+    ${attentions.length?`<div class="todo-grp">
+      <div class="todo-grp-lbl" style="color:var(--amber)"><span class="dot" style="background:var(--amber)"></span>À traiter</div>
+      ${attentions.map(a=>renderAlerte(a,"var(--amber)")).join("")}
+    </div>`:""}
+    ${infos.length?`<div class="todo-grp">
+      <div class="todo-grp-lbl" style="color:var(--grey2)"><span class="dot" style="background:var(--grey2)"></span>À prévoir</div>
+      ${infos.map(a=>renderAlerte(a,"var(--grey)")).join("")}
+    </div>`:""}
+    `:`<div class="panel" style="text-align:center;padding:16px;margin-bottom:14px;border-color:rgba(76,175,80,.25);background:linear-gradient(180deg,rgba(76,175,80,.05),transparent)">
+      <div style="font-size:22px;margin-bottom:2px">✨</div>
+      <p style="font-size:13.5px;color:var(--white);font-weight:600;margin:0">Aucune alerte — tout est à jour</p>
+    </div>`}
+
+    <div class="sec-head" style="margin-top:18px"><h2>Vos clients</h2><button class="link" data-act="add-open">+ Ajouter</button></div>
     ${cs.length>=4?`<label class="fld" style="margin-bottom:10px"><input id="cl-search" placeholder="🔎 Rechercher un client…" value="${esc(S.q||"")}"></label>`:""}
     ${(()=>{
       const q=(S.q||"").toLowerCase().trim();
       const list=q?cs.filter(c2=>(c2.nom||"").toLowerCase().includes(q)||(c2.objectif||"").toLowerCase().includes(q)):cs;
-      return list.length?list.map(clientRow).join(""):(q?vide("🔎","Aucun résultat","Aucun client ne correspond à « "+esc(S.q)+" ». Essaie un autre mot."):emptyClients());
+      return list.length?list.map(clientRow).join(""):(q?vide("🔎","Aucun résultat","Aucun client ne correspond à « "+esc(S.q)+" »."):emptyClients());
     })()}
-    <div class="sec-head" style="margin-top:20px"><h2>Compte</h2></div>
-    <div class="panel">
-      <p class="muted" style="margin-bottom:12px">Connecté : <b>${esc(email)}</b></p>
-      <div class="col">
-        ${(()=>{
-          const now=new Date(); const rows=[];
-          for(let i=5;i>=0;i--){
-            const m=new Date(now.getFullYear(),now.getMonth()-i,1);
-            const tot=S.clients.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>{const d=new Date(p2.date+"T12:00:00");return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear();}).reduce((t3,p2)=>t3+(+p2.montant||0),0),0);
-            rows.push({lab:m.toLocaleDateString("fr-FR",{month:"long",year:"2-digit"}),tot});
-          }
-          if(!rows.some(r2=>r2.tot>0)) return "";
-          const anneeTot=S.clients.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>new Date(p2.date+"T12:00:00").getFullYear()===now.getFullYear()).reduce((t3,p2)=>t3+(+p2.montant||0),0),0);
-          return `<div style="margin-bottom:12px"><div class="ph" style="font-size:13px">💶 Revenus (6 derniers mois)</div>
-            ${rows.map(r2=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)"><span style="color:var(--grey);text-transform:capitalize">${r2.lab}</span><b style="color:${r2.tot>0?'#4CAF50':'var(--grey2)'}">${r2.tot.toFixed(0)} €</b></div>`).join("")}
-            <div style="display:flex;justify-content:space-between;font-size:13.5px;padding:8px 0 0;margin-top:4px;border-top:1px solid var(--line)"><span style="color:var(--white);font-weight:700">Total ${now.getFullYear()}</span><b style="color:#4CAF50;font-size:15px">${anneeTot.toFixed(0)} €</b></div>
-            <p class="muted" style="font-size:11px;margin-top:6px">Pratique pour tes déclarations URSSAF de micro-entrepreneur.</p></div>`;})()}
-        ${(()=>{const i=infoSauvegarde();
-          const fmt=d=>d?new Date(d).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"jamais";
-          return `<div class="panel" style="margin-bottom:12px">
-            <div class="ph" style="font-size:13px">💾 Sauvegarde</div>
-            <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span style="color:var(--grey)">Copie automatique</span><b style="color:#4CAF50">${fmt(i.auto)}</b></div>
-            <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span style="color:var(--grey)">Dernier export</span><b style="color:${i.exportJours===null||i.exportJours>=7?"#F0B429":"var(--white2)"}">${fmt(i.export)}</b></div>
-            <p class="muted" style="font-size:11.5px;margin-top:6px">Une copie est enregistrée dans cet appareil à chaque ouverture. Exporte un fichier une fois par semaine pour le conserver ailleurs.</p>
-          </div>`;})()}
-        <button class="btn g full" data-act="export">↓ Exporter une sauvegarde</button>
-        ${restaurerAuto()?`<button class="link full" data-act="restore-auto" style="margin-top:8px;font-size:12.5px">↺ Restaurer la copie automatique</button>`:""}
-        <button class="btn g full" data-act="import-open">↑ Importer une sauvegarde</button>
-        <input type="file" id="imp-file" accept=".json,application/json" style="display:none">
-        ${(()=>{const ci=coachInfos();return `<div style="margin-bottom:12px"><div class="ph" style="font-size:13px">🧾 Mes coordonnées (reçus)</div>
-          <label class="fld" style="margin-bottom:8px"><span>Nom / raison sociale</span><input data-coach="nom" value="${esc(ci.nom||"")}" placeholder="Alexis — Alex Coaching"></label>
-          <label class="fld" style="margin-bottom:8px"><span>Adresse</span><input data-coach="adresse" value="${esc(ci.adresse||"")}" placeholder="Rue, code postal, ville"></label>
-          <label class="fld" style="margin-bottom:8px"><span>SIRET</span><input data-coach="siret" value="${esc(ci.siret||"")}" placeholder="123 456 789 00012"></label>
-          <label class="fld" style="margin-bottom:0"><span>N° carte professionnelle</span><input data-coach="carte" value="${esc(ci.carte||"")}" placeholder="0559..."></label></div>`;})()}
-        ${(()=>{const v=Math.round(volAlarme()*100);
-          return `<div class="panel" style="margin-bottom:12px">
-            <div class="ph" style="font-size:13px">🔊 Volume de l'alarme</div>
-            <input type="range" min="20" max="100" step="10" value="${v}" data-act="vol-alarme" style="width:100%;accent-color:var(--red)">
-            <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--grey2);margin-top:2px">
-              <span>Discret</span><b style="color:var(--white)">${v} %</b><span>Salle bruyante</span></div>
-            <p class="muted" style="font-size:11px;margin-top:8px;line-height:1.5">Un aperçu se joue à chaque réglage. Pense aussi au volume de ton téléphone et au bouton silence — l'appli ne peut pas les contourner.</p>
-          </div>`;})()}
-        ${(()=>{const on=reposNotifOn();
-          return `<div class="panel" style="margin-bottom:12px">
-            <div class="ph" style="font-size:13px">🔔 Ce que je reçois</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:13.5px;color:var(--white);font-weight:600">Fin de séance d'un client</div>
-                <p class="muted" style="font-size:11.5px;margin-top:2px">Une notification quand un client termine, avec durée et volume.</p>
-              </div>
-              <span style="flex:0 0 auto;font-size:11px;font-weight:800;color:#4CAF50;letter-spacing:.06em">TOUJOURS</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 4px;border-top:1px solid var(--line)">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:13.5px;color:var(--white);font-weight:600">Fin de chaque repos</div>
-                <p class="muted" style="font-size:11.5px;margin-top:2px">Utile seulement si tu t'entraînes toi-même avec l'appli.</p>
-              </div>
-              <button class="chip ${on?"on":""}" style="flex:0 0 auto" data-act="toggle-repos-notif">${on?"Activé":"Désactivé"}</button>
-            </div>
-          </div>`;})()}
-        <button class="btn g full" data-act="diag-push">🔔 Diagnostic notifications</button>
-        <button class="btn g full" data-act="see-faq">❓ Voir la FAQ client</button>
-        <button class="btn g full" data-act="change-pw">🔑 Changer mon mot de passe</button>
-        <button class="btn g full" data-act="install-help">📲 Installer comme application</button>
-        <button class="btn g full" data-act="logout">Se déconnecter</button>
+
+    <div class="sec-head" style="margin-top:22px"><h2>Compte</h2></div>
+    <p class="muted" style="margin-bottom:10px;font-size:12.5px">Connecté : <b style="color:var(--white2)">${esc(email)}</b></p>
+
+    ${(()=>{
+      const rows=[];
+      for(let i=5;i>=0;i--){
+        const m=new Date(now.getFullYear(),now.getMonth()-i,1);
+        const tot=cs.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>{const d=new Date(p2.date+"T12:00:00");return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear();}).reduce((t3,p2)=>t3+(+p2.montant||0),0),0);
+        rows.push({lab:m.toLocaleDateString("fr-FR",{month:"long",year:"2-digit"}),tot});
+      }
+      if(!rows.some(r=>r.tot>0)) return "";
+      const anneeTot=cs.reduce((t2,c2)=>t2+(c2.paiements||[]).filter(p2=>new Date(p2.date+"T12:00:00").getFullYear()===now.getFullYear()).reduce((t3,p2)=>t3+(+p2.montant||0),0),0);
+      return `<details class="acct-details">
+        <summary>💶 Revenus · <b style="color:#4CAF50;margin-left:4px">${anneeTot.toFixed(0)} € en ${now.getFullYear()}</b></summary>
+        <div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)"><span style="color:var(--grey);text-transform:capitalize">${r.lab}</span><b style="color:${r.tot>0?'#4CAF50':'var(--grey2)'}">${r.tot.toFixed(0)} €</b></div>`).join("")}
+        <p class="muted" style="font-size:11px;margin-top:8px">Utile pour tes déclarations URSSAF de micro-entrepreneur.</p></div>
+      </details>`;
+    })()}
+
+    ${(()=>{const i=infoSauvegarde();
+      const fmt=d=>d?new Date(d).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"jamais";
+      return `<details class="acct-details">
+        <summary>💾 Sauvegarde</summary>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span style="color:var(--grey)">Copie automatique</span><b style="color:#4CAF50">${fmt(i.auto)}</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-top:1px solid var(--line)"><span style="color:var(--grey)">Dernier export</span><b style="color:${i.exportJours===null||i.exportJours>=7?"#F0B429":"var(--white2)"}">${fmt(i.export)}</b></div>
+          <p class="muted" style="font-size:11.5px;margin:8px 0 10px">Copie enregistrée sur cet appareil à chaque ouverture. Exporte un fichier une fois par semaine.</p>
+          <button class="btn g full" data-act="export">↓ Exporter une sauvegarde</button>
+          ${restaurerAuto()?`<button class="link full" data-act="restore-auto" style="margin-top:8px;font-size:12.5px">↺ Restaurer la copie automatique</button>`:""}
+          <button class="btn g full" style="margin-top:8px" data-act="import-open">↑ Importer une sauvegarde</button>
+          <input type="file" id="imp-file" accept=".json,application/json" style="display:none">
+        </div>
+      </details>`;
+    })()}
+
+    ${(()=>{const ci=coachInfos();return `<details class="acct-details">
+      <summary>🧾 Mes coordonnées <span style="color:var(--grey2);font-weight:400;font-size:12px;margin-left:auto;margin-right:8px">${ci.nom?"✓":"à compléter"}</span></summary>
+      <div>
+        <label class="fld" style="margin-top:8px"><span>Nom / raison sociale</span><input data-coach="nom" value="${esc(ci.nom||"")}" placeholder="Alexis — Alex Coaching"></label>
+        <label class="fld"><span>Adresse</span><input data-coach="adresse" value="${esc(ci.adresse||"")}" placeholder="Rue, code postal, ville"></label>
+        <label class="fld"><span>SIRET</span><input data-coach="siret" value="${esc(ci.siret||"")}" placeholder="123 456 789 00012"></label>
+        <label class="fld" style="margin-bottom:0"><span>N° carte professionnelle</span><input data-coach="carte" value="${esc(ci.carte||"")}" placeholder="0559..."></label>
       </div>
-      <p style="text-align:center;font-size:10.5px;color:var(--grey2);margin-top:10px">${APP_VERSION}</p>
-    </div>`;
+    </details>`;})()}
+
+    ${(()=>{const v=Math.round(volAlarme()*100);const on=reposNotifOn();return `<details class="acct-details">
+      <summary>🔔 Sons & notifications</summary>
+      <div>
+        <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+          <div style="font-size:13px;color:var(--white2);font-weight:600;margin-bottom:6px">Volume de l'alarme</div>
+          <input type="range" min="20" max="100" step="10" value="${v}" data-act="vol-alarme" style="width:100%;accent-color:var(--red)">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--grey2);margin-top:2px">
+            <span>Discret</span><b style="color:var(--white)">${v} %</b><span>Salle bruyante</span></div>
+          <p class="muted" style="font-size:11px;margin-top:6px;line-height:1.4">Aperçu joué à chaque réglage. Pense au volume du téléphone et au bouton silence.</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--white);font-weight:600">Fin de séance d'un client</div>
+            <p class="muted" style="font-size:11.5px;margin-top:2px">Notification avec durée et volume.</p>
+          </div>
+          <span style="flex:0 0 auto;font-size:11px;font-weight:800;color:#4CAF50;letter-spacing:.06em">TOUJOURS</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--white);font-weight:600">Fin de chaque repos</div>
+            <p class="muted" style="font-size:11.5px;margin-top:2px">Utile si tu t'entraînes toi-même avec l'appli.</p>
+          </div>
+          <button class="chip ${on?"on":""}" style="flex:0 0 auto" data-act="toggle-repos-notif">${on?"Activé":"Désactivé"}</button>
+        </div>
+        <button class="btn g full" style="margin-top:8px" data-act="diag-push">🔧 Diagnostic notifications</button>
+      </div>
+    </details>`;})()}
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <button class="btn g full" data-act="see-faq">❓ Voir la FAQ client</button>
+      <button class="btn g full" data-act="change-pw">🔑 Changer mon mot de passe</button>
+      <button class="btn g full" data-act="install-help">📲 Installer comme application</button>
+      <button class="btn g full" data-act="logout">Se déconnecter</button>
+    </div>
+    <p style="text-align:center;font-size:10.5px;color:var(--grey2);margin-top:14px">${APP_VERSION}</p>
+    `;
 }
 function clientList(){
   const cs=S.clients;
