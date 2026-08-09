@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.7 — 09/08/2026";
+const APP_VERSION="v11.9 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1054,14 +1054,14 @@ function render(){
   else{headSub=`<div class="pick"><label>Vous êtes</label><select data-act="pick-client">${S.clients.map(cl=>`<option value="${cl.id}" ${cl.id===S.selectedId?'selected':''}>${esc(cl.nom)}</option>`).join("")}</select></div>`;}
   head=`<header class="hd"><div class="hd-top"><div class="logo"><img class="mark-img" src="${LOGO}" alt=""><span class="wmz"><span class="wm">Alex<em>Coaching</em></span><span class="wsub">${S.role==="coach"?`${S.clients.length} client${S.clients.length>1?"s":""} suivi${S.clients.length>1?"s":""}`:"Espace client"}</span></span></div><div class="toggle">${roleBtns}</div></div></header>`;
 
-  body=S.role==="coach"?(S.view==="questions"?questionsCoach():S.view==="planning"?planningTab():S.view==="programmes"?programmesView():S.view==="dashboard"?dashboard():S.view==="clients"?clientList():detail(c)):clientSpace(c);
+  body=S.role==="coach"?(S.view==="questions"?questionsCoach():S.view==="planning"?planningTab():S.view==="programmes"?programmesView():S.view==="messagerie"?messagerieView():S.view==="dashboard"?dashboard():S.view==="clients"?clientList():detail(c)):clientSpace(c);
 
   if(S.role==="coach"){
     const nonLus=(S.clients||[]).reduce((n,c2)=>n+(c2.messages||[]).filter(m=>m.from==='client'&&!m.lu).length,0);
     const qAtt=(typeof qEnAttente==="function"?qEnAttente().length:0);
-    nav=[["dashboard","Accueil","◆"],["planning","Semaine","📅"],["clients","Clients","☰"],["questions","Questions","❓"],["programmes","Programmes","▤"]].map(([k,l,i])=>{
-      const n2=(k==='clients'?nonLus:k==='questions'?qAtt:0);
-      return `<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':(k==='programmes'&&S.view==='programmes')?'on':(k==='planning'&&S.view==='planning')?'on':(k==='questions'&&S.view==='questions')?'on':''}"><span class="ic" style="position:relative;display:inline-block">${i}${n2?`<span class="nav-dot">${n2>9?"9+":n2}</span>`:""}</span>${l}</button>`;}).join("");
+    nav=[["dashboard","Accueil","◆"],["planning","Semaine","📅"],["clients","Clients","☰"],["messagerie","Msg","✉"],["questions","Aide","❓"],["programmes","Progr.","▤"]].map(([k,l,i])=>{
+      const n2=(k==='messagerie'?nonLus:k==='questions'?qAtt:0);
+      return `<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':''}"><span class="ic" style="position:relative;display:inline-block">${i}${n2?`<span class="nav-dot">${n2>9?"9+":n2}</span>`:""}</span>${l}</button>`;}).join("");
   }else{
     nav=(()=>{
       const principaux=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"]];
@@ -1215,7 +1215,7 @@ function dashboard(){
     <div class="row-stats">
       <div class="stat"><div class="v num">${cs.length}</div><div class="l">Clients</div></div>
       <div class="stat"><div class="v num">${totalSeances}</div><div class="l">Séances totales</div></div>
-      <div class="stat${totalMsgs>0?" accent":""}"><div class="v num">${totalMsgs}</div><div class="l">Msg non lus</div></div>
+      <div class="stat${totalMsgs>0?" accent":""}" data-act="nav" data-view="messagerie" style="cursor:pointer"><div class="v num">${totalMsgs}</div><div class="l">Msg non lus ›</div></div>
       <div class="stat or"><div class="v num">${encaisseMois.toFixed(0)} €</div><div class="l">Ce mois</div></div>
     </div>
 
@@ -1358,6 +1358,64 @@ function dashboard(){
     <p style="text-align:center;font-size:10.5px;color:var(--grey2);margin-top:14px">${APP_VERSION}</p>
     `;
 }
+/* ===== VUE MESSAGERIE — toutes les conversations en un coup d'œil ===== */
+function messagerieView(){
+  const cs=S.clients||[];
+  const withConvo=cs.map(c=>{
+    const msgs=(c.messages||[]);
+    const dernier=msgs.length?msgs[msgs.length-1]:null;
+    const nonLus=msgs.filter(m=>m.from==='client'&&!m.lu).length;
+    return {c,dernier,nonLus};
+  });
+  // Filtrage éventuel via S.q
+  const q=(S.q||"").toLowerCase().trim();
+  const filtered=q?withConvo.filter(x=>(x.c.nom||"").toLowerCase().includes(q)):withConvo;
+  // Tri : non-lus d'abord, puis par date de dernier message
+  filtered.sort((a,b)=>{
+    if((a.nonLus>0)!==(b.nonLus>0)) return b.nonLus-a.nonLus;
+    const da=a.dernier?new Date(a.dernier.date||0).getTime():0;
+    const db=b.dernier?new Date(b.dernier.date||0).getTime():0;
+    return db-da;
+  });
+  const totalNonLus=withConvo.reduce((n,x)=>n+x.nonLus,0);
+  const totalConvos=withConvo.filter(x=>x.dernier).length;
+  const preview=(m)=>{
+    if(!m) return `<span class="muted" style="font-size:12px">Aucun message échangé</span>`;
+    const de=m.from==='coach'?'Toi : ':'';
+    let txt="";
+    if(m.audio) txt="🎤 Message vocal";
+    else if(m.image) txt="📷 Photo";
+    else txt=(m.text||"").slice(0,80)+((m.text||"").length>80?"…":"");
+    return `<span style="color:${m.from==='client'?'var(--white2)':'var(--grey)'};font-size:12.5px">${esc(de)}${esc(txt)}</span>`;
+  };
+  const rows=filtered.map(({c,dernier,nonLus})=>{
+    const when=dernier?msgWhen(dernier.date):"";
+    return `<button class="alrt" data-act="open-msgs" data-id="${c.id}" style="align-items:flex-start;padding:12px 12px">
+      <span class="cav" style="width:40px;height:40px;font-size:16px;border-radius:12px;flex:0 0 auto">
+        <span>${esc((c.nom||"?").slice(0,1).toUpperCase())}</span>
+      </span>
+      <span class="alrt-body" style="gap:3px">
+        <span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+          <span class="alrt-title" style="flex:1;min-width:0">${esc(c.nom)}</span>
+          <span style="font-size:11px;color:${nonLus?'var(--red)':'var(--grey2)'};font-weight:${nonLus?700:400};flex:0 0 auto">${esc(when)}</span>
+        </span>
+        ${preview(dernier)}
+      </span>
+      ${nonLus?`<span style="flex:0 0 auto;background:var(--red);color:#fff;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:800;align-self:center">${nonLus}</span>`:""}
+    </button>`;
+  }).join("");
+  return `
+    <div class="sec-head" style="margin-bottom:8px">
+      <h2>✉ Messagerie</h2>
+      <span style="font-size:11.5px;color:var(--grey2);font-weight:700;letter-spacing:.06em;text-transform:uppercase">
+        ${totalNonLus?`${totalNonLus} non lu${totalNonLus>1?"s":""} · `:""}${totalConvos} conversation${totalConvos>1?"s":""}
+      </span>
+    </div>
+    ${cs.length>=4?`<label class="fld" style="margin-bottom:10px"><input id="cl-search" placeholder="🔎 Rechercher un client…" value="${esc(S.q||"")}"></label>`:""}
+    ${filtered.length?rows:(q?vide("🔎","Aucun résultat","Aucun client ne correspond à ta recherche."):vide("✉","Pas encore de messages","Les conversations avec tes clients apparaîtront ici."))}
+  `;
+}
+
 function clientList(){
   const cs=S.clients;
   return `<div class="sec-head"><h2 style="font-size:18px">Clients</h2><button class="btn p" style="padding:8px 14px;font-size:14px" data-act="add-open">+ Ajouter</button></div>
@@ -3562,6 +3620,41 @@ function compressImage(file, cb){
 const REC={media:null,rec:null,chunks:[],timer:null,secs:0,role:'coach'};
 const VOICE_MAX=300;        // 5 minutes
 const VOICE_BITRATE=14000;  // suffisant pour la voix, moitié moins lourd qu'en stéréo
+
+/* ===== CORRECTIF DURÉE WEBM =====
+   Les vocaux enregistrés via MediaRecorder au format WebM n'ont pas leur durée écrite
+   dans l'en-tête. Résultat : <audio>.duration = Infinity et la lecture s'arrête souvent
+   au bout de quelques secondes. Astuce éprouvée : on seek très loin pour forcer le
+   navigateur à parcourir tout le flux et découvrir la vraie fin, puis on remet à 0.
+*/
+function fixAudioDuration(audio){
+  if(!audio||audio.dataset.fixed==="done") return;
+  const setLabel=()=>{
+    const l=audio.parentElement&&audio.parentElement.querySelector('.voice-dur');
+    if(l&&isFinite(audio.duration)&&audio.duration>0){
+      const d=audio.duration;
+      l.textContent=Math.floor(d/60)+":"+String(Math.round(d%60)).padStart(2,"0");
+    }
+  };
+  if(isFinite(audio.duration)&&audio.duration>0){ audio.dataset.fixed="done"; setLabel(); return; }
+  if(audio.dataset.fixed==="pending") return;
+  audio.dataset.fixed="pending";
+  // Si l'utilisateur a déjà lancé la lecture avant qu'on fixe la durée,
+  // on met en pause pour faire le seek, puis on reprend la lecture depuis le début.
+  const wasPlaying=!audio.paused;
+  if(wasPlaying) audio.pause();
+  const onSeeked=()=>{
+    audio.removeEventListener("timeupdate",onSeeked);
+    audio.removeEventListener("seeked",onSeeked);
+    try{ audio.currentTime=0; }catch(_){}
+    audio.dataset.fixed="done";
+    setLabel();
+    if(wasPlaying){ audio.play().catch(()=>{}); }
+  };
+  audio.addEventListener("timeupdate",onSeeked,{once:true});
+  audio.addEventListener("seeked",onSeeked,{once:true});
+  try{ audio.currentTime=1e101; }catch(_){ audio.dataset.fixed=""; }
+}
 async function toggleVoice(role){
   const btn=document.getElementById("rec-btn");
   if(REC.rec && REC.rec.state==="recording"){ REC.rec.stop(); return; }
@@ -3689,7 +3782,7 @@ function messagesTab(c,isCoach){
         const suite=i>0&&msgs[i-1].from===m.from;   // messages consécutifs du même auteur
         return sep+`<div class="msg ${m.from==='coach'?'coach':'client'}${suite?" suite":""}">
         ${m.audio?`<div class="voice-msg">
-          <audio controls preload="metadata" src="${m.audio}" style="width:100%;height:38px" onloadedmetadata="const d=this.duration;if(isFinite(d)&&d>0){const l=this.parentElement.querySelector('.voice-dur');if(l)l.textContent=Math.floor(d/60)+':'+String(Math.round(d%60)).padStart(2,'0');}"></audio>
+          <audio controls preload="metadata" src="${m.audio}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
           <span class="voice-dur">🎤</span>
         </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">`:esc(m.text||"")}
         <div class="mt">${msgWhen(m.date)}${m.from==='coach'?`<span class="mt-lu">${m.lu===false?"":"✓"}</span>`:""}</div>
