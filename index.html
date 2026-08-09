@@ -2396,11 +2396,14 @@ function monthRecap(c){
   const ms=(c.mesures||[]).filter(x=>typeof x.poids==="number");
   const first=ms.length?ms[0]:null, last=ms.length?ms[ms.length-1]:null;
   const dPoids=(first&&last&&first!==last)?+(last.poids-first.poids).toFixed(1):null;
-  const tPts=ms.filter(x=>typeof x.taille==="number");
-  const dTaille=(tPts.length>=2)?+(tPts[tPts.length-1].taille-tPts[0].taille).toFixed(1):null;
+  const deltaMens={};
+  [["taille","Tour de taille"],["hanches","Tour de hanches"],["poitrine","Tour de poitrine"],["bras","Tour de bras"],["cuisse","Tour de cuisse"],["mollet","Tour de mollet"]].forEach(([k,label])=>{
+    const pts=(c.mesures||[]).filter(x=>typeof x[k]==="number");
+    if(pts.length>=2) deltaMens[label]=+(pts[pts.length-1][k]-pts[0][k]).toFixed(1);
+  });
   const prs=(c.program||[]).map(e=>({nom:e.nom,pr:exoPR(e)})).filter(x=>x.pr&&inMonth(x.pr.date));
   const stk=streakWeeks(c);
-  return {seances,dPoids,dTaille,prs,stk,mois:now.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})};
+  return {seances,dPoids,deltaMens,prs,stk,mois:now.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})};
 }
 function monthRecapText(c){
   const r=monthRecap(c), p=(c.nom||"").split(" ")[0];
@@ -2408,7 +2411,9 @@ function monthRecapText(c){
   t+=`✅ ${r.seances} séance${r.seances>1?"s":""} ce mois-ci\n`;
   if(r.stk>=2) t+=`🔥 ${r.stk} semaines d'affilée sans lâcher\n`;
   if(r.dPoids!==null) t+=`⚖️ Poids : ${r.dPoids>0?"+":""}${String(r.dPoids).replace(".",",")} kg depuis le début\n`;
-  if(r.dTaille!==null) t+=`📏 Tour de taille : ${r.dTaille>0?"+":""}${String(r.dTaille).replace(".",",")} cm\n`;
+  Object.entries(r.deltaMens).forEach(([label,d])=>{
+    t+=`📏 ${label} : ${d>0?"+":""}${String(d).replace(".",",")} cm\n`;
+  });
   if(r.prs.length){ t+=`\n🏆 Nouveaux records :\n`; r.prs.forEach(x=>{ t+=`   • ${x.nom} : ${x.pr.charge}\n`; }); }
   t+=`\nContinue comme ça, on avance !`;
   return t;
@@ -2646,19 +2651,46 @@ function progres(c,editable){
   const dernierPoids=ms.length?ms[ms.length-1].poids:"";
   const derniereTaille=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].taille==="number") return ms[i].taille; } return ""; })();
   const derniereHanches=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].hanches==="number") return ms[i].hanches; } return ""; })();
+  const dernierBras=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].bras==="number") return ms[i].bras; } return ""; })();
+  const dernierePoitrine=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].poitrine==="number") return ms[i].poitrine; } return ""; })();
+  const derniereCuisse=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].cuisse==="number") return ms[i].cuisse; } return ""; })();
+  const dernierMollet=(()=>{ for(let i=ms.length-1;i>=0;i--){ if(typeof ms[i].mollet==="number") return ms[i].mollet; } return ""; })();
+  const hasDetailedLast=(derniereHanches||dernierBras||dernierePoitrine||derniereCuisse||dernierMollet);
   const form=`<div class="panel" style="margin-bottom:14px"><div class="ph">${S.isClient?"⚖ Nouvelle pesée":"＋ Ajouter une mesure"}</div>
     <p class="muted" style="font-size:12.5px;margin-bottom:10px">${S.isClient?"Pèse-toi le matin à jeun, une fois par semaine idéalement, pour un suivi fiable.":"Ajouter une pesée / prise de mesure du jour pour ce client."}</p>
     <div class="r2">
       <label class="fld" style="margin-bottom:0"><span>Poids (kg) *</span><input id="me-poids" type="number" step="0.1" inputmode="decimal" placeholder="${dernierPoids||"72,5"}"></label>
       <label class="fld" style="margin-bottom:0"><span>Tour de taille (cm)</span><input id="me-taille" type="number" step="0.5" inputmode="decimal" placeholder="${derniereTaille||"—"}"></label>
     </div>
-    <label class="fld" style="margin-top:10px"><span>Tour de hanches (cm) — optionnel</span><input id="me-hanches" type="number" step="0.5" inputmode="decimal" placeholder="${derniereHanches||"—"}"></label>
+    <details style="margin:10px 0 4px" ${hasDetailedLast?"open":""}>
+      <summary style="cursor:pointer;font-size:13px;color:var(--amber);padding:4px 0;user-select:none">📏 Mensurations détaillées (optionnel)</summary>
+      <div style="padding-top:8px">
+        <div class="r2">
+          <label class="fld" style="margin-bottom:0"><span>Tour de hanches (cm)</span><input id="me-hanches" type="number" step="0.5" inputmode="decimal" placeholder="${derniereHanches||"—"}"></label>
+          <label class="fld" style="margin-bottom:0"><span>Tour de poitrine (cm)</span><input id="me-poitrine" type="number" step="0.5" inputmode="decimal" placeholder="${dernierePoitrine||"—"}"></label>
+        </div>
+        <div class="r2" style="margin-top:10px">
+          <label class="fld" style="margin-bottom:0"><span>Tour de bras (cm)</span><input id="me-bras" type="number" step="0.5" inputmode="decimal" placeholder="${dernierBras||"—"}"></label>
+          <label class="fld" style="margin-bottom:0"><span>Tour de cuisse (cm)</span><input id="me-cuisse" type="number" step="0.5" inputmode="decimal" placeholder="${derniereCuisse||"—"}"></label>
+        </div>
+        <label class="fld" style="margin-top:10px"><span>Tour de mollet (cm)</span><input id="me-mollet" type="number" step="0.5" inputmode="decimal" placeholder="${dernierMollet||"—"}"></label>
+        <p class="muted" style="font-size:11.5px;margin:-4px 0 4px">Prends la mesure le matin à jeun, muscle relâché, ruban bien à plat.</p>
+      </div>
+    </details>
     <label class="fld"><span>Note (ressenti, contexte…) — optionnel</span><input id="me-note" placeholder="Ex. après une semaine chargée"></label>
     <button class="btn p full" data-act="add-me">💾 Enregistrer la mesure</button>
   </div>`;
-  const rows=ms.map((m,i)=>({m,i})).reverse().map(({m,i})=>`
-    <div class="mrow"><div><span class="mv">${m.poids} kg</span><span class="md">${frDate(m.date)}</span>${m.taille||m.hanches?`<div class="md" style="margin-left:0">${m.taille?`Taille ${m.taille} cm`:''}${m.taille&&m.hanches?' · ':''}${m.hanches?`Hanches ${m.hanches} cm`:''}</div>`:""}${m.note?`<div class="md" style="margin-left:0">${esc(m.note)}</div>`:""}</div>
-    <button class="x" data-act="del-me" data-idx="${i}">×</button></div>`).join("");
+  const rows=ms.map((m,i)=>({m,i})).reverse().map(({m,i})=>{
+    const parts=[];
+    if(m.taille) parts.push(`Taille ${m.taille} cm`);
+    if(m.hanches) parts.push(`Hanches ${m.hanches} cm`);
+    if(m.poitrine) parts.push(`Poitrine ${m.poitrine} cm`);
+    if(m.bras) parts.push(`Bras ${m.bras} cm`);
+    if(m.cuisse) parts.push(`Cuisse ${m.cuisse} cm`);
+    if(m.mollet) parts.push(`Mollet ${m.mollet} cm`);
+    return `<div class="mrow"><div><span class="mv">${m.poids} kg</span><span class="md">${frDate(m.date)}</span>${parts.length?`<div class="md" style="margin-left:0">${parts.join(" · ")}</div>`:""}${m.note?`<div class="md" style="margin-left:0">${esc(m.note)}</div>`:""}</div>
+    <button class="x" data-act="del-me" data-idx="${i}">×</button></div>`;
+  }).join("");
   const chips=(()=>{
     if(!ms.length) return '';
     const start=ms[0].poids, cur=ms[ms.length-1].poids;
@@ -2670,11 +2702,28 @@ function progres(c,editable){
       <div class="pstat"><div class="pv">${cur} kg</div><div class="pl">Actuel</div></div>
       ${target?`<div class="pstat target"><div class="pv">${target} kg</div><div class="pl">Objectif</div></div>`:''}
     </div>`;})();
-  const tPts=ms.filter(m=>typeof m.taille==="number").map(m=>({date:m.date,poids:m.taille}));
-  const tailleChart=tPts.length>=2?`<div class="sec-head" style="margin-top:4px"><h2 style="font-size:15px;color:var(--amber)">Tour de taille</h2></div><div class="chartbox">${chart(tPts,undefined,"cm")}</div>`:"";
+  // Graphiques et résumés pour toutes les mensurations
+  const MENS_KEYS=[["taille","Tour de taille"],["hanches","Tour de hanches"],["poitrine","Tour de poitrine"],["bras","Tour de bras"],["cuisse","Tour de cuisse"],["mollet","Tour de mollet"]];
+  const mensSummary=(()=>{
+    const chunks=MENS_KEYS.map(([k,label])=>{
+      const pts=ms.filter(m=>typeof m[k]==="number");
+      if(pts.length<1) return "";
+      const start=pts[0][k], cur=pts[pts.length-1][k];
+      const delta=+(cur-start).toFixed(1);
+      const color=delta===0?"var(--grey)":(delta<0?"#4CAF50":"var(--amber2)");
+      return `<div class="pstat"><div class="pv" style="font-size:16px">${cur}<span style="font-size:11px;color:var(--grey2)"> cm</span></div><div class="pl">${label.replace("Tour de ","")}${pts.length>=2?` <span style="color:${color};font-weight:700">${delta>0?"+":""}${delta}</span>`:""}</div></div>`;
+    }).filter(Boolean);
+    if(!chunks.length) return "";
+    return `<div class="pstats" style="margin-top:10px">${chunks.join("")}</div>`;
+  })();
+  const mensCharts=MENS_KEYS.map(([k,label])=>{
+    const pts=ms.filter(m=>typeof m[k]==="number").map(m=>({date:m.date,poids:m[k]}));
+    if(pts.length<2) return "";
+    return `<div class="sec-head" style="margin-top:4px"><h2 style="font-size:15px;color:var(--amber)">${label}</h2></div><div class="chartbox">${chart(pts,undefined,"cm")}</div>`;
+  }).join("");
   const emptyHint=!ms.length?`<p class="muted" style="text-align:center;padding:10px 0;font-size:13px">Aucune mesure encore — ajoute-en une ci-dessus pour lancer le suivi.</p>`:"";
   const chartBox=ms.length?`<div class="chartbox">${chart(ms,c.objectifPoids||undefined)}</div>`:"";
-  return form+chips+chartBox+tailleChart+emptyHint+rows;
+  return form+chips+chartBox+mensSummary+mensCharts+emptyHint+rows;
 }
 
 
@@ -5397,11 +5446,12 @@ document.addEventListener("click",e=>{
       const raw=val("me-poids"); if(!raw||!raw.trim()){ alert("Renseigne au moins le poids."); return; }
       const p=parseFloat(String(raw).replace(",","."));
       if(isNaN(p)||p<20||p>300){ alert("Poids invalide (attendu entre 20 et 300 kg)."); return; }
-      const taille=parseFloat(String(val("me-taille")).replace(",","."));
-      const hanches=parseFloat(String(val("me-hanches")).replace(",","."));
       const m={date:today(),poids:+p.toFixed(1),note:(val("me-note")||"").trim()};
-      if(!isNaN(taille)&&taille>0) m.taille=+taille.toFixed(1);
-      if(!isNaN(hanches)&&hanches>0) m.hanches=+hanches.toFixed(1);
+      // Toutes les mensurations optionnelles (bornes anti-erreur de frappe)
+      [["taille",30,200],["hanches",30,200],["poitrine",40,200],["bras",15,80],["cuisse",25,100],["mollet",15,80]].forEach(([k,mn,mx])=>{
+        const v=parseFloat(String(val("me-"+k)||"").replace(",","."));
+        if(!isNaN(v)&&v>=mn&&v<=mx) m[k]=+v.toFixed(1);
+      });
       c.mesures=c.mesures||[];
       c.mesures.push(m);
       c.mesures.sort((x,y)=>x.date.localeCompare(y.date));
@@ -5411,7 +5461,14 @@ document.addEventListener("click",e=>{
       // Notification au coach quand c'est le client qui saisit
       if(S.isClient){
         const prenom=(c.nom||"Client").split(" ")[0];
-        const detail=[`Poids : ${m.poids} kg`, m.taille?`Taille : ${m.taille} cm`:"", m.hanches?`Hanches : ${m.hanches} cm`:"", m.note?`« ${m.note} »`:""].filter(Boolean).join(" · ");
+        const detail=[`Poids : ${m.poids} kg`,
+          m.taille?`Taille : ${m.taille} cm`:"",
+          m.hanches?`Hanches : ${m.hanches} cm`:"",
+          m.poitrine?`Poitrine : ${m.poitrine} cm`:"",
+          m.bras?`Bras : ${m.bras} cm`:"",
+          m.cuisse?`Cuisse : ${m.cuisse} cm`:"",
+          m.mollet?`Mollet : ${m.mollet} cm`:"",
+          m.note?`« ${m.note} »`:""].filter(Boolean).join(" · ");
         try{ pushTo(coachEmail(),`⚖ ${prenom} a enregistré une pesée`, detail); }catch(_){}
       }
       toast("Mesure enregistrée ✓");
