@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.13 — 09/08/2026";
+const APP_VERSION="v11.14 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -816,6 +816,11 @@ function isTypingOrRecording(){
   if(typeof WK!=="undefined" && WK.on) return true;
   // Éditeur de programme ouvert : saisie longue, jamais de reload
   if(S.tplEdit) return true;
+  // Vocal en cours de lecture : un render() couperait la lecture au milieu
+  try{
+    const voxJoue=Array.from(document.querySelectorAll(".voice-msg audio,audio")).some(a=>!a.paused&&!a.ended);
+    if(voxJoue) return true;
+  }catch(_){}
   // Un champ quelconque a le focus (clavier ouvert) : ne pas re-rendre
   const ae=document.activeElement;
   if(ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"||ae.tagName==="SELECT")) return true;
@@ -6356,9 +6361,14 @@ function bootApp(){
     }
   });
   // Rafraîchit automatiquement les messages toutes les 8 s quand on est dans l'onglet Messages
+  // MAIS : on saute le refresh si un vocal est en cours de lecture, sinon le render()
+  // remplace l'élément <audio> dans le DOM et la lecture est coupée net.
   setInterval(()=>{
     const onMsg=(S.isClient && S.clientTab==="messages") || (!S.isClient && S.view==="detail" && S.detailTab==="messages");
-    if(onMsg && S.session){ reloadKeepingView(); }
+    if(!onMsg||!S.session) return;
+    const voxJoue=Array.from(document.querySelectorAll(".voice-msg audio")).some(a=>!a.paused&&!a.ended);
+    if(voxJoue) return; // ne pas interrompre une lecture en cours
+    reloadKeepingView();
   }, 8000);
 }
 bootApp();
