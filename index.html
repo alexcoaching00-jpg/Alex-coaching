@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.22 — 09/08/2026";
+const APP_VERSION="v11.25 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2644,36 +2644,10 @@ function programme(c,editable){
   const JOURS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const blocRank=b=>{ if(b==="") return 100; const j=JOURS.indexOf(b); return j>=0?j:50; };
   const blocKeys=Object.keys(blocs).sort((a,b)=>blocRank(a)-blocRank(b)||a.localeCompare(b));
-  // Rendre une carte + injecter le formulaire d'édition inline juste dessous si c'est celle qu'on édite
-  const renderCard=(e,i)=>{
-    const card=exCard(e,i);
-    if(editable&&S.exDraft&&S.exDraft.id===e.id) return card+`<div style="margin-bottom:14px">${exForm}</div>`;
-    return card;
-  };
-  let list;
-  if(!prog.length){
-    list=`<p class="muted" style="margin-bottom:14px">Aucun exercice.${editable?" Ajoutez-en ci-dessous.":""}</p>`;
-  } else if(blocKeys.length===1 && blocKeys[0]===""){
-    list=prog.map(renderCard).join("");
-  } else {
-    list=blocKeys.map(b=>`
-      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:19px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
-        <span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
-          <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
-        </span></div>
-        ${editable?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
-          <div class="r2" style="margin-bottom:10px">
-            <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds" data-jour="${esc(b)}" value="${seanceRounds(c,b)||""}"></label>
-            <label class="fld" style="margin-bottom:0"><span>Repos entre les tours</span><input data-act="set-tour-repos" data-jour="${esc(b)}" placeholder="2min ou 120" value="${esc(tourRepos(c,b))}"></label>
-          </div>
-          ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total. Repos de transition entre exercices = celui de chaque exercice ; repos entre les tours = ${esc(tourRepos(c,b)||"60 s par défaut")}.</p>`:""}`
-        :(seanceType(c,b)||seanceRounds(c,b)>1?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
-      ${blocs[b].map(renderCard).join("")}`).join("");
-  }
   const dEx=S.exDraft||{};
   // Est-on en train d'éditer un exercice existant ? (S.exDraft.id correspond à un exo du programme)
   const editingId=(dEx&&dEx.id&&prog.some(x=>x.id===dEx.id))?dEx.id:null;
+  // Formulaire d'exercice : défini AVANT renderCard qui le référence en cas d'édition inline
   const exForm=editable?`
     <div class="panel" ${dEx.nom?'style="border-color:rgba(184,134,47,.5)"':''}><div class="ph">${dEx.nom?"✏️ Modifier l'exercice":"Nouvel exercice"}</div>
       ${exoPicker("ex-nom")}
@@ -2741,6 +2715,34 @@ function programme(c,editable){
       </div>
       <p class="muted" style="font-size:12px;margin-top:8px">Copie tous les exercices (le programme existant du client cible sera remplacé).</p>
     </div>`:""}`:"";
+  // Rendre une carte + injecter le formulaire d'édition inline juste dessous si c'est celle qu'on édite.
+  // Défini APRÈS exForm car il l'utilise en cas d'édition inline.
+  const renderCard=(e,i)=>{
+    const card=exCard(e,i);
+    if(editable&&S.exDraft&&S.exDraft.id===e.id) return card+`<div style="margin-bottom:14px">${exForm}</div>`;
+    return card;
+  };
+  let list;
+  if(!prog.length){
+    list=`<p class="muted" style="margin-bottom:14px">Aucun exercice.${editable?" Ajoutez-en ci-dessous.":""}</p>`;
+  } else if(blocKeys.length===1 && blocKeys[0]===""){
+    list=prog.map(renderCard).join("");
+  } else {
+    list=blocKeys.map(b=>`
+      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:19px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
+        <span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
+          <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
+        </span></div>
+        ${editable?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+          <div class="r2" style="margin-bottom:10px">
+            <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds" data-jour="${esc(b)}" value="${seanceRounds(c,b)||""}"></label>
+            <label class="fld" style="margin-bottom:0"><span>Repos entre les tours</span><input data-act="set-tour-repos" data-jour="${esc(b)}" placeholder="2min ou 120" value="${esc(tourRepos(c,b))}"></label>
+          </div>
+          ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total. Repos de transition entre exercices = celui de chaque exercice ; repos entre les tours = ${esc(tourRepos(c,b)||"60 s par défaut")}.</p>`:""}`
+        :(seanceType(c,b)||seanceRounds(c,b)>1?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
+      ${blocs[b].map(renderCard).join("")}`).join("");
+  }
   // Le formulaire va soit en INLINE juste après la carte modifiée, soit en bas en mode "ajout"
   const form=editingId?"":exForm;
   const endedWarn=(editable&&programEnded(c))?`<div class="panel" style="margin-bottom:12px;border-color:rgba(176,31,31,.45);background:linear-gradient(180deg,rgba(176,31,31,.08),transparent)">
@@ -3039,6 +3041,9 @@ document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
     if(WK.on) wakeOn();
     if(TIMER.exId) wakeOn();
+    // Au retour au premier plan : on force l'envoi des push en attente au cas où
+    // une notification de fin de repos n'a pas encore été traitée par le serveur.
+    try{ flushPushes(); }catch(_){}
     // Rattrapage : si l'écran s'est quand même éteint/verrouillé pendant le repos,
     // l'horloge réelle nous dit où on en est → on rejoue l'alarme si le temps est écoulé
     if(TIMER.exId && TIMER.end && Date.now()>=TIMER.end){
@@ -3144,6 +3149,7 @@ function wkStartRest(secs){
   const exNext=WK.exos[WK.idx];
   schedulePush("⏱ Repos terminé",exNext?("Série suivante : "+exNext.nom):"C'est reparti !",secs);
   WK.restInt=setInterval(()=>{
+    const prev=WK.rest;
     WK.rest=Math.max(0,Math.round((WK.restEnd-Date.now())/1000));
     const el=document.getElementById("wk-rest-n");
     if(el){
@@ -3156,6 +3162,10 @@ function wkStartRest(secs){
       ring.setAttribute("stroke-dashoffset",(326.7*(1-WK.rest/tot)).toFixed(1));
       ring.setAttribute("stroke",WK.rest<=10?"#E0A94A":"#CE2A2A");
     }
+    // Décompte vocal : 5, 4, 3, 2, 1 pendant les 5 dernières secondes (sur le passage d'une seconde)
+    if(WK.rest!==prev && WK.rest>=1 && WK.rest<=5){
+      countdownVoice(WK.rest);
+    }
     if(WK.rest<=0){
       clearInterval(WK.restInt); WK.restInt=null;
       const exNow=WK.exos[WK.idx];
@@ -3164,6 +3174,18 @@ function wkStartRest(secs){
       wkRender();
     }
   },500);
+}
+/* Prononce un chiffre à voix haute (compte à rebours des 5 dernières secondes du repos). */
+function countdownVoice(n){
+  try{
+    if(!("speechSynthesis" in window)) return;
+    // Si l'user est en mode "musique de fond", on saute pour ne pas gêner Spotify
+    if(typeof musiqueFondOn==="function" && musiqueFondOn()) return;
+    const u=new SpeechSynthesisUtterance(String(n));
+    u.lang="fr-FR"; u.rate=1.1; u.volume=Math.min(1, (typeof volAlarme==="function"?volAlarme():1));
+    speechSynthesis.cancel(); // évite l'empilage
+    speechSynthesis.speak(u);
+  }catch(_){}
 }
 function wkSkipRest(){
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
@@ -3261,7 +3283,28 @@ function wkRender(){
         </svg>
         <div id="wk-rest-n" class="rest-num">${Math.floor(WK.rest/60)}:${String(WK.rest%60).padStart(2,"0")}</div>
       </div>
-      <p style="color:var(--grey);margin:14px 0 26px">Ensuite : <b style="color:var(--white)">${esc(ex.nom)}</b> — ${circuit?`tour ${WK.round}/${WK.rounds}`:`série ${WK.serie}/${total}`}</p>
+      ${(()=>{
+        // Pendant le repos : anticiper ce qui suit
+        const isLastSerie=!circuit && WK.serie>=total;
+        const nextEx=WK.exos[WK.idx+1];
+        if(WK.roundTransition){
+          // Repos entre les tours : le prochain tour redémarre du premier exo
+          const first=WK.exos[0];
+          return `<p style="color:var(--grey);margin:14px 0 6px">Prochain tour</p>
+            <p style="color:var(--white);font-family:'Bebas Neue';font-size:26px;letter-spacing:.03em;margin:0 0 20px">🔁 ${first?esc(first.nom):"—"}</p>`;
+        }
+        if(isLastSerie && nextEx){
+          // Dernière série de l'exo courant → montrer le prochain exercice
+          return `<p style="color:var(--grey);margin:14px 0 6px">Prochain exercice</p>
+            <p style="color:var(--white);font-family:'Bebas Neue';font-size:26px;letter-spacing:.03em;margin:0">➡️ ${esc(nextEx.nom)}</p>
+            <p style="color:var(--grey2);font-size:12.5px;margin:4px 0 20px">${nextEx.series}×${esc(nextEx.repType==="temps"?(nextEx.reps||"—"):(typeof repsDisplay==="function"?repsDisplay(nextEx):nextEx.reps||"—"))}${(typeof chargeDisplay==="function"?chargeDisplay(nextEx):nextEx.charge)?` · ${esc(typeof chargeDisplay==="function"?chargeDisplay(nextEx):nextEx.charge)}`:""}</p>`;
+        }
+        if(isLastSerie && !nextEx){
+          return `<p style="color:var(--amber);font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;margin:14px 0 20px">🏁 Dernier repos avant la fin</p>`;
+        }
+        // Cas normal : prochaine série du même exercice
+        return `<p style="color:var(--grey);margin:14px 0 26px">Ensuite : <b style="color:var(--white)">${esc(ex.nom)}</b> — ${circuit?`tour ${WK.round}/${WK.rounds}`:`série ${WK.serie}/${total}`}</p>`;
+      })()}
       <button class="btn g full" data-act="wk-skip" style="max-width:280px">Passer le repos ›</button>
       <button class="link" data-act="wk-close" style="margin-top:18px">Quitter la séance</button>
     </div>`;
@@ -3427,8 +3470,9 @@ function unlockAudio(){
     if(!ALARM_PRIMED){
       ALARM_PRIMED=true;
       primeAlarmEl().then(()=>{
-        // Amorçage silencieux : indispensable sur iPhone pour que la lecture marche ensuite sans nouveau geste
-        try{ if(ALARM_EL){ const v0=ALARM_EL.volume; ALARM_EL.volume=0; ALARM_EL.play().then(()=>{ ALARM_EL.pause(); ALARM_EL.currentTime=0; ALARM_EL.volume=v0; }).catch(()=>{}); } }catch(e){}
+        // Amorçage totalement silencieux : muted=true est plus fiable que volume=0 sur iPhone
+        // (volume=0 peut laisser passer 20-50ms de son audible au démarrage).
+        try{ if(ALARM_EL){ ALARM_EL.muted=true; ALARM_EL.play().then(()=>{ ALARM_EL.pause(); ALARM_EL.currentTime=0; ALARM_EL.muted=false; }).catch(()=>{ try{ALARM_EL.muted=false;}catch(_){}}); } }catch(e){}
       });
     }
   }
@@ -3505,12 +3549,16 @@ function alarm(reps,notifTitle,notifBody){
   reps=reps||4;
   const VOL=volAlarme();
   // Si l'user veut garder sa musique de fond, on ne joue PAS l'alarme audio locale
-  // (elle couperait la musique). La push notification programmée fait le rappel.
+  // (elle couperait la musique). On envoie une push SERVEUR immédiate qui déclenche
+  // le son système iOS (contrairement à new Notification() qui est souvent silencieuse).
   const skipAudio=(typeof musiqueFondOn==="function" && musiqueFondOn() && !S.isClient);
   if(skipAudio){
-    // Vibration seule + notification (n'interrompt pas la musique)
     try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,400]); }catch(e){}
-    try{ if(notifTitle) notifyRing(notifTitle,notifBody); }catch(e){}
+    // Push serveur immédiate à soi-même => son iOS système garanti
+    try{
+      const me=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
+      if(me) pushTo(me, notifTitle||"⏱ Repos terminé", notifBody||"");
+    }catch(_){}
     return;
   }
   unlockAudio();
@@ -6284,9 +6332,13 @@ function schedulePush(title,body,secs){
     const me=((S.session.user&&S.session.user.email)||"").toLowerCase();
     const sendAt=new Date(Date.now()+secs*1000).toISOString();
     sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt,target_email:me}).then(()=>{});
-    // On force l'envoi juste avant l'échéance : le worker cron peut avoir jusqu'à 60s
-    // de latence, ce qui serait trop pour un repos de 90s.
-    setTimeout(()=>{ try{ flushPushes(); }catch(_){} }, Math.max(500, secs*1000 - 1500));
+    // Plusieurs tentatives de flush pour couvrir les cas où l'app reste ouverte :
+    // - immédiate (ping du worker pour qu'il connaisse la push)
+    // - toutes les 20 s (rattrapage tant que l'app est active)
+    // - dernière tentative juste avant l'échéance
+    try{ flushPushes(); }catch(_){}
+    const interval=setInterval(()=>{ try{ flushPushes(); }catch(_){} },20000);
+    setTimeout(()=>{ clearInterval(interval); try{ flushPushes(); }catch(_){} }, Math.max(500, secs*1000 + 1000));
   }catch(e){}
 }
 /* Notification vers une AUTRE personne (le client, ou le coach) */
