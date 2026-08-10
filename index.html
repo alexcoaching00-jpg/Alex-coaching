@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.25 — 09/08/2026";
+const APP_VERSION="v11.26 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3294,10 +3294,17 @@ function wkRender(){
             <p style="color:var(--white);font-family:'Bebas Neue';font-size:26px;letter-spacing:.03em;margin:0 0 20px">🔁 ${first?esc(first.nom):"—"}</p>`;
         }
         if(isLastSerie && nextEx){
-          // Dernière série de l'exo courant → montrer le prochain exercice
+          // Dernière série de l'exo courant → montrer le prochain exercice (avec sa vignette vidéo si dispo)
+          const th=(typeof exoThumb==="function")?exoThumb(nextEx):"";
+          const hasVideo=!!(ytId(nextEx)||exoVideoUrl(nextEx));
+          const detail=`${nextEx.series}×${esc(nextEx.repType==="temps"?(nextEx.reps||"—"):(typeof repsDisplay==="function"?repsDisplay(nextEx):nextEx.reps||"—"))}${(typeof chargeDisplay==="function"?chargeDisplay(nextEx):nextEx.charge)?` · ${esc(typeof chargeDisplay==="function"?chargeDisplay(nextEx):nextEx.charge)}`:""}`;
           return `<p style="color:var(--grey);margin:14px 0 6px">Prochain exercice</p>
-            <p style="color:var(--white);font-family:'Bebas Neue';font-size:26px;letter-spacing:.03em;margin:0">➡️ ${esc(nextEx.nom)}</p>
-            <p style="color:var(--grey2);font-size:12.5px;margin:4px 0 20px">${nextEx.series}×${esc(nextEx.repType==="temps"?(nextEx.reps||"—"):(typeof repsDisplay==="function"?repsDisplay(nextEx):nextEx.reps||"—"))}${(typeof chargeDisplay==="function"?chargeDisplay(nextEx):nextEx.charge)?` · ${esc(typeof chargeDisplay==="function"?chargeDisplay(nextEx):nextEx.charge)}`:""}</p>`;
+            <p style="color:var(--white);font-family:'Bebas Neue';font-size:24px;letter-spacing:.03em;margin:0 0 8px">➡️ ${esc(nextEx.nom)}</p>
+            ${hasVideo?`<button type="button" data-act="wk-play-next-video" style="position:relative;display:block;margin:2px auto 10px;max-width:220px;width:100%;aspect-ratio:16/9;padding:0;border:1px solid var(--line);background:#111 center/cover no-repeat${th?" url('"+th+"')":""};border-radius:12px;cursor:pointer;overflow:hidden">
+              <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;text-shadow:0 2px 10px rgba(0,0,0,.85);pointer-events:none">▶️</span>
+              ${!th?`<span style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;color:var(--grey);pointer-events:none">Voir la technique</span>`:""}
+            </button>`:""}
+            <p style="color:var(--grey2);font-size:12.5px;margin:4px 0 20px">${detail}</p>`;
         }
         if(isLastSerie && !nextEx){
           return `<p style="color:var(--amber);font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;margin:14px 0 20px">🏁 Dernier repos avant la fin</p>`;
@@ -5697,6 +5704,9 @@ document.addEventListener("click",e=>{
     case "wk-play-video":{ if(!WK.on) break;
       const exv3=WK.exos[WK.idx]; if(!exv3) break;
       playVideo(exv3.nom,ytId(exv3),exoVideoUrl(exv3)); break; }
+    case "wk-play-next-video":{ if(!WK.on) break;
+      const exNext=WK.exos[WK.idx+1]; if(!exNext) break;
+      playVideo(exNext.nom,ytId(exNext),exoVideoUrl(exNext)); break; }
     case "set-video":{ if(!c) break;
       const ex4=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex4) break;
       if(confirm(`Chercher une vidéo pour « ${ex4.nom} » sur YouTube ?\n\nUne fois la bonne vidéo trouvée, copie son lien puis reviens ici pour le coller.`)){
