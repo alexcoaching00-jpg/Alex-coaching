@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.21 — 09/08/2026";
+const APP_VERSION="v11.22 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3415,17 +3415,24 @@ async function primeAlarmEl(){
   }catch(e){}
 }
 function unlockAudio(){
-  try{
-    if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
-    if(AC.state==="suspended") AC.resume();
-  }catch(e){}
-  if(!ALARM_PRIMED){
-    ALARM_PRIMED=true;
-    primeAlarmEl().then(()=>{
-      // Amorçage silencieux : indispensable sur iPhone pour que la lecture marche ensuite sans nouveau geste
-      try{ if(ALARM_EL){ const v0=ALARM_EL.volume; ALARM_EL.volume=0; ALARM_EL.play().then(()=>{ ALARM_EL.pause(); ALARM_EL.currentTime=0; ALARM_EL.volume=v0; }).catch(()=>{}); } }catch(e){}
-    });
+  // Si l'user veut garder sa musique de fond, on ne réveille PAS le canal audio local
+  // (chaque .play() silencieux d'ALARM_EL interrompt brièvement Spotify).
+  // Les push notifications programmées se chargent des alertes.
+  const skipAudio=(typeof musiqueFondOn==="function" && musiqueFondOn());
+  if(!skipAudio){
+    try{
+      if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+      if(AC.state==="suspended") AC.resume();
+    }catch(e){}
+    if(!ALARM_PRIMED){
+      ALARM_PRIMED=true;
+      primeAlarmEl().then(()=>{
+        // Amorçage silencieux : indispensable sur iPhone pour que la lecture marche ensuite sans nouveau geste
+        try{ if(ALARM_EL){ const v0=ALARM_EL.volume; ALARM_EL.volume=0; ALARM_EL.play().then(()=>{ ALARM_EL.pause(); ALARM_EL.currentTime=0; ALARM_EL.volume=v0; }).catch(()=>{}); } }catch(e){}
+      });
+    }
   }
+  // La permission notif et la souscription push sont toujours demandées (elles ne coupent pas la musique)
   try{
     if(window.Notification && Notification.permission==="default"){
       Notification.requestPermission().then(p=>{ if(p==="granted") subscribeToPush(); });
@@ -5267,8 +5274,9 @@ document.addEventListener("click",e=>{
       const on=!musiqueFondOn();
       try{ localStorage.setItem("musique_fond",on?"1":"0"); }catch(e){}
       if(on){
-        // Libère immédiatement le canal audio si la séance est en cours
+        // Libère complètement le canal audio pour laisser Spotify / Apple Music reprendre
         try{ libererActif(); }catch(_){}
+        try{ if(typeof AC!=="undefined" && AC && AC.state==="running") AC.suspend(); }catch(_){}
         // Vérifier que les push sont bien autorisées (sinon rappel)
         const pushOK=(window.Notification&&Notification.permission==="granted");
         if(!pushOK){
@@ -5277,6 +5285,7 @@ document.addEventListener("click",e=>{
           toast("🎵 Ta musique continue — notifications push pour la fin de repos");
         }
       } else {
+        // On repasse en mode audio local ; l'AC sera relancé au prochain unlockAudio()
         toast("Alarme audio réactivée — la musique de fond sera coupée");
       }
       render(); break; }
