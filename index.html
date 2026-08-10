@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.16 — 09/08/2026";
+const APP_VERSION="v11.17 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3658,6 +3658,11 @@ async function toggleVoice(role){
         c.messages=c.messages||[];
         c.messages.push({from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach",dur:Math.round(dureeMs/1000)});
         patchField(c,"messages",err=>toast(err?"Erreur envoi":"Vocal envoyé"));
+        // Notification push au destinataire (comme pour les messages texte)
+        try{
+          if(REC.role==="coach"){ pushTo(c.clientEmail,"🎤 Message vocal de ton coach","Nouveau vocal reçu"); }
+          else { pushTo(coachEmail(),"🎤 "+((c.nom||"Client").split(" ")[0])+" t'a envoyé un vocal","Nouveau vocal reçu"); }
+        }catch(_){}
         render();
         msgVersLeBas(true);
       };
@@ -3830,7 +3835,7 @@ function messagesTab(c,isCoach){
         ${m.audio?`<div class="voice-msg">
           <audio controls preload="auto" src="${audioSrcFor(m.audio)}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" ondurationchange="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
           <span class="voice-dur">${m.dur?Math.floor(m.dur/60)+":"+String(Math.round(m.dur%60)).padStart(2,"0"):"🎤"}</span>
-        </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">`:esc(m.text||"")}
+        </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">`:(m.text?esc(m.text):`<span style="color:var(--grey2);font-style:italic;font-size:12.5px">🎤 Vocal indisponible</span>`)}
         <div class="mt">${msgWhen(m.date)}${m.from==='coach'?`<span class="mt-lu">${m.lu===false?"":"✓"}</span>`:""}</div>
       </div>`;}).join("")
     : vide("✉","Pas encore de message","Écris le premier message ci-dessous.");
@@ -6133,10 +6138,12 @@ function setupPWA(){
                 if(!document.getElementById("upd-banner")){
                   const b=document.createElement("div");
                   b.id="upd-banner";
-                  b.style.cssText="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(180deg,#CE2A2A,#8E1815);color:#fff;padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,.4);cursor:pointer;font-family:'Inter'";
+                  b.style.cssText="position:fixed;top:calc(env(safe-area-inset-top, 0px) + 12px);left:12px;right:12px;max-width:400px;margin:0 auto;z-index:9999;background:linear-gradient(180deg,#CE2A2A,#8E1815);color:#fff;padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,.4);cursor:pointer;font-family:'Inter';text-align:center";
                   b.textContent="🔄 Nouvelle version — appuyer pour recharger";
                   b.onclick=()=>{ if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"}); location.reload(); };
                   document.body.appendChild(b);
+                  // Auto-hide au bout de 20s pour ne pas gêner
+                  setTimeout(()=>{ const el=document.getElementById("upd-banner"); if(el) el.style.opacity="0.4"; },20000);
                 }
               }
             });
@@ -6174,23 +6181,38 @@ function urlB64ToUint8Array(base64String){
 }
 let PUSH_SUBSCRIBED=false;
 async function subscribeToPush(){
-  if(PUSH_SUBSCRIBED||!sb||!S.session) return;
+  if(!sb||!S.session) return;
   try{
     if(!("serviceWorker" in navigator)||!("PushManager" in window)) return;
     if(!("Notification" in window)||Notification.permission!=="granted") return;
     const reg=await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
+    // Si la subscription existante a expiré ou été invalidée (ex. après une mise à jour du SW),
+    // on la révoque et on en recrée une nouvelle. C'est la cause la plus courante de
+    // "je ne reçois plus les notifications" après une nouvelle version.
+    if(sub){
+      const exp=sub.expirationTime;
+      if(exp&&exp<Date.now()){ try{ await sub.unsubscribe(); }catch(_){} sub=null; }
+    }
     if(!sub){
-      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
+      try{
+        sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
+      }catch(e){ console.warn("[Push] Échec subscribe:",e); return; }
     }
     const j=sub.toJSON();
+    const myMail=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
+    // Upsert : si l'endpoint existe on met à jour les clés/email, sinon on insère
     const {data:existing}=await sb.from("push_subscriptions").select("id").eq("endpoint",j.endpoint);
     if(!existing||!existing.length){
-      const myMail=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
-      await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:myMail});
+      const {error}=await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:myMail});
+      if(error) console.warn("[Push] Insert:",error);
+    } else {
+      // Assure que l'email associé est à jour (ex. si le compte a changé)
+      await sb.from("push_subscriptions").update({p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:myMail}).eq("endpoint",j.endpoint);
     }
     PUSH_SUBSCRIBED=true;
-  }catch(e){}
+    console.log("[Push] Abonnement OK pour",myMail);
+  }catch(e){ console.warn("[Push] Erreur globale:",e); }
 }
 function reposNotifOn(){
   // Côté client : toujours actif — il s'entraîne et a besoin du rappel de fin de repos.
