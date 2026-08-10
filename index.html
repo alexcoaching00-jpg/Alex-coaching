@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.26 — 09/08/2026";
+const APP_VERSION="v11.27 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -4298,6 +4298,7 @@ function playVideo(nom,id,lien){
   ov.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
       <span style="color:var(--white);font-weight:700;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nom||"Vidéo")}</span>
+      <span id="vid-rest" style="display:none;flex:0 0 auto;background:rgba(206,42,42,.18);color:#FF6B6B;border:1px solid rgba(206,42,42,.4);font-family:'Bebas Neue';font-size:17px;letter-spacing:.05em;padding:3px 12px;border-radius:999px">—</span>
       <button class="x" data-close-vid style="font-size:26px;flex:0 0 auto">×</button>
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
@@ -4311,7 +4312,28 @@ function playVideo(nom,id,lien){
           </div>`}
     </div>
     ${id?`<div style="text-align:center;margin-top:12px"><a href="${esc(lien)}" target="_blank" rel="noopener" style="color:var(--grey);font-size:12.5px">Ouvrir sur YouTube ›</a></div>`:""}`;
-  ov.addEventListener("click",ev=>{ if(ev.target===ov||ev.target.closest("[data-close-vid]")) ov.remove(); });
+  // Si un repos est en cours, on affiche un badge compteur qui se met à jour toutes les 500ms
+  // et on ferme automatiquement la modale à la fin du repos.
+  let vidTimer=null;
+  const cleanup=()=>{ if(vidTimer){ clearInterval(vidTimer); vidTimer=null; } ov.remove(); };
+  if(typeof WK!=="undefined" && WK.on && WK.restEnd && WK.rest>0){
+    const badge=ov.querySelector("#vid-rest");
+    if(badge){
+      badge.style.display="inline-block";
+      const tick=()=>{
+        const restSec=Math.max(0,Math.round((WK.restEnd-Date.now())/1000));
+        badge.textContent=Math.floor(restSec/60)+":"+String(restSec%60).padStart(2,"0");
+        badge.style.color=restSec<=10?"#F0B429":"#FF6B6B";
+        if(restSec<=0){
+          // Fin du repos : on ferme la vidéo, l'alarme normale se déclenche dans wkStartRest
+          cleanup();
+        }
+      };
+      tick();
+      vidTimer=setInterval(tick,500);
+    }
+  }
+  ov.addEventListener("click",ev=>{ if(ev.target===ov||ev.target.closest("[data-close-vid]")) cleanup(); });
   document.body.appendChild(ov);
 }
 
