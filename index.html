@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.18 — 09/08/2026";
+const APP_VERSION="v11.20 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1326,7 +1326,7 @@ function dashboard(){
       </div>
     </details>`;})()}
 
-    ${(()=>{const v=Math.round(volAlarme()*100);const on=reposNotifOn();return `<details class="acct-details">
+    ${(()=>{const v=Math.round(volAlarme()*100);const on=reposNotifOn();const mf=musiqueFondOn();return `<details class="acct-details">
       <summary>🔔 Sons & notifications</summary>
       <div>
         <div style="padding:10px 0;border-bottom:1px solid var(--line)">
@@ -1335,6 +1335,13 @@ function dashboard(){
           <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--grey2);margin-top:2px">
             <span>Discret</span><b style="color:var(--white)">${v} %</b><span>Salle bruyante</span></div>
           <p class="muted" style="font-size:11px;margin-top:6px;line-height:1.4">Aperçu joué à chaque réglage. Pense au volume du téléphone et au bouton silence.</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--white);font-weight:600">🎵 Garder ma musique de fond</div>
+            <p class="muted" style="font-size:11.5px;margin-top:2px">${mf?"Spotify / Apple Music continue. Une notification push t'avertit à la fin de chaque repos.":"L'alarme audio sonne à chaque fin de repos (coupe la musique)."}</p>
+          </div>
+          <button class="chip ${mf?"on":""}" style="flex:0 0 auto" data-act="toggle-musique-fond">${mf?"Activé":"Désactivé"}</button>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
           <div style="flex:1;min-width:0">
@@ -3449,6 +3456,9 @@ function creerSilence(secs){
 }
 async function garderActif(){
   if(KEEP_ON) return;
+  // Si l'user a activé "Prioriser la musique de fond", on n'active PAS le son silencieux.
+  // Ça préserve Spotify/Apple Music mais l'alarme ne sonnera plus si l'écran se verrouille.
+  if(typeof musiqueFondOn==="function" && musiqueFondOn()) return;
   try{
     if(!KEEP_EL){
       const buf=await creerSilence(8); if(!buf) return;
@@ -3487,6 +3497,15 @@ function volAlarme(){
 function alarm(reps,notifTitle,notifBody){
   reps=reps||4;
   const VOL=volAlarme();
+  // Si l'user veut garder sa musique de fond, on ne joue PAS l'alarme audio locale
+  // (elle couperait la musique). La push notification programmée fait le rappel.
+  const skipAudio=(typeof musiqueFondOn==="function" && musiqueFondOn() && !S.isClient);
+  if(skipAudio){
+    // Vibration seule + notification (n'interrompt pas la musique)
+    try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,400]); }catch(e){}
+    try{ if(notifTitle) notifyRing(notifTitle,notifBody); }catch(e){}
+    return;
+  }
   unlockAudio();
   // Canal 1 : élément <audio> pré-amorcé — le plus fiable pour sonner à CHAQUE répétition, même sans geste juste avant
   try{
@@ -5244,6 +5263,23 @@ document.addEventListener("click",e=>{
       try{ localStorage.setItem("notif_repos",on?"1":"0"); }catch(e){}
       toast(on?"Notifications de repos activées":"Notifications de repos désactivées");
       render(); break; }
+    case "toggle-musique-fond":{
+      const on=!musiqueFondOn();
+      try{ localStorage.setItem("musique_fond",on?"1":"0"); }catch(e){}
+      if(on){
+        // Libère immédiatement le canal audio si la séance est en cours
+        try{ libererActif(); }catch(_){}
+        // Vérifier que les push sont bien autorisées (sinon rappel)
+        const pushOK=(window.Notification&&Notification.permission==="granted");
+        if(!pushOK){
+          alert("🎵 Musique de fond activée.\n\nPour recevoir les notifications de fin de repos (à la place de l'alarme audio), autorise les notifications de l'app dans les réglages iOS.");
+        } else {
+          toast("🎵 Ta musique continue — notifications push pour la fin de repos");
+        }
+      } else {
+        toast("Alarme audio réactivée — la musique de fond sera coupée");
+      }
+      render(); break; }
     case "diag-push": showDiagPush(); break;
     case "see-faq":{
       const ov=document.createElement("div");
@@ -6220,13 +6256,23 @@ function reposNotifOn(){
   // Côté coach : désactivé par défaut, activable dans Compte.
   return localStorage.getItem("notif_repos")==="1";
 }
+/* Prioriser la musique de fond (Spotify/Apple Music) :
+   Si activé, on n'utilise pas le son silencieux qui garde l'app active en arrière-plan.
+   Conséquence : la musique continue mais l'alarme de fin de repos ne sonne QUE si
+   l'écran est déverrouillé ET l'app au premier plan. */
+function musiqueFondOn(){ return localStorage.getItem("musique_fond")==="1"; }
 function schedulePush(title,body,secs){
   try{
-    if(!reposNotifOn()) return;      // par défaut : pas de notification à chaque repos
+    // Actif dans 3 cas : côté client (toujours), coach avec repos-notif activé, ou coach avec "musique de fond"
+    // (car alors l'alarme audio est désactivée => la push devient l'unique moyen d'être prévenu)
+    if(!S.isClient && !reposNotifOn() && !musiqueFondOn()) return;
     if(!sb||!S.session) return;
     const me=((S.session.user&&S.session.user.email)||"").toLowerCase();
     const sendAt=new Date(Date.now()+secs*1000).toISOString();
     sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt,target_email:me}).then(()=>{});
+    // On force l'envoi juste avant l'échéance : le worker cron peut avoir jusqu'à 60s
+    // de latence, ce qui serait trop pour un repos de 90s.
+    setTimeout(()=>{ try{ flushPushes(); }catch(_){} }, Math.max(500, secs*1000 - 1500));
   }catch(e){}
 }
 /* Notification vers une AUTRE personne (le client, ou le coach) */
