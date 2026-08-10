@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.20 — 09/08/2026";
+const APP_VERSION="v11.21 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -6258,9 +6258,14 @@ function reposNotifOn(){
 }
 /* Prioriser la musique de fond (Spotify/Apple Music) :
    Si activé, on n'utilise pas le son silencieux qui garde l'app active en arrière-plan.
-   Conséquence : la musique continue mais l'alarme de fin de repos ne sonne QUE si
-   l'écran est déverrouillé ET l'app au premier plan. */
-function musiqueFondOn(){ return localStorage.getItem("musique_fond")==="1"; }
+   Conséquence : la musique continue mais l'alarme de fin de repos passe par une push
+   notification iOS au lieu du son local.
+   IMPORTANT : ce mode est réservé au coach. Le client a toujours l'alarme audio fiable,
+   car il en a besoin pendant sa vraie séance d'entraînement. */
+function musiqueFondOn(){
+  if(S.isClient) return false;
+  return localStorage.getItem("musique_fond")==="1";
+}
 function schedulePush(title,body,secs){
   try{
     // Actif dans 3 cas : côté client (toujours), coach avec repos-notif activé, ou coach avec "musique de fond"
