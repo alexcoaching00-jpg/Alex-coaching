@@ -437,8 +437,8 @@
   /* mode séance */
   #wk{position:fixed;inset:0;z-index:150;background:radial-gradient(900px 600px at 50% -10%, rgba(176,31,31,.15), transparent 60%),var(--ink);display:flex}
   .bigtmr{position:fixed;inset:0;z-index:160;background:radial-gradient(900px 600px at 50% -10%, rgba(176,31,31,.18), transparent 60%),var(--ink);display:flex}
-  .bigtmr-in{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 20px calc(18px + env(safe-area-inset-bottom));max-width:420px;margin:0 auto;width:100%}
-  .wk-in{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px 20px calc(18px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;width:100%}
+  .bigtmr-in{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(18px + env(safe-area-inset-top)) 20px calc(18px + env(safe-area-inset-bottom));max-width:420px;margin:0 auto;width:100%}
+  .wk-in{flex:1;display:flex;flex-direction:column;align-items:center;padding:calc(18px + env(safe-area-inset-top)) 20px calc(18px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;width:100%}
   .wk-dot{display:inline-block;width:13px;height:13px;border-radius:999px;background:var(--ink2);border:1.5px solid var(--line);margin:0 4px}
   .wk-dot.d{background:var(--red);border-color:var(--red)}
   .wk-dot.cur{border-color:var(--amber)}
@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.17 — 09/08/2026";
+const APP_VERSION="v11.18 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
