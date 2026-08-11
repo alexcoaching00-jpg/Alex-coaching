@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.33 — 11/08/2026";
+const APP_VERSION="v11.34 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3016,7 +3016,11 @@ function clientSpace(c){
       </div>`;})()}
     <div style="margin-top:10px;font-size:12.5px;font-style:italic;color:rgba(255,255,255,.75)">« ${quoteOfDay()} »</div></div>`;
   let inner=S.clientTab==="programme"?programme(c,false):S.clientTab==="progres"?progres(c,false):S.clientTab==="messages"?messagesTab(c,false):S.clientTab==="bilan"?bilanTab(c,true):S.clientTab==="questions"?questionsTab(c):S.clientTab==="faq"?faqTab():S.clientTab==="tests"?testsTab(c,false):S.clientTab==="nutrition"?nutritionTab(c,false):seancesTab(c,true);
-  return banner+inner;
+  // La bannière d'accueil (salutation + « Commencer la séance ») n'a de sens que sur
+  // l'accueil/le programme. Sur la messagerie ou un formulaire, elle occupait tout
+  // l'écran et repoussait le contenu utile hors de vue.
+  const sansBanner=["messages","bilan","questions","faq","tests","nutrition"];
+  return (sansBanner.includes(S.clientTab)?"":banner)+inner;
 }
 function addModal(){
   const o=arr=>arr.map(x=>`<option>${x}</option>`).join("");
