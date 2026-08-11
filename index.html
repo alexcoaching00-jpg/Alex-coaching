@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.32 — 11/08/2026";
+const APP_VERSION="v11.33 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3738,13 +3738,18 @@ function compressImage(file, cb){
       let w=img.width,h=img.height;
       if(w>MAX||h>MAX){ const k=MAX/Math.max(w,h); w=Math.round(w*k); h=Math.round(h*k); }
       const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
-      cv.getContext("2d").drawImage(img,0,0,w,h);
-      cb(cv.toDataURL("image/jpeg",0.72));
+      const ctx=cv.getContext("2d");
+      ctx.fillStyle="#fff"; ctx.fillRect(0,0,w,h);   // fond blanc : évite le noir sur les PNG transparents
+      ctx.drawImage(img,0,0,w,h);
+      try{ cb(cv.toDataURL("image/jpeg",0.72)); }catch(e){ cb(null); }
     };
     img.onerror=()=>cb(null);
     img.src=ev.target.result;
   };
-  reader.readAsDataURL(file);
+  // Sans ce onerror, un échec de lecture ne rappelait JAMAIS cb : la photo
+  // disparaissait sans le moindre message d'erreur.
+  reader.onerror=()=>cb(null);
+  try{ reader.readAsDataURL(file); }catch(e){ cb(null); }
 }
 
 /* ===== MESSAGES VOCAUX ===== */
@@ -3987,7 +3992,7 @@ function messagesTab(c,isCoach){
       <textarea id="msg-text" placeholder="Écrire un message…" rows="2" style="width:100%;display:block;margin-bottom:8px"></textarea>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn g" data-act="pick-msg-photo" title="Envoyer une photo" style="padding:11px 14px;font-size:17px;flex:0 0 auto">📷</button>
-        <input type="file" id="msg-photo" accept="image/*" data-role="${role}" style="display:none">
+        <input type="file" id="msg-photo" accept="image/*" data-role="${role}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px">
         <button class="btn g" id="rec-btn" data-act="rec-voice" data-role="${role}" title="Message vocal" style="padding:11px 14px;font-size:17px;flex:0 0 auto">🎤</button>
         <button class="btn p" data-act="send-msg" data-role="${role}" style="flex:1;padding:12px;font-size:15px;font-weight:700">Envoyer ➤</button>
       </div>
@@ -4908,19 +4913,42 @@ function bilanTab(c,editable){
 /* ===== PHOTOS BILAN ===== */
 function photosTab(c,editable){
   const photos=(c.photos||[]);
-  const grid=photos.map((p,i)=>`
+  const carte=(p,i)=>`
     <div class="photo-item">
       <img src="${p.url}" alt="Bilan ${i+1}" loading="lazy">
       ${editable?`<button class="photo-del" data-act="del-photo" data-idx="${i}">×</button>`:""}
       <div class="photo-label">${esc(p.label||frDate(p.date))}</div>
-    </div>`).join("");
+    </div>`;
+  // On garde l'index d'origine : les boutons de suppression doivent viser la bonne photo
+  const parType=t=>photos.map((p,i)=>[p,i]).filter(([p])=>(p.type||"suivi")===t);
+  const avant=parType("avant"), apres=parType("apres"), suivi=parType("suivi");
   const addBtn=editable?`
     <label class="photo-add" title="Ajouter une photo">
       <span>+</span>
-      <input type="file" accept="image/*" style="display:none" data-act="add-photo">
+      <input type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;left:-9999px" data-act="add-photo">
     </label>`:"";
-  return `<div class="photo-grid">${grid}${addBtn}</div>
-    ${!photos.length&&!editable?vide("📷","Pas encore de photo","Les photos de progression apparaîtront ici."):""}`;
+  const bloc=(titre,couleur,liste,avecAdd)=>
+    (liste.length||avecAdd)
+      ? `<div class="sec-head" style="margin-top:10px"><h2 style="font-size:15px;color:${couleur};letter-spacing:.06em">${titre}</h2></div>
+         <div class="photo-grid">${liste.map(([p,i])=>carte(p,i)).join("")}${avecAdd?addBtn:""}</div>`
+      : "";
+  // Comparaison directe : la dernière "avant" face à la dernière "après"
+  const comparo=(avant.length&&apres.length)?(()=>{
+    const a=avant[avant.length-1][0], b=apres[apres.length-1][0];
+    return `<div class="panel" style="margin-bottom:14px">
+      <div class="ph" style="font-size:13px">↔ Comparaison</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><img src="${a.url}" alt="Avant" loading="lazy" style="width:100%;border-radius:10px;border:1px solid var(--line);display:block">
+          <p style="text-align:center;font-size:11.5px;color:var(--grey);margin:5px 0 0">AVANT · ${esc(frDate(a.date))}</p></div>
+        <div><img src="${b.url}" alt="Après" loading="lazy" style="width:100%;border-radius:10px;border:1px solid var(--red);display:block">
+          <p style="text-align:center;font-size:11.5px;color:var(--amber);margin:5px 0 0">APRÈS · ${esc(frDate(b.date))}</p></div>
+      </div></div>`;
+  })():"";
+  if(!photos.length&&!editable) return vide("📷","Pas encore de photo","Les photos de progression apparaîtront ici.");
+  return comparo
+    + bloc("AVANT","var(--grey)",avant,false)
+    + bloc("APRÈS","var(--red)",apres,false)
+    + bloc(suivi.length?"SUIVI":"AJOUTER UNE PHOTO","var(--grey2)",suivi,editable);
 }
 
 /* ===== actions async ===== */
@@ -6248,17 +6276,29 @@ document.addEventListener("change",e=>{
     save(); render(); return; }
   if(e.target.id==="msg-photo" && e.target.files && e.target.files[0]){
     const role=e.target.dataset.role||"coach";
+    const input=e.target;
+    const file=input.files[0];
     const c=sel(); if(!c) return;
     toast("Envoi de la photo…");
-    compressImage(e.target.files[0], uri=>{
-      if(!uri){ alert("Photo illisible."); return; }
+    compressImage(file, uri=>{
+      // On ne vide l'input QU'ICI : le faire tout de suite (avant la fin de la
+      // lecture asynchrone) invalidait le fichier sur iPhone et la photo
+      // disparaissait silencieusement.
+      try{ input.value=""; }catch(_){}
+      if(!uri){ alert("Impossible de lire cette photo.\n\nSi elle vient de l'appareil photo de l'iPhone, essaie :\nRéglages › Appareil photo › Formats › « Le plus compatible »."); return; }
       c.messages=c.messages||[];
       c.messages.push({from:role,image:uri,date:new Date().toISOString(),lu:role==="coach"});
       patchField(c,"messages",err=>toast(err?"Erreur envoi":"Photo envoyée"));
+      if(role==="client"){
+        const prenom=(c.nom||"Client").split(" ")[0];
+        try{ pushTo(coachEmail(),`📷 ${prenom} t'a envoyé une photo`,""); }catch(_){}
+      } else {
+        try{ if(c.email) pushTo(c.email,"📷 Nouvelle photo de ton coach",""); }catch(_){}
+      }
       render();
       msgVersLeBas(true);
     });
-    e.target.value=""; return;
+    return;
   }
   const photoInput=e.target.closest('[data-act="add-photo"]');
   if(photoInput && photoInput.files && photoInput.files[0]){
@@ -6287,7 +6327,11 @@ document.addEventListener("change",e=>{
     toast("Compression de la photo…");
     compressPhoto(file).then(dataUrl=>{
       c.photos=c.photos||[];
-      c.photos.push({url:dataUrl,date:new Date().toISOString().slice(0,10),label:""});
+      // Type de photo : permet de comparer un "avant" et un "après" côte à côte
+      let type="suivi";
+      const rep=prompt("Cette photo, c'est :\n\n1 = AVANT (photo de départ)\n2 = APRÈS (photo actuelle)\n3 = Suivi (ni l'un ni l'autre)","2");
+      if(rep==="1") type="avant"; else if(rep==="2") type="apres";
+      c.photos.push({url:dataUrl,date:new Date().toISOString().slice(0,10),label:"",type});
       patchField(c,"photos");
       if(S.isClient){
         const prenom=(c.nom||"Client").split(" ")[0];
