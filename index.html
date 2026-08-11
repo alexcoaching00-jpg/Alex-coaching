@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.36 — 11/08/2026";
+const APP_VERSION="v11.37 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -810,6 +810,9 @@ function patchField(c,field,cb){
 // Recharge les données depuis Supabase sans casser l'onglet/vue en cours
 let PENDING=0; // envois en cours : on ne recharge pas pendant
 function isTypingOrRecording(){
+  // Sélecteur de photo ouvert : un render() détruirait l'<input file> et l'événement
+  // "change" serait perdu au retour de l'app. Rien ne doit re-rendre à ce moment.
+  if(S.pickerOuvert) return true;
   const ta=document.getElementById("msg-text");
   if(ta && (document.activeElement===ta || ta.value.trim())) return true;
   if(typeof REC!=="undefined" && REC.rec && REC.rec.state==="recording") return true;
@@ -3054,6 +3057,15 @@ async function wakeOn(){ try{ if("wakeLock" in navigator){ WAKE=await navigator.
 function wakeOff(){ try{ if(WAKE){ WAKE.release(); WAKE=null; } }catch(e){} }
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
+    // Retour du sélecteur de photo : si aucun fichier n'a été choisi (annulation),
+    // l'événement "change" n'arrivera jamais. On libère le drapeau après un court
+    // délai, en laissant à un éventuel "change" le temps de se déclencher d'abord.
+    if(S.pickerOuvert){
+      setTimeout(()=>{
+        const f=document.getElementById("msg-photo");
+        if(!f || !f.files || !f.files.length) S.pickerOuvert=false;
+      },1200);
+    }
     if(WK.on) wakeOn();
     if(TIMER.exId) wakeOn();
     // Au retour au premier plan : on force l'envoi des push en attente au cas où
@@ -5925,7 +5937,17 @@ document.addEventListener("click",e=>{
       ov.addEventListener("click",ev=>{ if(ev.target===ov||ev.target.closest("[data-close-install]")) ov.remove(); });
       document.body.appendChild(ov);
       break; }
-    case "pick-msg-photo":{ const f=document.getElementById("msg-photo"); if(f) f.click(); break; }
+    case "pick-msg-photo":{
+      const f=document.getElementById("msg-photo");
+      if(f){
+        // iOS met la page en arrière-plan pendant le choix de la photo. Au retour,
+        // un render() détruirait cet <input> et l'événement "change" serait perdu
+        // (la photo ne partait jamais, sans la moindre erreur). Ce drapeau bloque
+        // tout rechargement tant que le sélecteur est ouvert.
+        S.pickerOuvert=true;
+        f.click();
+      }
+      break; }
     case "view-img":{
       const ov=document.createElement("div");
       ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer";
@@ -6307,6 +6329,7 @@ document.addEventListener("change",e=>{
   if(e.target.id==="msg-photo" && e.target.files && e.target.files[0]){
     const input=e.target;
     const file=input.files[0];
+    S.pickerOuvert=false;
     toast("Préparation de la photo…");
     compressImage(file, uri=>{
       // On ne vide l'input QU'ICI : le faire tout de suite (avant la fin de la
