@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.29 — 09/08/2026";
+const APP_VERSION="v11.30 — 09/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -2289,6 +2289,8 @@ function showDiagPush(){
          <p style="font-size:13px;color:var(--white2)">Ton appareil est enregistré. Si tu ne reçois rien, vérifie que la fonction <b>send-due-pushes</b> est déployée sans « Verify JWT » et que la tâche automatique tourne.</p></div>`}
     <button class="btn p full" style="margin-top:14px;padding:14px;font-size:15px" data-act="diag-test-push">🚀 Envoyer une notification test</button>
     <p class="muted" style="text-align:center;font-size:11.5px;margin:6px 0 0">La notification arrive normalement en 2 à 15 secondes.</p>
+    <button class="btn g full" style="margin-top:10px" data-act="diag-test-schedule">⏰ Test notification programmée (30 s)</button>
+    <p class="muted" style="text-align:center;font-size:11.5px;margin:6px 0 0">Test le cron Supabase. Si tu reçois rien après 60 s : ton cron n'appelle pas <b>send-due-pushes</b>.</p>
     <button class="btn g full" style="margin-top:14px" data-close-diag>Fermer</button>`;
   }).catch(e=>{
     ov.querySelector("div").innerHTML=`<p style="color:#FF6B6B">Erreur du diagnostic : ${esc(e.message||"inconnue")}</p><button class="btn g full" data-close-diag>Fermer</button>`;
@@ -3046,6 +3048,9 @@ document.addEventListener("visibilitychange",()=>{
     // Au retour au premier plan : on force l'envoi des push en attente au cas où
     // une notification de fin de repos n'a pas encore été traitée par le serveur.
     try{ flushPushes(); }catch(_){}
+    // On recharge les données silencieusement pour récupérer les nouveaux messages,
+    // en particulier quand l'utilisateur revient depuis une notification "Nouveau message".
+    try{ if(sb && S.session) loadClients(true); }catch(_){}
     // Rattrapage : si l'écran s'est quand même éteint/verrouillé pendant le repos,
     // l'horloge réelle nous dit où on en est → on rejoue l'alarme si le temps est écoulé
     if(TIMER.exId && TIMER.end && Date.now()>=TIMER.end){
@@ -3477,11 +3482,17 @@ function unlockAudio(){
     }catch(e){}
     if(!ALARM_PRIMED){
       ALARM_PRIMED=true;
-      primeAlarmEl().then(()=>{
-        // Amorçage totalement silencieux : muted=true est plus fiable que volume=0 sur iPhone
-        // (volume=0 peut laisser passer 20-50ms de son audible au démarrage).
-        try{ if(ALARM_EL){ ALARM_EL.muted=true; ALARM_EL.play().then(()=>{ ALARM_EL.pause(); ALARM_EL.currentTime=0; ALARM_EL.muted=false; }).catch(()=>{ try{ALARM_EL.muted=false;}catch(_){}}); } }catch(e){}
-      });
+      // Débloquage audio iOS : on joue un tout petit buffer SILENCIEUX (100ms de zéros).
+      // Avantage : même si iPhone ignore muted au 1er play, il n'y a AUCUN son
+      // (au lieu d'entendre 50ms du vrai carillon d'alarme, ce qui sonnait strident).
+      try{
+        const silentSrc="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+        const sil=new Audio(silentSrc);
+        sil.volume=0; sil.preload="auto";
+        sil.play().then(()=>{ sil.pause(); }).catch(()=>{});
+      }catch(e){}
+      // On charge aussi le vrai buffer d'alarme en tâche de fond pour qu'il soit prêt à sonner
+      primeAlarmEl().catch(()=>{});
     }
   }
   // La permission notif et la souscription push sont toujours demandées (elles ne coupent pas la musique)
