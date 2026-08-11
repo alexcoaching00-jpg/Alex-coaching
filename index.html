@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.30 — 09/08/2026";
+const APP_VERSION="v11.31 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3080,8 +3080,12 @@ function openWorkout(jour){
   wkRender();
 }
 function closeWorkout(force){
-  libererActif();
+  // La confirmation vient AVANT toute libération : si l'user annule, la séance
+  // doit continuer intacte (sinon le son de maintien était coupé pour de bon
+  // et l'alarme ne sonnait plus écran verrouillé).
   if(!force && !confirm("Quitter la séance en cours ?")) return;
+  libererActif();
+  cancelScheduledPush();   // pas de notif "Repos terminé" après avoir quitté
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
   WK.on=false;
   wakeOff();
@@ -3196,7 +3200,20 @@ function countdownVoice(n){
 }
 function wkSkipRest(){
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
+  cancelScheduledPush();   // sinon la notif "Repos terminé" arriverait pour un repos sauté
   WK.rest=0; wkRender();
+}
+/* Annule la notification programmée du repos en cours (repos sauté / séance quittée).
+   Supprime la ligne dans scheduled_pushes ET arrête les tentatives de flush. */
+function cancelScheduledPush(){
+  try{
+    if(PUSH_SCHED.interval){ clearInterval(PUSH_SCHED.interval); PUSH_SCHED.interval=null; }
+    if(PUSH_SCHED.timeout){ clearTimeout(PUSH_SCHED.timeout); PUSH_SCHED.timeout=null; }
+    if(PUSH_SCHED.id && sb){
+      sb.from("scheduled_pushes").delete().eq("id",PUSH_SCHED.id).then(()=>{});
+    }
+    PUSH_SCHED.id=null;
+  }catch(e){}
 }
 function wkFinish(){
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
@@ -3274,6 +3291,9 @@ function wkFinish(){
 function wkRender(){
   const ov=document.getElementById("wk"); if(!ov||!WK.on) return;
   const ex=WK.exos[WK.idx];
+  // Garde-fou : si l'index sort du tableau (donnée incohérente, exercice supprimé
+  // pendant la séance…), on termine proprement au lieu de planter tout l'écran.
+  if(!ex){ wkFinish(); return; }
   const circuit=WK.rounds>1;
   const total=circuit?WK.rounds:(ex.series||1);
   const curUnit=circuit?WK.round:WK.serie;
@@ -3425,7 +3445,7 @@ function normDuree(txt){
   return n?fmtDuree(n):(txt||"");
 }
 let AC=null;
-let ALARM_EL=null, ALARM_PRIMED=false;
+let ALARM_EL=null, ALARM_PRIMED=false, SPEECH_PRIMED=false;
 let ALARM_BUF=null; // buffer du carillon rendu une seule fois, rejoué ensuite (fiable même hors interaction directe)
 function renderAlarmBuffer(){
   return new Promise(resolve=>{
@@ -3490,6 +3510,17 @@ function unlockAudio(){
         const sil=new Audio(silentSrc);
         sil.volume=0; sil.preload="auto";
         sil.play().then(()=>{ sil.pause(); }).catch(()=>{});
+      }catch(e){}
+      // Amorçage de la synthèse vocale : sur iPhone, speechSynthesis reste muet
+      // tant qu'il n'a pas été déclenché une première fois par un geste utilisateur.
+      // Sans ça, le décompte "5, 4, 3, 2, 1" ne sortait jamais sur iOS.
+      try{
+        if("speechSynthesis" in window && !SPEECH_PRIMED){
+          SPEECH_PRIMED=true;
+          const u0=new SpeechSynthesisUtterance(" ");
+          u0.volume=0; u0.lang="fr-FR";
+          speechSynthesis.speak(u0);
+        }
       }catch(e){}
       // On charge aussi le vrai buffer d'alarme en tâche de fond pour qu'il soit prêt à sonner
       primeAlarmEl().catch(()=>{});
@@ -5388,6 +5419,18 @@ document.addEventListener("click",e=>{
         alert("Test envoyé.\n\nSi tu reçois une notif dans les 15 secondes : ✅ tout marche.\nSi tu ne reçois rien après 30 secondes :\n\n1. Vérifie que ton cron Supabase tourne (Dashboard → Database → Cron Jobs)\n2. Vérifie les logs de la fonction send-due-pushes\n3. Vérifie que l'app est bien installée sur ton écran d'accueil iPhone\n4. Vérifie que iOS autorise ses notifications (Réglages → Notifications → Alex Coaching)");
       },800);
       break; }
+    case "diag-test-schedule":{
+      const me2=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
+      if(!me2){ alert("Tu n'es pas connecté."); break; }
+      if(!sb){ alert("Pas de connexion au serveur."); break; }
+      cancelScheduledPush();
+      const at=new Date(Date.now()+30000).toISOString();
+      sb.from("scheduled_pushes").insert({title:"⏰ Test programmé",body:"Si tu lis ça, ton cron Supabase fonctionne.",send_at:at,target_email:me2})
+        .then(({error})=>{
+          if(error){ alert("Erreur d'écriture : "+(error.message||"inconnue")); return; }
+          alert("Notification programmée dans 30 secondes.\n\nRéduis l'app maintenant et attends.\n\n• Reçue → ton cron fonctionne ✅\n• Rien après 90 s → le cron n'appelle pas send-due-pushes ❌");
+        });
+      break; }
     case "see-faq":{
       const ov=document.createElement("div");
       ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:200;overflow-y:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))";
@@ -6378,6 +6421,8 @@ function musiqueFondOn(){
   if(S.isClient) return false;
   return localStorage.getItem("musique_fond")==="1";
 }
+/* Suivi de la notification de repos programmée, pour pouvoir l'annuler. */
+const PUSH_SCHED={id:null,interval:null,timeout:null};
 function schedulePush(title,body,secs){
   try{
     // Actif dans 3 cas : côté client (toujours), coach avec repos-notif activé, ou coach avec "musique de fond"
@@ -6386,14 +6431,21 @@ function schedulePush(title,body,secs){
     if(!sb||!S.session) return;
     const me=((S.session.user&&S.session.user.email)||"").toLowerCase();
     const sendAt=new Date(Date.now()+secs*1000).toISOString();
-    sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt,target_email:me}).then(()=>{});
+    // On annule d'abord une éventuelle push encore programmée (repos précédent)
+    cancelScheduledPush();
+    sb.from("scheduled_pushes").insert({title,body:body||"",send_at:sendAt,target_email:me})
+      .select().single().then(({data})=>{ if(data&&data.id) PUSH_SCHED.id=data.id; });
     // Plusieurs tentatives de flush pour couvrir les cas où l'app reste ouverte :
     // - immédiate (ping du worker pour qu'il connaisse la push)
     // - toutes les 20 s (rattrapage tant que l'app est active)
-    // - dernière tentative juste avant l'échéance
+    // - dernière tentative juste après l'échéance
     try{ flushPushes(); }catch(_){}
-    const interval=setInterval(()=>{ try{ flushPushes(); }catch(_){} },20000);
-    setTimeout(()=>{ clearInterval(interval); try{ flushPushes(); }catch(_){} }, Math.max(500, secs*1000 + 1000));
+    PUSH_SCHED.interval=setInterval(()=>{ try{ flushPushes(); }catch(_){} },20000);
+    PUSH_SCHED.timeout=setTimeout(()=>{
+      if(PUSH_SCHED.interval){ clearInterval(PUSH_SCHED.interval); PUSH_SCHED.interval=null; }
+      PUSH_SCHED.timeout=null; PUSH_SCHED.id=null;
+      try{ flushPushes(); }catch(_){}
+    }, Math.max(500, secs*1000 + 1000));
   }catch(e){}
 }
 /* Notification vers une AUTRE personne (le client, ou le coach) */
