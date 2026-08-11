@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.31 — 11/08/2026";
+const APP_VERSION="v11.32 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3048,9 +3048,11 @@ document.addEventListener("visibilitychange",()=>{
     // Au retour au premier plan : on force l'envoi des push en attente au cas où
     // une notification de fin de repos n'a pas encore été traitée par le serveur.
     try{ flushPushes(); }catch(_){}
-    // On recharge les données silencieusement pour récupérer les nouveaux messages,
-    // en particulier quand l'utilisateur revient depuis une notification "Nouveau message".
-    try{ if(sb && S.session) loadClients(true); }catch(_){}
+    // On recharge les données pour récupérer les nouveaux messages (retour depuis une
+    // notification par exemple). reloadKeepingView() est la version protégée : elle
+    // s'abstient si une séance tourne, si un champ est en cours de saisie ou si un
+    // vocal joue — un render() brut écraserait l'écran de séance ou le formulaire.
+    try{ if(sb && S.session) reloadKeepingView(); }catch(_){}
     // Rattrapage : si l'écran s'est quand même éteint/verrouillé pendant le repos,
     // l'horloge réelle nous dit où on en est → on rejoue l'alarme si le temps est écoulé
     if(TIMER.exId && TIMER.end && Date.now()>=TIMER.end){
