@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.34 — 11/08/2026";
+const APP_VERSION="v11.35 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -814,6 +814,11 @@ function isTypingOrRecording(){
   if(ta && (document.activeElement===ta || ta.value.trim())) return true;
   if(typeof REC!=="undefined" && REC.rec && REC.rec.state==="recording") return true;
   if(typeof WK!=="undefined" && WK.on) return true;
+  // Photo en cours de compression/envoi : un reload écraserait l'aperçu local
+  try{
+    const c0=(typeof sel==="function")?sel():null;
+    if(c0 && (c0.messages||[]).some(m=>m&&m.envoiEnCours)) return true;
+  }catch(_){}
   // Éditeur de programme ouvert : saisie longue, jamais de reload
   if(S.tplEdit) return true;
   // Vocal en cours de lecture : un render() couperait la lecture au milieu
@@ -6284,20 +6289,38 @@ document.addEventListener("change",e=>{
     const file=input.files[0];
     const c=sel(); if(!c) return;
     toast("Envoi de la photo…");
+    // Aperçu immédiat : la compression d'une photo iPhone (12 Mpx) prend plusieurs
+    // secondes. Sans ça, rien ne s'affichait pendant tout ce temps et on croyait
+    // que l'envoi avait échoué. On affiche l'image locale tout de suite, puis on
+    // la remplace par la version compressée une fois prête.
+    const apercu={from:role,image:URL.createObjectURL(file),date:new Date().toISOString(),lu:role==="coach",envoiEnCours:true};
+    c.messages=c.messages||[];
+    c.messages.push(apercu);
+    render();
+    msgVersLeBas(true);
     compressImage(file, uri=>{
       // On ne vide l'input QU'ICI : le faire tout de suite (avant la fin de la
       // lecture asynchrone) invalidait le fichier sur iPhone et la photo
       // disparaissait silencieusement.
       try{ input.value=""; }catch(_){}
-      if(!uri){ alert("Impossible de lire cette photo.\n\nSi elle vient de l'appareil photo de l'iPhone, essaie :\nRéglages › Appareil photo › Formats › « Le plus compatible »."); return; }
-      c.messages=c.messages||[];
-      c.messages.push({from:role,image:uri,date:new Date().toISOString(),lu:role==="coach"});
+      try{ URL.revokeObjectURL(apercu.image); }catch(_){}
+      const pos=c.messages.indexOf(apercu);
+      if(!uri){
+        // Échec : on retire l'aperçu pour ne pas laisser une photo fantôme
+        if(pos>=0) c.messages.splice(pos,1);
+        render();
+        alert("Impossible de lire cette photo.\n\nSi elle vient de l'appareil photo de l'iPhone, essaie :\nRéglages › Appareil photo › Formats › « Le plus compatible ».");
+        return;
+      }
+      // On remplace l'aperçu local par la version compressée, qui sera sauvegardée
+      const definitif={from:role,image:uri,date:apercu.date,lu:role==="coach"};
+      if(pos>=0) c.messages[pos]=definitif; else c.messages.push(definitif);
       patchField(c,"messages",err=>toast(err?"Erreur envoi":"Photo envoyée"));
       if(role==="client"){
         const prenom=(c.nom||"Client").split(" ")[0];
         try{ pushTo(coachEmail(),`📷 ${prenom} t'a envoyé une photo`,""); }catch(_){}
       } else {
-        try{ if(c.email) pushTo(c.email,"📷 Nouvelle photo de ton coach",""); }catch(_){}
+        try{ if(c.clientEmail) pushTo(c.clientEmail,"📷 Nouvelle photo de ton coach",""); }catch(_){}
       }
       render();
       msgVersLeBas(true);
