@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.35 — 11/08/2026";
+const APP_VERSION="v11.36 — 11/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -814,6 +814,8 @@ function isTypingOrRecording(){
   if(ta && (document.activeElement===ta || ta.value.trim())) return true;
   if(typeof REC!=="undefined" && REC.rec && REC.rec.state==="recording") return true;
   if(typeof WK!=="undefined" && WK.on) return true;
+  // Photo en attente d'envoi : un reload effacerait la pièce jointe
+  if(S.msgPhoto) return true;
   // Photo en cours de compression/envoi : un reload écraserait l'aperçu local
   try{
     const c0=(typeof sel==="function")?sel():null;
@@ -3975,7 +3977,7 @@ function messagesTab(c,isCoach){
         ${m.audio?`<div class="voice-msg">
           <audio controls preload="auto" src="${audioSrcFor(m.audio)}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" ondurationchange="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
           <span class="voice-dur">${m.dur?Math.floor(m.dur/60)+":"+String(Math.round(m.dur%60)).padStart(2,"0"):"🎤"}</span>
-        </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">`:(m.text?esc(m.text):`<span style="color:var(--grey2);font-style:italic;font-size:12.5px">🎤 Vocal indisponible</span>`)}
+        </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">${m.text?`<div style="margin-top:6px">${esc(m.text)}</div>`:""}`:(m.text?esc(m.text):`<span style="color:var(--grey2);font-style:italic;font-size:12.5px">🎤 Vocal indisponible</span>`)}
         <div class="mt">${msgWhen(m.date)}${m.from==='coach'?`<span class="mt-lu">${m.lu===false?"":"✓"}</span>`:""}</div>
       </div>`;}).join("")
     : vide("✉","Pas encore de message","Écris le premier message ci-dessous.");
@@ -3998,6 +4000,11 @@ function messagesTab(c,isCoach){
   return `<div class="msg-list" id="msg-list">${rows}</div>
     ${!S.isClient?`<div style="text-align:right;margin-bottom:6px"><button class="link" data-act="msg-tpl" style="font-size:12.5px;padding:2px 0">⚡ Message type</button></div>`:""}
     <div class="msg-input" style="display:block">
+      ${S.msgPhoto?`<div style="position:relative;display:inline-block;margin-bottom:8px">
+        <img src="${S.msgPhoto}" alt="Photo à envoyer" style="max-height:120px;max-width:100%;border-radius:10px;border:1px solid var(--red);display:block">
+        <button data-act="drop-msg-photo" title="Retirer la photo" style="position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:16px;line-height:1;cursor:pointer">×</button>
+        <div style="font-size:11.5px;color:var(--grey);margin-top:4px">📷 Photo jointe — appuie sur Envoyer</div>
+      </div>`:""}
       <textarea id="msg-text" placeholder="Écrire un message…" rows="2" style="width:100%;display:block;margin-bottom:8px"></textarea>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn g" data-act="pick-msg-photo" title="Envoyer une photo" style="padding:11px 14px;font-size:17px;flex:0 0 auto">📷</button>
@@ -5927,18 +5934,32 @@ document.addEventListener("click",e=>{
       document.body.appendChild(ov); break; }
     case "rec-voice": toggleVoice(t.dataset.role||"coach"); break;
     case "send-msg":{ if(!c) return;
-      const txt=(document.getElementById("msg-text").value||"").trim(); if(!txt) return;
+      const ta=document.getElementById("msg-text");
+      const txt=((ta&&ta.value)||"").trim();
+      const photo=S.msgPhoto||null;
+      // On envoie s'il y a du texte, une photo, ou les deux
+      if(!txt && !photo) return;
       const role=t.dataset.role||"coach";
       c.messages=c.messages||[];
-      c.messages.push({from:role,text:txt,date:new Date().toISOString(),lu:role==="coach"});
+      const msg={from:role,date:new Date().toISOString(),lu:role==="coach"};
+      if(txt) msg.text=txt;
+      if(photo) msg.image=photo;
+      c.messages.push(msg);
+      if(ta) ta.value="";
+      S.msgPhoto=null;
       // Patch ciblé : uniquement le champ messages (fiable même avec de longs textes)
-      patchField(c,"messages",err=>toast(err?"Erreur envoi":"Message envoyé"));
+      patchField(c,"messages",err=>{
+        if(err){ toast("Erreur envoi"); return; }
+        toast(photo?(txt?"Message et photo envoyés":"Photo envoyée"):"Message envoyé");
+      });
       // Notification au destinataire
-      if(role==="coach"){ pushTo(c.clientEmail,"💬 Message de ton coach",txt); }
-      else { pushTo(coachEmail(),"💬 "+((c.nom||"Client").split(" ")[0])+" t'a écrit",txt); }
+      const apercu=txt||(photo?"📷 Photo":"");
+      if(role==="coach"){ pushTo(c.clientEmail,"💬 Message de ton coach",apercu); }
+      else { pushTo(coachEmail(),"💬 "+((c.nom||"Client").split(" ")[0])+" t'a écrit",apercu); }
       render();
       msgVersLeBas(true);
       break; }
+    case "drop-msg-photo": S.msgPhoto=null; render(); break;
     case "print-bilan": if(c) printBilan(c); break;
     case "add-bilan":{ if(!c) return;
       const g=id2=>{const el2=document.getElementById(id2);if(!el2)return null;const v=parseFloat(String(el2.value).replace(",","."));return isNaN(v)?null:v;};
@@ -6284,46 +6305,23 @@ document.addEventListener("change",e=>{
     c.nutrition[k]=(k==="age"||k==="menu")?(parseInt(nut.value)||null):(nut.value||null);
     save(); render(); return; }
   if(e.target.id==="msg-photo" && e.target.files && e.target.files[0]){
-    const role=e.target.dataset.role||"coach";
     const input=e.target;
     const file=input.files[0];
-    const c=sel(); if(!c) return;
-    toast("Envoi de la photo…");
-    // Aperçu immédiat : la compression d'une photo iPhone (12 Mpx) prend plusieurs
-    // secondes. Sans ça, rien ne s'affichait pendant tout ce temps et on croyait
-    // que l'envoi avait échoué. On affiche l'image locale tout de suite, puis on
-    // la remplace par la version compressée une fois prête.
-    const apercu={from:role,image:URL.createObjectURL(file),date:new Date().toISOString(),lu:role==="coach",envoiEnCours:true};
-    c.messages=c.messages||[];
-    c.messages.push(apercu);
-    render();
-    msgVersLeBas(true);
+    toast("Préparation de la photo…");
     compressImage(file, uri=>{
       // On ne vide l'input QU'ICI : le faire tout de suite (avant la fin de la
-      // lecture asynchrone) invalidait le fichier sur iPhone et la photo
-      // disparaissait silencieusement.
+      // lecture asynchrone) invalidait le fichier sur iPhone.
       try{ input.value=""; }catch(_){}
-      try{ URL.revokeObjectURL(apercu.image); }catch(_){}
-      const pos=c.messages.indexOf(apercu);
       if(!uri){
-        // Échec : on retire l'aperçu pour ne pas laisser une photo fantôme
-        if(pos>=0) c.messages.splice(pos,1);
-        render();
         alert("Impossible de lire cette photo.\n\nSi elle vient de l'appareil photo de l'iPhone, essaie :\nRéglages › Appareil photo › Formats › « Le plus compatible ».");
         return;
       }
-      // On remplace l'aperçu local par la version compressée, qui sera sauvegardée
-      const definitif={from:role,image:uri,date:apercu.date,lu:role==="coach"};
-      if(pos>=0) c.messages[pos]=definitif; else c.messages.push(definitif);
-      patchField(c,"messages",err=>toast(err?"Erreur envoi":"Photo envoyée"));
-      if(role==="client"){
-        const prenom=(c.nom||"Client").split(" ")[0];
-        try{ pushTo(coachEmail(),`📷 ${prenom} t'a envoyé une photo`,""); }catch(_){}
-      } else {
-        try{ if(c.clientEmail) pushTo(c.clientEmail,"📷 Nouvelle photo de ton coach",""); }catch(_){}
-      }
+      // La photo est simplement mise en attente : elle partira avec le bouton Envoyer,
+      // accompagnée d'un texte si tu en écris un.
+      S.msgPhoto=uri;
       render();
-      msgVersLeBas(true);
+      const ta=document.getElementById("msg-text"); if(ta) ta.focus();
+      toast("Photo prête — écris un message ou appuie sur Envoyer");
     });
     return;
   }
