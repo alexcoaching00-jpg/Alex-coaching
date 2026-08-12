@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.40 — 12/08/2026";
+const APP_VERSION="v11.41 — 12/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3081,10 +3081,15 @@ document.addEventListener("visibilitychange",()=>{
     // l'horloge réelle nous dit où on en est → on rejoue l'alarme si le temps est écoulé
     if(TIMER.exId && TIMER.end && Date.now()>=TIMER.end){
       const exId=TIMER.exId, label=TIMER.label;
+      const retard=(Date.now()-TIMER.end)/1000;
       clearInterval(TIMER.int); TIMER.int=null;
       const bb=document.getElementById("tmr-"+exId); if(bb){ bb.textContent=bb.dataset.label; bb.classList.remove("run"); }
       TIMER.exId=null;
-      alarm(3,"⏱ Repos terminé",label||"C'est reparti !");
+      // On ne sonne que si le repos vient tout juste de se terminer (moins de 20 s).
+      // Au-delà, l'info est périmée : faire retentir l'alarme pour un repos fini
+      // depuis plusieurs minutes n'apporte rien et fait sursauter pour rien.
+      if(retard<=20) alarm(3,"⏱ Repos terminé",label||"C'est reparti !");
+      else toast("⏱ Ton repos est terminé depuis "+(retard<60?Math.round(retard)+" s":Math.round(retard/60)+" min"));
       paintBigTimerDone(label);
     }
   }
@@ -3113,6 +3118,7 @@ function closeWorkout(force){
   libererActif();
   cancelScheduledPush();   // pas de notif "Repos terminé" après avoir quitté
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
+  if(WK.restTO){ clearTimeout(WK.restTO); WK.restTO=null; }
   WK.on=false;
   wakeOff();
   const ov=document.getElementById("wk"); if(ov) ov.remove();
@@ -3185,6 +3191,19 @@ function wkStartRest(secs){
   wkRender();
   const exNext=WK.exos[WK.idx];
   schedulePush("⏱ Repos terminé",exNext?("Série suivante : "+exNext.nom):"C'est reparti !",secs);
+  // Fin de repos : déclenchement à l'instant exact. L'intervalle d'affichage tourne
+  // toutes les 500 ms, donc s'en servir pour sonner décalait le bip d'un demi-temps
+  // par rapport au 0:00 affiché.
+  if(WK.restTO) clearTimeout(WK.restTO);
+  WK.restTO=setTimeout(()=>{
+    WK.restTO=null;
+    if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
+    WK.rest=0;
+    const exNow=WK.exos[WK.idx];
+    alarm(4,"⏱ Repos terminé",exNow?("Série suivante : "+exNow.nom):"C'est reparti !");
+    if(!WK.on) libererActif();
+    wkRender();
+  }, Math.max(0,WK.restEnd-Date.now()));
   WK.restInt=setInterval(()=>{
     const prev=WK.rest;
     WK.rest=Math.max(0,Math.round((WK.restEnd-Date.now())/1000));
@@ -3203,14 +3222,8 @@ function wkStartRest(secs){
     if(WK.rest!==prev && WK.rest>=1 && WK.rest<=5){
       countdownVoice(WK.rest);
     }
-    if(WK.rest<=0){
-      clearInterval(WK.restInt); WK.restInt=null;
-      const exNow=WK.exos[WK.idx];
-      alarm(4,"⏱ Repos terminé",exNow?("Série suivante : "+exNow.nom):"C'est reparti !");
-      if(!WK.on) libererActif();
-      wkRender();
-    }
-  },500);
+    if(WK.rest<=0){ clearInterval(WK.restInt); WK.restInt=null; }
+  },200);
 }
 /* Prononce un chiffre à voix haute (compte à rebours des 5 dernières secondes du repos). */
 function countdownVoice(n){
@@ -3227,6 +3240,7 @@ function countdownVoice(n){
 }
 function wkSkipRest(){
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
+  if(WK.restTO){ clearTimeout(WK.restTO); WK.restTO=null; }
   cancelScheduledPush();   // sinon la notif "Repos terminé" arriverait pour un repos sauté
   WK.rest=0; wkRender();
 }
@@ -3244,6 +3258,7 @@ function cancelScheduledPush(){
 }
 function wkFinish(){
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
+  if(WK.restTO){ clearTimeout(WK.restTO); WK.restTO=null; }
   const c=WK.c;
   c.seances=c.seances||[];
   c.seances.push({date:today(),fait:true,ressenti:"",note:"Séance "+WK.jour+" — mode guidé ("+WK.exos.length+" exercices)"});
@@ -3482,8 +3497,9 @@ function renderAlarmBuffer(){
       const off=new Ctx(1,Math.ceil(rate*dur),rate);
       // Minuteur d'intervalles facon salle de sport / boxe :
       // trois bips courts et secs, puis un bip long plus aigu qui marque le depart.
-      // [frequence, debut, duree]
-      const bips=[[880,0.00,0.10],[880,0.22,0.10],[880,0.44,0.10],[1244.51,0.66,0.46]];
+      // Le bip FORT arrive en premier : c'est lui qui doit coïncider avec le 0:00.
+      // Placer les bips courts avant décalait l'impact d'une demi-seconde.
+      const bips=[[1244.51,0.00,0.34],[880,0.46,0.10],[880,0.68,0.10]];
       bips.forEach(([freq,t0,len])=>{
         // Fondamentale + harmoniques impaires : donne le grain "electronique" percutant
         // d'un timer de salle, sans la durete d'une vraie onde carree.
@@ -3660,7 +3676,7 @@ function alarm(reps,notifTitle,notifBody){
       for(let i=0;i<reps;i++){
         const t0=AC.currentTime+i*1.5;
         // Même motif que le canal 1 : 3 bips secs + 1 bip long plus aigu
-        [[880,0.00,0.10],[880,0.22,0.10],[880,0.44,0.10],[1244.51,0.66,0.46]].forEach(([freq,dt,len])=>{
+        [[1244.51,0.00,0.34],[880,0.46,0.10],[880,0.68,0.10]].forEach(([freq,dt,len])=>{
           [[freq,1.0],[freq*2,0.30],[freq*3,0.18]].forEach(([f,poids])=>{
             const o=AC.createOscillator(), g=AC.createGain();
             o.type="sine"; o.connect(g); g.connect(AC.destination);
