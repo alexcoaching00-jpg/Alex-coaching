@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.39 — 12/08/2026";
+const APP_VERSION="v11.40 — 12/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3478,19 +3478,25 @@ function renderAlarmBuffer(){
   return new Promise(resolve=>{
     try{
       const Ctx=window.OfflineAudioContext||window.webkitOfflineAudioContext;
-      const rate=44100, dur=1.3;
+      const rate=44100, dur=1.4;
       const off=new Ctx(1,Math.ceil(rate*dur),rate);
-      // Carillon 3 notes ascendantes (Do-Mi-Sol), plus doux qu'un bip carré
-      // Trois notes montantes, chacune doublée d'une octave : plus present sans être criard
-      [[523.25,0.00],[659.25,0.16],[783.99,0.32]].forEach(([freq,t0])=>{
-        [[freq,1.0],[freq*2,0.42],[freq*3,0.16]].forEach(([f,poids])=>{
+      // Minuteur d'intervalles facon salle de sport / boxe :
+      // trois bips courts et secs, puis un bip long plus aigu qui marque le depart.
+      // [frequence, debut, duree]
+      const bips=[[880,0.00,0.10],[880,0.22,0.10],[880,0.44,0.10],[1244.51,0.66,0.46]];
+      bips.forEach(([freq,t0,len])=>{
+        // Fondamentale + harmoniques impaires : donne le grain "electronique" percutant
+        // d'un timer de salle, sans la durete d'une vraie onde carree.
+        [[freq,1.0],[freq*2,0.30],[freq*3,0.18]].forEach(([f,poids])=>{
           const o=off.createOscillator(), g=off.createGain();
           o.type="sine"; o.frequency.value=f;
           o.connect(g); g.connect(off.destination);
+          // Attaque quasi instantanee puis coupure nette = son sec, pas de tralnage
           g.gain.setValueAtTime(0.0001,t0);
-          g.gain.exponentialRampToValueAtTime(0.92*poids,t0+0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001,t0+0.62);
-          o.start(t0); o.stop(t0+0.65);
+          g.gain.exponentialRampToValueAtTime(0.85*poids,t0+0.008);
+          g.gain.setValueAtTime(0.85*poids,t0+len*0.72);
+          g.gain.exponentialRampToValueAtTime(0.0001,t0+len);
+          o.start(t0); o.stop(t0+len+0.02);
         });
       });
       off.startRendering().then(buf=>resolve(buf)).catch(()=>resolve(null));
@@ -3644,7 +3650,7 @@ function alarm(reps,notifTitle,notifBody){
       for(let i=0;i<reps;i++){
         // Réutilise le MÊME élément (déjà déverrouillé par un vrai geste) plutôt qu'un clone,
         // qui pourrait redemander une interaction sur iPhone
-        setTimeout(()=>{ try{ ALARM_EL.currentTime=0; ALARM_EL.volume=VOL; ALARM_EL.play().catch(()=>{}); }catch(e){} }, i*720);
+        setTimeout(()=>{ try{ ALARM_EL.currentTime=0; ALARM_EL.volume=VOL; ALARM_EL.play().catch(()=>{}); }catch(e){} }, i*1500);
       }
     }
   }catch(e){}
@@ -3652,16 +3658,18 @@ function alarm(reps,notifTitle,notifBody){
   try{
     if(AC&&AC.state==="running"){
       for(let i=0;i<reps;i++){
-        const t0=AC.currentTime+i*0.75;
-        [[523.25,0],[659.25,0.16],[783.99,0.32]].forEach(([freq,dt])=>{
-          [[freq,1.0],[freq*2,0.42],[freq*3,0.16]].forEach(([f,poids])=>{
+        const t0=AC.currentTime+i*1.5;
+        // Même motif que le canal 1 : 3 bips secs + 1 bip long plus aigu
+        [[880,0.00,0.10],[880,0.22,0.10],[880,0.44,0.10],[1244.51,0.66,0.46]].forEach(([freq,dt,len])=>{
+          [[freq,1.0],[freq*2,0.30],[freq*3,0.18]].forEach(([f,poids])=>{
             const o=AC.createOscillator(), g=AC.createGain();
             o.type="sine"; o.connect(g); g.connect(AC.destination);
             o.frequency.setValueAtTime(f,t0+dt);
             g.gain.setValueAtTime(0.0001,t0+dt);
-            g.gain.exponentialRampToValueAtTime(0.85*poids*VOL,t0+dt+0.02);
-            g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+0.55);
-            o.start(t0+dt); o.stop(t0+dt+0.58);
+            g.gain.exponentialRampToValueAtTime(0.85*poids*VOL,t0+dt+0.008);
+            g.gain.setValueAtTime(0.85*poids*VOL,t0+dt+len*0.72);
+            g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+len);
+            o.start(t0+dt); o.stop(t0+dt+len+0.02);
           });
         });
       }
