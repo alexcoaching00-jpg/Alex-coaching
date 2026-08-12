@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.41 — 12/08/2026";
+const APP_VERSION="v11.42 — 12/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3498,21 +3498,24 @@ function renderAlarmBuffer(){
       // Minuteur d'intervalles facon salle de sport / boxe :
       // trois bips courts et secs, puis un bip long plus aigu qui marque le depart.
       // Le bip FORT arrive en premier : c'est lui qui doit coïncider avec le 0:00.
-      // Placer les bips courts avant décalait l'impact d'une demi-seconde.
-      const bips=[[1244.51,0.00,0.34],[880,0.46,0.10],[880,0.68,0.10]];
+      // Fréquences volontairement basses (587 / 440 Hz) : au-delà, les harmoniques
+      // tombent vers 2,5-4 kHz, la zone où l'oreille est la plus sensible — c'est
+      // ce qui rendait la sonnerie douloureuse.
+      const bips=[[587.33,0.00,0.34],[440,0.46,0.10],[440,0.68,0.10]];
       bips.forEach(([freq,t0,len])=>{
-        // Fondamentale + harmoniques impaires : donne le grain "electronique" percutant
-        // d'un timer de salle, sans la durete d'une vraie onde carree.
-        [[freq,1.0],[freq*2,0.30],[freq*3,0.18]].forEach(([f,poids])=>{
+        // Somme des gains volontairement sous 1.0 (0.34+0.09+0.04 = 0.47) : au-dessus,
+        // le signal était écrêté et cet écrêtage produisait une distorsion agressive.
+        [[freq,0.34],[freq*2,0.09],[freq*3,0.04]].forEach(([f,poids])=>{
           const o=off.createOscillator(), g=off.createGain();
           o.type="sine"; o.frequency.value=f;
           o.connect(g); g.connect(off.destination);
-          // Attaque quasi instantanee puis coupure nette = son sec, pas de tralnage
+          // Attaque un peu adoucie (20 ms) : à 8 ms, le front raide s'entendait
+          // comme un "clic" sec en plus du bip.
           g.gain.setValueAtTime(0.0001,t0);
-          g.gain.exponentialRampToValueAtTime(0.85*poids,t0+0.008);
-          g.gain.setValueAtTime(0.85*poids,t0+len*0.72);
-          g.gain.exponentialRampToValueAtTime(0.0001,t0+len);
-          o.start(t0); o.stop(t0+len+0.02);
+          g.gain.exponentialRampToValueAtTime(poids,t0+0.02);
+          g.gain.setValueAtTime(poids,t0+len*0.65);
+          g.gain.exponentialRampToValueAtTime(0.0001,t0+len+0.04);
+          o.start(t0); o.stop(t0+len+0.06);
         });
       });
       off.startRendering().then(buf=>resolve(buf)).catch(()=>resolve(null));
@@ -3642,7 +3645,9 @@ function notifyRing(title,body){
 }
 function volAlarme(){
   const v=parseFloat(localStorage.getItem("vol_alarme"));
-  return isNaN(v)?1:Math.max(0.2,Math.min(1,v));
+  // Par défaut 70 % : à 100 % la sonnerie est inutilement agressive en intérieur.
+  // Le curseur reste disponible pour monter en salle bruyante.
+  return isNaN(v)?0.7:Math.max(0.2,Math.min(1,v));
 }
 function alarm(reps,notifTitle,notifBody){
   reps=reps||4;
@@ -3676,16 +3681,16 @@ function alarm(reps,notifTitle,notifBody){
       for(let i=0;i<reps;i++){
         const t0=AC.currentTime+i*1.5;
         // Même motif que le canal 1 : 3 bips secs + 1 bip long plus aigu
-        [[1244.51,0.00,0.34],[880,0.46,0.10],[880,0.68,0.10]].forEach(([freq,dt,len])=>{
-          [[freq,1.0],[freq*2,0.30],[freq*3,0.18]].forEach(([f,poids])=>{
+        [[587.33,0.00,0.34],[440,0.46,0.10],[440,0.68,0.10]].forEach(([freq,dt,len])=>{
+          [[freq,0.34],[freq*2,0.09],[freq*3,0.04]].forEach(([f,poids])=>{
             const o=AC.createOscillator(), g=AC.createGain();
             o.type="sine"; o.connect(g); g.connect(AC.destination);
             o.frequency.setValueAtTime(f,t0+dt);
             g.gain.setValueAtTime(0.0001,t0+dt);
-            g.gain.exponentialRampToValueAtTime(0.85*poids*VOL,t0+dt+0.008);
-            g.gain.setValueAtTime(0.85*poids*VOL,t0+dt+len*0.72);
-            g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+len);
-            o.start(t0+dt); o.stop(t0+dt+len+0.02);
+            g.gain.exponentialRampToValueAtTime(poids*VOL,t0+dt+0.02);
+            g.gain.setValueAtTime(poids*VOL,t0+dt+len*0.65);
+            g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+len+0.04);
+            o.start(t0+dt); o.stop(t0+dt+len+0.06);
           });
         });
       }
