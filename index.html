@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.37 — 11/08/2026";
+const APP_VERSION="v11.39 — 12/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -1346,12 +1346,9 @@ function dashboard(){
             <span>Discret</span><b style="color:var(--white)">${v} %</b><span>Salle bruyante</span></div>
           <p class="muted" style="font-size:11px;margin-top:6px;line-height:1.4">Aperçu joué à chaque réglage. Pense au volume du téléphone et au bouton silence.</p>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;color:var(--white);font-weight:600">🎵 Garder ma musique de fond</div>
-            <p class="muted" style="font-size:11.5px;margin-top:2px">${mf?"Spotify / Apple Music continue. Une notification push t'avertit à la fin de chaque repos.":"L'alarme audio sonne à chaque fin de repos (coupe la musique)."}</p>
-          </div>
-          <button class="chip ${mf?"on":""}" style="flex:0 0 auto" data-act="toggle-musique-fond">${mf?"Activé":"Désactivé"}</button>
+        <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+          <div style="font-size:13px;color:var(--white);font-weight:600;margin-bottom:6px">🎧 Pendant la séance</div>
+          ${modeAudioChoix()}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
           <div style="flex:1;min-width:0">
@@ -1932,6 +1929,10 @@ function faqTab(){
         <p class="muted" style="font-size:11.5px;margin-top:2px">Reçois une alerte quand ton temps de repos est écoulé, même écran verrouillé.</p>
       </div>
       <button class="chip ${reposNotifOn()?"on":""}" style="flex:0 0 auto" data-act="toggle-repos-notif">${reposNotifOn()?"Activé":"Désactivé"}</button>
+    </div>
+    <div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div style="font-size:13.5px;color:var(--white);font-weight:600;margin-bottom:6px">🎧 Pendant ma séance</div>
+      ${modeAudioChoix()}
     </div>
   </div>`:"";
   return reglage+`<div class="sec-head"><h2 style="font-size:18px">Questions fréquentes</h2></div>
@@ -3215,8 +3216,9 @@ function wkStartRest(secs){
 function countdownVoice(n){
   try{
     if(!("speechSynthesis" in window)) return;
-    // Si l'user est en mode "musique de fond", on saute pour ne pas gêner Spotify
-    if(typeof musiqueFondOn==="function" && musiqueFondOn()) return;
+    // En mode silence on ne parle pas ; en mode musique le décompte est court
+    // et la musique reprend juste après.
+    if(audioMode()==="silence") return;
     const u=new SpeechSynthesisUtterance(String(n));
     u.lang="fr-FR"; u.rate=1.1; u.volume=Math.min(1, (typeof volAlarme==="function"?volAlarme():1));
     speechSynthesis.cancel(); // évite l'empilage
@@ -3516,10 +3518,10 @@ async function primeAlarmEl(){
   }catch(e){}
 }
 function unlockAudio(){
-  // Si l'user veut garder sa musique de fond, on ne réveille PAS le canal audio local
-  // (chaque .play() silencieux d'ALARM_EL interrompt brièvement Spotify).
-  // Les push notifications programmées se chargent des alertes.
-  const skipAudio=(typeof musiqueFondOn==="function" && musiqueFondOn());
+  // En mode "silence" on ne réveille jamais le canal audio local.
+  // En mode "musique" on l'amorce UNE fois (bref blip au démarrage) : c'est
+  // indispensable pour qu'iOS autorise l'alarme à sonner plus tard sans geste.
+  const skipAudio=(audioMode()==="silence");
   if(!skipAudio){
     try{
       if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
@@ -3582,9 +3584,9 @@ function creerSilence(secs){
 }
 async function garderActif(){
   if(KEEP_ON) return;
-  // Si l'user a activé "Prioriser la musique de fond", on n'active PAS le son silencieux.
-  // Ça préserve Spotify/Apple Music mais l'alarme ne sonnera plus si l'écran se verrouille.
-  if(typeof musiqueFondOn==="function" && musiqueFondOn()) return;
+  // Le son de maintien n'existe qu'en mode "alarme" : c'est lui qui coupe la musique
+  // pendant toute la séance, en échange d'une alarme fiable écran verrouillé.
+  if(audioMode()!=="alarme") return;
   try{
     if(!KEEP_EL){
       const buf=await creerSilence(8); if(!buf) return;
@@ -3623,10 +3625,9 @@ function volAlarme(){
 function alarm(reps,notifTitle,notifBody){
   reps=reps||4;
   const VOL=volAlarme();
-  // Si l'user veut garder sa musique de fond, on ne joue PAS l'alarme audio locale
-  // (elle couperait la musique). On envoie une push SERVEUR immédiate qui déclenche
-  // le son système iOS (contrairement à new Notification() qui est souvent silencieuse).
-  const skipAudio=(typeof musiqueFondOn==="function" && musiqueFondOn() && !S.isClient);
+  // Mode "silence" uniquement : aucun son local, on passe par une push serveur
+  // (qui déclenche le son système iOS, contrairement à new Notification()).
+  const skipAudio=(audioMode()==="silence");
   if(skipAudio){
     try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,400]); }catch(e){}
     // Push serveur immédiate à soi-même => son iOS système garanti
@@ -5448,23 +5449,23 @@ document.addEventListener("click",e=>{
       try{ localStorage.setItem("notif_repos",on?"1":"0"); }catch(e){}
       toast(on?"Notifications de repos activées":"Notifications de repos désactivées");
       render(); break; }
-    case "toggle-musique-fond":{
-      const on=!musiqueFondOn();
-      try{ localStorage.setItem("musique_fond",on?"1":"0"); }catch(e){}
-      if(on){
-        // Libère complètement le canal audio pour laisser Spotify / Apple Music reprendre
-        try{ libererActif(); }catch(_){}
-        try{ if(typeof AC!=="undefined" && AC && AC.state==="running") AC.suspend(); }catch(_){}
-        // Vérifier que les push sont bien autorisées (sinon rappel)
-        const pushOK=(window.Notification&&Notification.permission==="granted");
-        if(!pushOK){
-          alert("🎵 Musique de fond activée.\n\nPour recevoir les notifications de fin de repos (à la place de l'alarme audio), autorise les notifications de l'app dans les réglages iOS.");
-        } else {
-          toast("🎵 Ta musique continue — notifications push pour la fin de repos");
-        }
+    case "set-audio-mode":{
+      const mode=t.dataset.mode;
+      if(!["alarme","musique","silence"].includes(mode)) break;
+      try{ localStorage.setItem("audio_mode",mode); localStorage.removeItem("musique_fond"); }catch(e){}
+      if(mode==="alarme"){
+        toast("Alarme prioritaire — la musique sera coupée pendant la séance");
       } else {
-        // On repasse en mode audio local ; l'AC sera relancé au prochain unlockAudio()
-        toast("Alarme audio réactivée — la musique de fond sera coupée");
+        // On rend immédiatement le canal audio pour que la musique reprenne
+        try{ libererActif(); }catch(_){}
+        if(mode==="silence"){
+          try{ if(typeof AC!=="undefined" && AC && AC.state==="running") AC.suspend(); }catch(_){}
+        }
+        if(!(window.Notification&&Notification.permission==="granted")){
+          alert("Pense à autoriser les notifications de l'app dans les réglages iOS : c'est elles qui te préviendront quand l'écran est verrouillé.");
+        } else {
+          toast(mode==="musique"?"🎵 Musique conservée — bip court à chaque fin de repos":"🔕 Notifications seules");
+        }
       }
       render(); break; }
     case "diag-push": showDiagPush(); break;
@@ -6505,15 +6506,44 @@ function reposNotifOn(){
   // Côté coach : désactivé par défaut, activable dans Compte.
   return localStorage.getItem("notif_repos")==="1";
 }
+/* Sélecteur de mode audio, partagé entre l'espace coach et l'espace client. */
+function modeAudioChoix(){
+  const m=audioMode();
+  const opt=(val,titre,desc)=>`
+    <button data-act="set-audio-mode" data-mode="${val}" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:10px 12px;border-radius:10px;cursor:pointer;
+      border:1px solid ${m===val?"var(--red)":"var(--line)"};background:${m===val?"rgba(206,42,42,.12)":"transparent"}">
+      <div style="font-size:13px;font-weight:700;color:${m===val?"var(--white)":"var(--white2)"}">${m===val?"● ":"○ "}${titre}</div>
+      <div style="font-size:11.5px;color:var(--grey);margin-top:3px;line-height:1.45">${desc}</div>
+    </button>`;
+  return opt("musique","Musique + alarme <span style=\"color:var(--amber)\">(recommandé)</span>",
+             "Ta musique joue pendant toute la séance. Elle s'interrompt environ 2 s au bip de fin de repos, puis reprend seule. Écran verrouillé, tu reçois une notification.")
+       + opt("alarme","Alarme prioritaire",
+             "L'alarme sonne à coup sûr, même écran verrouillé ou téléphone en poche. En échange, la musique reste coupée pendant toute la séance.")
+       + opt("silence","Notifications seules",
+             "Aucun son venant de l'app. Ta musique n'est jamais interrompue, tu es prévenu uniquement par les notifications et la vibration.");
+}
 /* Prioriser la musique de fond (Spotify/Apple Music) :
    Si activé, on n'utilise pas le son silencieux qui garde l'app active en arrière-plan.
    Conséquence : la musique continue mais l'alarme de fin de repos passe par une push
    notification iOS au lieu du son local.
    IMPORTANT : ce mode est réservé au coach. Le client a toujours l'alarme audio fiable,
    car il en a besoin pendant sa vraie séance d'entraînement. */
+/* Mode audio de la séance — trois comportements :
+   • "alarme"  : son de maintien en continu. L'alarme sonne même écran verrouillé,
+                 mais la musique de fond est coupée pendant toute la séance.
+   • "musique" : pas de son de maintien. Spotify / Apple Music joue en continu et
+                 n'est interrompu que ~2 s au moment du bip, puis reprend tout seul.
+                 Écran verrouillé, c'est la notification push qui prend le relais.
+   • "silence" : aucun son local, uniquement les notifications push. */
+function audioMode(){
+  const m=localStorage.getItem("audio_mode");
+  if(m==="alarme"||m==="musique"||m==="silence") return m;
+  // Reprise de l'ancien réglage binaire pour ne rien perdre
+  return localStorage.getItem("musique_fond")==="1"?"silence":"alarme";
+}
 function musiqueFondOn(){
-  if(S.isClient) return false;
-  return localStorage.getItem("musique_fond")==="1";
+  // Conservé : « la musique doit être préservée » couvre les modes musique et silence
+  return audioMode()!=="alarme";
 }
 /* Suivi de la notification de repos programmée, pour pouvoir l'annuler. */
 const PUSH_SCHED={id:null,interval:null,timeout:null};
