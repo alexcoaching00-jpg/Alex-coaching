@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.42 — 12/08/2026";
+const APP_VERSION="v11.43 — 12/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3089,6 +3089,7 @@ document.addEventListener("visibilitychange",()=>{
       // Au-delà, l'info est périmée : faire retentir l'alarme pour un repos fini
       // depuis plusieurs minutes n'apporte rien et fait sursauter pour rien.
       if(retard<=20) alarm(3,"⏱ Repos terminé",label||"C'est reparti !");
+      if(retard<=20) voixGo("C'est parti !");
       else toast("⏱ Ton repos est terminé depuis "+(retard<60?Math.round(retard)+" s":Math.round(retard/60)+" min"));
       paintBigTimerDone(label);
     }
@@ -3201,6 +3202,7 @@ function wkStartRest(secs){
     WK.rest=0;
     const exNow=WK.exos[WK.idx];
     alarm(4,"⏱ Repos terminé",exNow?("Série suivante : "+exNow.nom):"C'est reparti !");
+    voixGo("C'est parti !");
     if(!WK.on) libererActif();
     wkRender();
   }, Math.max(0,WK.restEnd-Date.now()));
@@ -3224,6 +3226,23 @@ function wkStartRest(secs){
     }
     if(WK.rest<=0){ clearInterval(WK.restInt); WK.restInt=null; }
   },200);
+}
+/* Annonce vocale de reprise, juste après la fanfare de fin de repos. */
+function voixGo(phrase){
+  try{
+    if(!("speechSynthesis" in window)) return;
+    if(audioMode()==="silence") return;   // mode notifications seules : aucun son local
+    // ~950 ms : la fanfare dure environ 0,9 s, la voix enchaîne sans se superposer.
+    setTimeout(()=>{
+      try{
+        const u=new SpeechSynthesisUtterance(phrase||"C'est parti !");
+        u.lang="fr-FR"; u.rate=1.05; u.pitch=1.1;
+        u.volume=Math.min(1,(typeof volAlarme==="function"?volAlarme():0.7)+0.15);
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+      }catch(_){}
+    },950);
+  }catch(_){}
 }
 /* Prononce un chiffre à voix haute (compte à rebours des 5 dernières secondes du repos). */
 function countdownVoice(n){
@@ -3497,25 +3516,24 @@ function renderAlarmBuffer(){
       const off=new Ctx(1,Math.ceil(rate*dur),rate);
       // Minuteur d'intervalles facon salle de sport / boxe :
       // trois bips courts et secs, puis un bip long plus aigu qui marque le depart.
-      // Le bip FORT arrive en premier : c'est lui qui doit coïncider avec le 0:00.
-      // Fréquences volontairement basses (587 / 440 Hz) : au-delà, les harmoniques
-      // tombent vers 2,5-4 kHz, la zone où l'oreille est la plus sensible — c'est
-      // ce qui rendait la sonnerie douloureuse.
-      const bips=[[587.33,0.00,0.34],[440,0.46,0.10],[440,0.68,0.10]];
+      // Fanfare montante facon depart de round : deux notes breves qui lancent,
+      // puis une note tenue plus haute qui claque. Sol - Do - Mi (392/523/659 Hz).
+      // La 1re note tombe pile a 0:00 : c'est elle le repere, la montee suit.
+      // Frequences gardees sous 700 Hz pour que les harmoniques evitent la bande
+      // 2-4 kHz ou l'oreille sature vite.
+      const bips=[[392.00,0.00,0.13],[523.25,0.15,0.13],[659.25,0.30,0.52]];
       bips.forEach(([freq,t0,len])=>{
-        // Somme des gains volontairement sous 1.0 (0.34+0.09+0.04 = 0.47) : au-dessus,
-        // le signal était écrêté et cet écrêtage produisait une distorsion agressive.
-        [[freq,0.34],[freq*2,0.09],[freq*3,0.04]].forEach(([f,poids])=>{
+        // Somme des gains sous 1.0 (0.30+0.08+0.03 = 0.41) : au-dela le signal
+        // serait ecrete, et cet ecretage est ce qui rendait l'alarme douloureuse.
+        [[freq,0.30],[freq*2,0.08],[freq*3,0.03]].forEach(([f,poids])=>{
           const o=off.createOscillator(), g=off.createGain();
           o.type="sine"; o.frequency.value=f;
           o.connect(g); g.connect(off.destination);
-          // Attaque un peu adoucie (20 ms) : à 8 ms, le front raide s'entendait
-          // comme un "clic" sec en plus du bip.
           g.gain.setValueAtTime(0.0001,t0);
           g.gain.exponentialRampToValueAtTime(poids,t0+0.02);
           g.gain.setValueAtTime(poids,t0+len*0.65);
-          g.gain.exponentialRampToValueAtTime(0.0001,t0+len+0.04);
-          o.start(t0); o.stop(t0+len+0.06);
+          g.gain.exponentialRampToValueAtTime(0.0001,t0+len+0.05);
+          o.start(t0); o.stop(t0+len+0.07);
         });
       });
       off.startRendering().then(buf=>resolve(buf)).catch(()=>resolve(null));
@@ -3681,16 +3699,16 @@ function alarm(reps,notifTitle,notifBody){
       for(let i=0;i<reps;i++){
         const t0=AC.currentTime+i*1.5;
         // Même motif que le canal 1 : 3 bips secs + 1 bip long plus aigu
-        [[587.33,0.00,0.34],[440,0.46,0.10],[440,0.68,0.10]].forEach(([freq,dt,len])=>{
-          [[freq,0.34],[freq*2,0.09],[freq*3,0.04]].forEach(([f,poids])=>{
+        [[392.00,0.00,0.13],[523.25,0.15,0.13],[659.25,0.30,0.52]].forEach(([freq,dt,len])=>{
+          [[freq,0.30],[freq*2,0.08],[freq*3,0.03]].forEach(([f,poids])=>{
             const o=AC.createOscillator(), g=AC.createGain();
             o.type="sine"; o.connect(g); g.connect(AC.destination);
             o.frequency.setValueAtTime(f,t0+dt);
             g.gain.setValueAtTime(0.0001,t0+dt);
             g.gain.exponentialRampToValueAtTime(poids*VOL,t0+dt+0.02);
             g.gain.setValueAtTime(poids*VOL,t0+dt+len*0.65);
-            g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+len+0.04);
-            o.start(t0+dt); o.stop(t0+dt+len+0.06);
+            g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+len+0.05);
+            o.start(t0+dt); o.stop(t0+dt+len+0.07);
           });
         });
       }
@@ -3767,6 +3785,7 @@ function startTimer(exId,secs,label){
       const bb=document.getElementById("tmr-"+exId); if(bb){ bb.textContent=bb.dataset.label; bb.classList.remove("run"); }
       TIMER.exId=null;
       alarm(3,"⏱ Repos terminé",TIMER.label||"C'est reparti !");
+      voixGo("C'est parti !");
       paintBigTimerDone(TIMER.label);
     }
   },500);
