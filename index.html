@@ -248,7 +248,15 @@
   .tabbar button{flex:1 1 0;padding:8px 2px;white-space:nowrap;font-size:10.5px;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis}
   .pstat .pv{font-size:19px;white-space:nowrap}
   .pstat{padding:10px 8px}
-  .msg{overflow-wrap:anywhere}
+  .msg{overflow-wrap:anywhere;position:relative}
+  /* Bouton de suppression : discret par défaut, il ne doit pas parasiter la lecture
+     ni être déclenché par erreur au scroll — d'où la petite taille et l'opacité faible. */
+  .msg-del{position:absolute;top:-7px;width:22px;height:22px;border-radius:50%;
+    border:1px solid var(--line);background:#1A1512;color:var(--grey);
+    font-size:14px;line-height:1;padding:0;cursor:pointer;opacity:.45;z-index:2}
+  .msg-del:hover,.msg-del:active{opacity:1;color:#fff;background:var(--red);border-color:var(--red)}
+  .msg.coach .msg-del{left:-9px}
+  .msg.client .msg-del{right:-9px}
   .msg audio{width:230px;max-width:56vw;height:36px}
   .dhead h2{overflow-wrap:anywhere}
   .crow .nm,.crow .ob{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -715,7 +723,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.48 — 13/08/2026";
+const APP_VERSION="v11.49 — 14/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -4060,7 +4068,12 @@ function messagesTab(c,isCoach){
         const sep=(j&&j!==dernierJour)?`<div class="msg-day"><span>${esc(j)}</span></div>`:"";
         if(j) dernierJour=j;
         const suite=i>0&&msgs[i-1].from===m.from;   // messages consécutifs du même auteur
+        // Le coach gère le fil de son client : il peut tout supprimer.
+        // Le client ne peut retirer que ses propres messages.
+        const peutSuppr=isCoach||m.from==="client";
+        const btnSuppr=peutSuppr?`<button class="msg-del" data-act="del-msg" data-d="${esc(m.date||"")}" title="Supprimer ce message">×</button>`:"";
         return sep+`<div class="msg ${m.from==='coach'?'coach':'client'}${suite?" suite":""}">
+        ${btnSuppr}
         ${m.audio?`<div class="voice-msg">
           <audio controls preload="auto" src="${audioSrcFor(m.audio)}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" ondurationchange="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
           <span class="voice-dur">${m.dur?Math.floor(m.dur/60)+":"+String(Math.round(m.dur%60)).padStart(2,"0"):"🎤"}</span>
@@ -5543,6 +5556,23 @@ document.addEventListener("click",e=>{
       }
       render(); break; }
     case "diag-push": showDiagPush(); break;
+    case "del-msg":{ if(!c) break;
+      const d=t.dataset.d||"";
+      // La liste affichée est retriée par date : son index ne correspond pas à celui
+      // de c.messages. On retrouve donc le message par sa date exacte (précision ms).
+      const idx=(c.messages||[]).findIndex(m=>String(m.date||"")===d);
+      if(idx<0){ toast("Message introuvable"); break; }
+      const msg=c.messages[idx];
+      const quoi=msg.audio?"ce vocal":(msg.image?"cette photo":"ce message");
+      if(!confirm("Supprimer "+quoi+" ?\n\nIl disparaîtra aussi chez "+(S.isClient?"ton coach":"ton client")+". Cette action est définitive.")) break;
+      const sauvegarde=c.messages.slice();   // permet de rétablir si l'envoi échoue
+      c.messages.splice(idx,1);
+      render();
+      patchField(c,"messages",err=>{
+        if(err){ c.messages=sauvegarde; render(); toast("Suppression impossible"); return; }
+        toast("Message supprimé");
+      });
+      break; }
     case "diag-test-push":{
       const me=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
       if(!me){ alert("Tu n'es pas connecté."); break; }
