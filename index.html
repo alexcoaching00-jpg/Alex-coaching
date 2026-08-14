@@ -715,7 +715,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.45 — 13/08/2026";
+const APP_VERSION="v11.46 — 13/08/2026";
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
 
@@ -3866,12 +3866,17 @@ async function toggleVoice(role){
         const c=sel(); if(!c) return;
         c.messages=c.messages||[];
         c.messages.push({from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach",dur:Math.round(dureeMs/1000)});
-        patchField(c,"messages",err=>toast(err?"Erreur envoi":"Vocal envoyé"));
-        // Notification push au destinataire (comme pour les messages texte)
-        try{
-          if(REC.role==="coach"){ pushTo(c.clientEmail,"🎤 Message vocal de ton coach","Nouveau vocal reçu"); }
-          else { pushTo(coachEmail(),"🎤 "+((c.nom||"Client").split(" ")[0])+" t'a envoyé un vocal","Nouveau vocal reçu"); }
-        }catch(_){}
+        // La notification part UNIQUEMENT une fois l'envoi confirmé. Un vocal pèse
+        // plusieurs centaines de Ko : la push arrivait avant la fin de l'écriture,
+        // le destinataire ouvrait l'app et le message n'était pas encore en base.
+        patchField(c,"messages",err=>{
+          if(err){ toast("Erreur envoi"); return; }
+          toast("Vocal envoyé");
+          try{
+            if(REC.role==="coach"){ pushTo(c.clientEmail,"🎤 Message vocal de ton coach","Nouveau vocal reçu"); }
+            else { pushTo(coachEmail(),"🎤 "+((c.nom||"Client").split(" ")[0])+" t'a envoyé un vocal","Nouveau vocal reçu"); }
+          }catch(_){}
+        });
         render();
         msgVersLeBas(true);
       };
@@ -6024,15 +6029,15 @@ document.addEventListener("click",e=>{
       c.messages.push(msg);
       if(ta) ta.value="";
       S.msgPhoto=null;
-      // Patch ciblé : uniquement le champ messages (fiable même avec de longs textes)
+      // Comme pour les vocaux : la notification n'est envoyée qu'une fois l'écriture
+      // confirmée, sinon le destinataire ouvre l'app avant que le message y soit.
+      const apercu=txt||(photo?"📷 Photo":"");
       patchField(c,"messages",err=>{
         if(err){ toast("Erreur envoi"); return; }
         toast(photo?(txt?"Message et photo envoyés":"Photo envoyée"):"Message envoyé");
+        if(role==="coach"){ pushTo(c.clientEmail,"💬 Message de ton coach",apercu); }
+        else { pushTo(coachEmail(),"💬 "+((c.nom||"Client").split(" ")[0])+" t'a écrit",apercu); }
       });
-      // Notification au destinataire
-      const apercu=txt||(photo?"📷 Photo":"");
-      if(role==="coach"){ pushTo(c.clientEmail,"💬 Message de ton coach",apercu); }
-      else { pushTo(coachEmail(),"💬 "+((c.nom||"Client").split(" ")[0])+" t'a écrit",apercu); }
       render();
       msgVersLeBas(true);
       break; }
