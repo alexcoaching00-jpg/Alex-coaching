@@ -347,8 +347,16 @@
   .cgo{color:#4A3B32;font-size:20px;line-height:1;margin-top:2px}
   /* Carte en cours de déplacement : soulevée et légèrement agrandie pour qu'on
      voie clairement laquelle suit le doigt. */
-  .xcard.xdrag{opacity:.96;transform:scale(1.03);box-shadow:0 14px 34px rgba(0,0,0,.6);
-    border-color:var(--red);position:relative;z-index:20;animation:none}
+  /* Appui long : on neutralise le menu natif d'iOS (sélectionner / copier /
+     enregistrer l'image), qui interrompait le geste avant qu'il ne démarre. */
+  .xcard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  .xcard img{-webkit-touch-callout:none;-webkit-user-drag:none;pointer-events:none}
+  .xcard.xdrag{opacity:.96;box-shadow:0 18px 40px rgba(0,0,0,.65);
+    border-color:var(--red);position:relative;z-index:30;animation:none;
+    transition:none;will-change:transform;
+    /* Indispensable : la carte suit le doigt, donc sans ça elle serait toujours
+       l'élément détecté sous le point de contact et aucun échange ne se ferait. */
+    pointer-events:none}
   /* Pendant le glisser : pas de sélection de texte ni de rebond de page */
   body.xdragging{user-select:none;-webkit-user-select:none;overscroll-behavior:contain}
   body.xdragging .xcard:not(.xdrag){opacity:.72}
@@ -754,7 +762,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.53 — 15/08/2026";
+const APP_VERSION="v11.54 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5565,11 +5573,12 @@ async function deleteSelected(){
    événements tactiles. Appui maintenu ~420 ms sur une carte, puis on déplace le
    doigt ; la carte survolée cède sa place en direct. Un simple glissement sans
    pause reste un défilement normal. */
-const DRAG={actif:false,el:null,bloc:"",timer:null,y0:0,x0:0};
+const DRAG={actif:false,el:null,bloc:"",timer:null,y0:0,x0:0,baseY:0};
 function dragAnnulerAttente(){ if(DRAG.timer){ clearTimeout(DRAG.timer); DRAG.timer=null; } }
-function dragDemarrer(el){
-  DRAG.actif=true; DRAG.el=el; DRAG.bloc=el.dataset.exbloc||"";
+function dragDemarrer(el,y){
+  DRAG.actif=true; DRAG.el=el; DRAG.bloc=el.dataset.exbloc||""; DRAG.baseY=y;
   el.classList.add("xdrag");
+  el.style.transform="scale(1.03)";
   document.body.classList.add("xdragging");
   try{ if(navigator.vibrate) navigator.vibrate(30); }catch(_){}
   toast("Déplace l'exercice, relâche pour valider");
@@ -5578,10 +5587,9 @@ function dragTerminer(){
   if(!DRAG.actif){ dragAnnulerAttente(); return; }
   const el=DRAG.el, bloc=DRAG.bloc;
   DRAG.actif=false; DRAG.el=null; DRAG.timer=null;
-  if(el) el.classList.remove("xdrag");
+  if(el){ el.classList.remove("xdrag"); el.style.transform=""; }
   document.body.classList.remove("xdragging");
   const c=sel(); if(!c||!el) return;
-  // On lit l'ordre tel qu'il est affiché après le déplacement
   const ids=[...document.querySelectorAll('.xcard[data-exid]')]
     .filter(n=>(n.dataset.exbloc||"")===bloc)
     .map(n=>n.dataset.exid);
@@ -5599,24 +5607,30 @@ document.addEventListener("touchstart",e=>{
   if(S.isClient) return;                    // réordonner reste une action du coach
   const t=e.touches[0]; DRAG.y0=t.clientY; DRAG.x0=t.clientX;
   dragAnnulerAttente();
-  DRAG.timer=setTimeout(()=>dragDemarrer(carte),420);
+  DRAG.timer=setTimeout(()=>dragDemarrer(carte,DRAG.y0),400);
 },{passive:true});
 document.addEventListener("touchmove",e=>{
   const t=e.touches[0];
   if(!DRAG.actif){
-    // Mouvement avant la fin de l'appui long : c'est un défilement, on abandonne
-    if(DRAG.timer && (Math.abs(t.clientY-DRAG.y0)>10||Math.abs(t.clientX-DRAG.x0)>10)) dragAnnulerAttente();
+    // Mouvement franc avant la fin de l'appui : c'est un défilement, on abandonne.
+    // Seuil généreux (16 px) car le doigt bouge toujours un peu pendant l'appui.
+    if(DRAG.timer && (Math.abs(t.clientY-DRAG.y0)>16||Math.abs(t.clientX-DRAG.x0)>16)) dragAnnulerAttente();
     return;
   }
   e.preventDefault();                        // empêche la page de défiler pendant le glisser
+  // La carte suit le doigt : sans ça, rien ne semblait bouger
+  DRAG.el.style.transform="translateY("+(t.clientY-DRAG.baseY)+"px) scale(1.03)";
   const sous=document.elementFromPoint(t.clientX,t.clientY);
   const cible=sous&&sous.closest?sous.closest(".xcard[data-exid]"):null;
   if(!cible||cible===DRAG.el) return;
   if((cible.dataset.exbloc||"")!==DRAG.bloc) return;   // pas de transfert entre séances
-  // On insère avant ou après selon le sens du déplacement
   const r=cible.getBoundingClientRect();
   const avant=t.clientY<r.top+r.height/2;
   cible.parentNode.insertBefore(DRAG.el,avant?cible:cible.nextSibling);
+  // La carte vient de changer de place dans le flux : on repart de la position
+  // actuelle du doigt, sinon elle ferait un saut visuel.
+  DRAG.baseY=t.clientY;
+  DRAG.el.style.transform="scale(1.03)";
 },{passive:false});
 document.addEventListener("touchend",dragTerminer,{passive:true});
 document.addEventListener("touchcancel",()=>{ dragAnnulerAttente(); if(DRAG.actif) dragTerminer(); },{passive:true});
