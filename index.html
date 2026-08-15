@@ -825,7 +825,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.62 — 16/08/2026";
+const APP_VERSION="v11.63 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1820,6 +1820,7 @@ const ZONES_EXCEPTIONS=[
 const MUSCLES=[
   // --- Corrections ciblées, testées : ces noms étaient captés par une règle
   //     trop générale placée plus bas. Ils doivent donc passer en premier. ---
+  [["dislocation","mobilite epaules","mobilité épaules","pass-through"],["Travail de mobilité / souplesse"],["Deltoïdes","Coiffe des rotateurs"]],
   [["mollet","calf","pointe de pied","donkey calf"],["Triceps sural (gastrocnémiens, soléaire)"],[]],
   [["kickback triceps","kickback tri"],["Triceps brachial"],["Anconé"]],
   // « prise serrée » signifie triceps sur un développé, mais PAS sur un tirage :
@@ -1903,7 +1904,7 @@ const MUSCLES=[
   [["crunch","sit-up","abdo","roulette","ab wheel"],["Grand droit de l'abdomen"],["Obliques","Transverse"]],
   [["mountain climber","bear crawl","crab walk"],["Transverse","Grand droit"],["Deltoïdes","Quadriceps","Psoas-iliaque"]],
   // --- Explosivité / conditionnement ---
-  [["clean","épaulé","snatch","arraché","turkish get-up"],["Grand fessier","Ischio-jambiers","Érecteurs du rachis","Trapèzes"],["Quadriceps","Deltoïdes","Avant-bras","Gainage"]],
+  [["clean","épaulé-jeté","snatch","arraché","turkish get-up"],["Grand fessier","Ischio-jambiers","Érecteurs du rachis","Trapèzes"],["Quadriceps","Deltoïdes","Avant-bras","Gainage"]],
   [["thruster","wall ball"],["Quadriceps","Grand fessier","Deltoïdes"],["Triceps","Érecteurs du rachis","Gainage"]],
   [["burpee"],["Corps entier"],["Grand pectoral","Quadriceps","Triceps","Gainage"]],
   [["box jump","broad jump","jump squat","fentes sautées","saut","skater","tuck"],["Quadriceps","Grand fessier","Triceps sural"],["Ischio-jambiers","Gainage"]],
@@ -5103,20 +5104,47 @@ const CATEGORIES_A_PART={
 };
 function groupesParMuscle(mode){
   const brut=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
-  const par={};
-  const ajoute=(g,nom)=>{ (par[g]=par[g]||[]).push(nom); };
+  const par={},principaux={};
+  const ajoute=(g,nom,estPrincipal)=>{
+    (par[g]=par[g]||[]).push(nom);
+    if(estPrincipal) (principaux[g]=principaux[g]||new Set()).add(nom);
+  };
   brut.forEach(([categorie,liste])=>{
     const aPart=CATEGORIES_A_PART[categorie];
     liste.forEach(nom=>{
-      if(aPart){ ajoute(aPart,nom); return; }          // cardio, mobilité… : tels quels
+      if(aPart){ ajoute(aPart,nom,true); return; }     // cardio, mobilité… : tels quels
       const mu=musclesExo(nom);
       const cibles=mu?[...new Set(mu.p.map(groupeCanon))]:["Autres"];
-      cibles.forEach(g=>ajoute(g,nom));
+      // Le premier muscle listé est le moteur principal du mouvement
+      const dominant=mu&&mu.p.length?groupeCanon(mu.p[0]):"Autres";
+      cibles.forEach(g=>ajoute(g,nom,g===dominant));
     });
   });
-  Object.keys(par).forEach(g=>{ par[g]=[...new Set(par[g])].sort((a,b)=>a.localeCompare(b,"fr")); });
-  const ordre=ORDRE_MUSCLES.concat(Object.values(CATEGORIES_A_PART),["Autres"]);
-  return ordre.filter(g=>par[g]&&par[g].length).map(g=>[g,par[g]]);
+  Object.keys(par).forEach(g=>{
+    const uniq=[...new Set(par[g])];
+    const p=principaux[g]||new Set();
+    // Muscle principal d'abord, co-sollicitation ensuite : « Grand fessier »
+    // comptait 73 entrées, on distingue désormais les hip thrust des squats.
+    par[g]=uniq.filter(n=>p.has(n)).sort((a,b)=>a.localeCompare(b,"fr"))
+      .concat(uniq.filter(n=>!p.has(n)).sort((a,b)=>a.localeCompare(b,"fr")));
+    par[g].nbPrincipaux=uniq.filter(n=>p.has(n)).length;
+  });
+  const ordre=REGIONS.reduce((t,[,l])=>t.concat(l),[]).concat(["Autres"]);
+  return ordre.filter(g=>par[g]&&par[g].length).map(g=>[g,par[g],par[g].nbPrincipaux]);
+}
+/* Régions : les 29 groupes musculaires s'enchaînaient sans repère, ce qui rendait
+   la liste difficile à parcourir. On les préfixe par région pour que l'œil
+   retrouve immédiatement la zone cherchée. */
+const REGIONS=[
+  ["🦵 BAS DU CORPS",["Quadriceps","Ischio-jambiers","Grand fessier","Moyen / petit fessier","Adducteurs","Mollets (triceps sural)","Tibial antérieur"]],
+  ["💪 POUSSÉE (haut)",["Pectoraux (grand pectoral)","Deltoïde antérieur","Deltoïde moyen","Deltoïdes (non précisé)","Triceps brachial"]],
+  ["🔙 TIRAGE (haut)",["Grand dorsal","Grand rond","Trapèzes","Rhomboïdes","Deltoïde postérieur","Coiffe des rotateurs","Biceps brachial","Brachial / brachio-radial","Avant-bras / grip"]],
+  ["🧍 TRONC",["Grand droit (abdominaux)","Obliques","Transverse (gainage profond)","Érecteurs du rachis","Psoas-iliaque"]],
+  ["⚡ AUTRES FORMATS",["Cardio / conditionnement","Cardio / HIIT maison","HIIT / intervalles","Haltérophilie / explosivité","Mobilité / étirements"]]
+];
+function regionDe(groupe){
+  for(const [r,liste] of REGIONS){ if(liste.includes(groupe)) return r; }
+  return "⚡ AUTRES FORMATS";
 }
 function pickerOptionsHtml(mode,filter){
   // Élastique et HIIT sont utiles dans les deux modes : en salle comme à la maison
@@ -5127,15 +5155,27 @@ function pickerOptionsHtml(mode,filter){
     const rec=recentExos();
     if(rec.length) html+=`<optgroup label="⭐ Récemment utilisés">${rec.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("")}</optgroup>`;
   }
-  groups.forEach(([g,list])=>{
+  groups.forEach(([g,list,nbPrincipaux])=>{
     const f=q?list.filter(e=>normTxt(e).includes(q)):list;
-    if(f.length) html+=`<optgroup label="${g}">${f.map(e=>{
-      // Les <option> n'acceptent pas de mise en forme : on écrit les muscles
-      // à la suite du nom. La valeur, elle, reste le seul nom de l'exercice.
+    if(!f.length) return;
+    const label=`${regionDe(g)}  ›  ${g}  (${f.length})`;
+    const ligne=e=>{
+      // On n'écrit QUE les autres muscles moteurs : répéter celui du groupe
+      // allongeait chaque ligne sans rien apporter.
       const mu=musclesExo(e);
-      const suffixe=mu?" — "+mu.p.join(" · "):"";
-      return `<option value="${esc(e)}">${esc(e+suffixe)}</option>`;
-    }).join("")}</optgroup>`;
+      const autres=mu?mu.p.filter(x=>groupeCanon(x)!==g):[];
+      return `<option value="${esc(e)}">${esc(e+(autres.length?" + "+autres.join(" · "):""))}</option>`;
+    };
+    let corps;
+    if(q||!nbPrincipaux||nbPrincipaux>=f.length){
+      corps=f.map(ligne).join("");
+    } else {
+      // Séparateur non sélectionnable entre moteur principal et co-sollicitation
+      corps=f.slice(0,nbPrincipaux).map(ligne).join("")
+        +`<option disabled>──── aussi sollicité ────</option>`
+        +f.slice(nbPrincipaux).map(ligne).join("");
+    }
+    html+=`<optgroup label="${esc(label)}">${corps}</optgroup>`;
   });
   return html;
 }
