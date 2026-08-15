@@ -767,7 +767,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.55 — 15/08/2026";
+const APP_VERSION="v11.56 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -4979,7 +4979,9 @@ function exoPicker(targetId){
 
 /* ===== BIBLIOTHÈQUE DE PROGRAMMES ===== */
 function tplExoCard(e,i,editing){
-  return `<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+  // Mêmes attributs que les cartes du programme client : le moteur de
+  // glisser-déposer les reconnaît ainsi sans code spécifique.
+  return `<div class="card xcard" data-exid="${esc(e.id)}" data-exbloc="${esc(e.bloc||"")}"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
     <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
     ${(()=>{const th=exoThumb(e);
       return th?`<img src="${th}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:0 0 auto" onerror="this.outerHTML=''">`
@@ -4999,7 +5001,7 @@ function tplExoCard(e,i,editing){
         :`<a class="link" style="font-size:12px;padding:0;text-decoration:none" href="${esc(exoVideoUrl(e))}" target="_blank" rel="noopener">▶️ Chercher</a>`}
     </div>
     </div>
-    ${editing?`<span style="display:flex;gap:4px"><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="tpl-dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
+    ${editing?`<span style="display:flex;gap:4px"><button class="xgrip" style="font-size:15px;padding:0 8px" data-grip="${esc(e.id)}" title="Maintenir et glisser pour déplacer">⠿</button><button class="x" style="font-size:12px" data-act="tpl-ex-up" data-id="${e.id}" title="Monter">▲</button><button class="x" style="font-size:12px" data-act="tpl-ex-down" data-id="${e.id}" title="Descendre">▼</button><button class="x" style="font-size:13px" data-act="tpl-dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button><button class="x" style="font-size:14px" data-act="tpl-edit-ex" data-idx="${i}" title="Modifier">✏️</button><button class="x" data-act="tpl-del-ex" data-idx="${i}">×</button></span>`:""}
   </div></div>`;
 }
 function tplEditor(){
@@ -5595,13 +5597,20 @@ function dragTerminer(){
   DRAG.actif=false; DRAG.el=null; DRAG.timer=null;
   if(el){ el.classList.remove("xdrag"); el.style.transform=""; }
   document.body.classList.remove("xdragging");
-  const c=sel(); if(!c||!el) return;
   const ids=[...document.querySelectorAll('.xcard[data-exid]')]
     .filter(n=>(n.dataset.exbloc||"")===bloc)
     .map(n=>n.dataset.exid);
-  const cible=S.tplEdit?S.tplEdit.program:c.program;
-  if(!reordonnerBloc(cible,bloc,ids)){ render(); return; }
-  if(S.tplEdit){ render(); return; }
+  // Modèle en cours d'édition : aucun client n'est sélectionné, on réordonne
+  // le modèle et on conserve le nom éventuellement saisi dans le champ.
+  if(S.tplEdit){
+    reordonnerBloc(S.tplEdit.program,bloc,ids);
+    const n=val("tpl-nom"); if(n) S.tplEdit.nom=n;
+    render();
+    toast("Ordre modifié — pense à enregistrer le modèle");
+    return;
+  }
+  const c=sel(); if(!c) { render(); return; }
+  if(!reordonnerBloc(c.program,bloc,ids)){ render(); return; }
   save();
   patchField(c,"program",err=>toast(err?"Erreur d'enregistrement":"Ordre enregistré"));
   render();
