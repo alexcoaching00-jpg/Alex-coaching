@@ -349,6 +349,11 @@
      voie clairement laquelle suit le doigt. */
   /* Appui long : on neutralise le menu natif d'iOS (sélectionner / copier /
      enregistrer l'image), qui interrompait le geste avant qu'il ne démarre. */
+  /* Poignée de déplacement : zone de saisie large et bien identifiable.
+     44 px de haut, la taille minimale confortable pour le pouce. */
+  .xgrip{font-size:17px;color:var(--grey2);cursor:grab;letter-spacing:2px;
+    padding:0 12px;min-height:38px;touch-action:none}
+  .xgrip:active{cursor:grabbing;color:var(--red)}
   .xcard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .xcard img{-webkit-touch-callout:none;-webkit-user-drag:none;pointer-events:none}
   .xcard.xdrag{opacity:.96;box-shadow:0 18px 40px rgba(0,0,0,.65);
@@ -762,7 +767,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.54 — 15/08/2026";
+const APP_VERSION="v11.55 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -2842,6 +2847,7 @@ function programme(c,editable){
         ${parseRepos(e.repos)?`<button class="tmr" id="tmr-${e.id}" data-act="timer" data-id="${e.id}" data-secs="${parseRepos(e.repos)}" data-label="⏱ Repos ${esc(normDuree(e.repos)||e.repos)}" data-exo="${esc(e.nom)}">⏱ ${esc(normDuree(e.repos)||e.repos)}</button>`:""}
       </div>
       ${editable?`<div class="xacts">
+        <button class="xgrip" data-grip="${esc(e.id)}" title="Maintenir et glisser pour déplacer" aria-label="Déplacer">⠿</button>
         <button data-act="ex-up" data-id="${e.id}" title="Monter">▲</button>
         <button data-act="ex-down" data-id="${e.id}" title="Descendre">▼</button>
         <button data-act="dup-ex" data-id="${e.id}" title="Dupliquer">⧉</button>
@@ -5600,6 +5606,18 @@ function dragTerminer(){
   patchField(c,"program",err=>toast(err?"Erreur d'enregistrement":"Ordre enregistré"));
   render();
 }
+/* Saisie par la poignée ⠿ : démarrage immédiat, sans appui long.
+   C'est la méthode fiable sur iPhone — l'appui long entre en concurrence avec
+   le défilement et avec les gestes natifs du système. Le listener doit être
+   non passif pour pouvoir bloquer le défilement dès le premier contact. */
+document.addEventListener("touchstart",e=>{
+  const grip=e.target.closest&&e.target.closest(".xgrip");
+  if(!grip) return;
+  const carte=grip.closest(".xcard[data-exid]"); if(!carte) return;
+  e.preventDefault();
+  dragAnnulerAttente();
+  dragDemarrer(carte,e.touches[0].clientY);
+},{passive:false});
 document.addEventListener("touchstart",e=>{
   const carte=e.target.closest&&e.target.closest(".xcard[data-exid]");
   // Pas de glisser depuis un bouton : on ne veut pas gêner ▲▼, ✎, vidéo…
@@ -5634,6 +5652,34 @@ document.addEventListener("touchmove",e=>{
 },{passive:false});
 document.addEventListener("touchend",dragTerminer,{passive:true});
 document.addEventListener("touchcancel",()=>{ dragAnnulerAttente(); if(DRAG.actif) dragTerminer(); },{passive:true});
+
+/* Équivalent souris, pour le MacBook. */
+document.addEventListener("mousedown",e=>{
+  const grip=e.target.closest&&e.target.closest(".xgrip");
+  if(!grip) return;
+  const carte=grip.closest(".xcard[data-exid]"); if(!carte) return;
+  e.preventDefault();
+  dragDemarrer(carte,e.clientY);
+  const bouger=ev=>{
+    if(!DRAG.actif) return;
+    DRAG.el.style.transform="translateY("+(ev.clientY-DRAG.baseY)+"px) scale(1.03)";
+    const sous=document.elementFromPoint(ev.clientX,ev.clientY);
+    const cible=sous&&sous.closest?sous.closest(".xcard[data-exid]"):null;
+    if(!cible||cible===DRAG.el) return;
+    if((cible.dataset.exbloc||"")!==DRAG.bloc) return;
+    const r=cible.getBoundingClientRect();
+    cible.parentNode.insertBefore(DRAG.el,ev.clientY<r.top+r.height/2?cible:cible.nextSibling);
+    DRAG.baseY=ev.clientY;
+    DRAG.el.style.transform="scale(1.03)";
+  };
+  const lacher=()=>{
+    document.removeEventListener("mousemove",bouger);
+    document.removeEventListener("mouseup",lacher);
+    dragTerminer();
+  };
+  document.addEventListener("mousemove",bouger);
+  document.addEventListener("mouseup",lacher);
+});
 
 /* ===== events ===== */
 document.addEventListener("click",e=>{
