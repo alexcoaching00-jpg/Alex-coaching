@@ -249,6 +249,11 @@
   .pstat .pv{font-size:19px;white-space:nowrap}
   .pstat{padding:10px 8px}
   .msg{overflow-wrap:anywhere;position:relative}
+  /* Muscles sollicités : lisible mais discret, il ne doit pas concurrencer le nom
+     de l'exercice ni les chiffres de séries. */
+  .xmusc{margin-top:5px;font-size:11.5px;line-height:1.45;color:var(--grey)}
+  .xmusc b{color:#E0A94A;font-weight:600}
+  .xmusc span{color:var(--grey2)}
   /* Bouton de suppression : discret par défaut, il ne doit pas parasiter la lecture
      ni être déclenché par erreur au scroll — d'où la petite taille et l'opacité faible. */
   .msg-del{position:absolute;top:-7px;width:22px;height:22px;border-radius:50%;
@@ -362,6 +367,21 @@
   .xtags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .xtag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;
     background:rgba(46,38,32,.9);color:var(--grey);border:1px solid var(--line)}
+  /* Groupe musculaire : une couleur par zone pour repérer l'équilibre d'une séance
+     d'un simple coup d'œil, sans avoir à lire chaque nom d'exercice. */
+  /* Muscles sollicités : les noms anatomiques sont longs, on autorise donc la
+     casse normale et le retour à la ligne, contrairement aux étiquettes RIR/SS. */
+  .xtag.zone{border-width:1px;border-style:solid;text-transform:none;letter-spacing:.02em;font-size:10.5px;font-weight:700}
+  .xsec{font-size:10.5px;color:var(--grey2);margin-top:4px;line-height:1.4}
+  .xtag.z-pecs{background:rgba(206,42,42,.16);color:#FF8A80;border-color:rgba(206,42,42,.42)}
+  .xtag.z-dos{background:rgba(76,139,245,.16);color:#8FB8FF;border-color:rgba(76,139,245,.42)}
+  .xtag.z-epaules{background:rgba(224,169,74,.16);color:#F0C878;border-color:rgba(224,169,74,.42)}
+  .xtag.z-biceps{background:rgba(156,106,222,.16);color:#C2A0F0;border-color:rgba(156,106,222,.42)}
+  .xtag.z-triceps{background:rgba(222,106,178,.16);color:#F0A0CE;border-color:rgba(222,106,178,.42)}
+  .xtag.z-abdos{background:rgba(76,175,80,.16);color:#94D897;border-color:rgba(76,175,80,.42)}
+  .xtag.z-jambes{background:rgba(255,138,60,.16);color:#FFB380;border-color:rgba(255,138,60,.42)}
+  .xtag.z-cardio{background:rgba(0,188,212,.16);color:#7FDCE8;border-color:rgba(0,188,212,.42)}
+  .xtag.z-mobilite{background:rgba(150,150,150,.14);color:#B8B4AE;border-color:rgba(150,150,150,.38)}
   .xtag.or{background:rgba(184,134,47,.16);color:var(--amber2);border-color:rgba(184,134,47,.4)}
 
   .xacts{display:flex;gap:4px;align-items:center;margin-top:9px;padding-top:9px;border-top:1px solid rgba(46,38,32,.7)}
@@ -727,7 +747,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.50 — 15/08/2026";
+const APP_VERSION="v11.52 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1676,8 +1696,117 @@ const ZONES=[
   ["cardio",["burpee","corde à sauter","rameur","vélo","tapis","skierg","assault","elliptique","sprint","jumping jack","high knee","montées de genoux","talons-fesses","escalier","stepmill","shadow boxing","skater","star jump","tuck jump","bear crawl","crab walk","inchworm","battle rope","wall ball","thruster","traîneau","sled","prowler","navette","shuttle","medicine ball","clean","snatch","jerk","push press","muscle-up","turkish","carry","marche du fermier","suitcase","plank jack"]],
   ["mobilite",["étirement","mobilité","cat-cow","chat-vache","chien tête","pigeon","90/90","foam roller","auto-massage","respiration","posture de l'enfant","cercles de","rotation du buste","world's greatest","snow angel"]]
 ];
+/* Exceptions testées AVANT la liste générale : ces noms contiennent un mot-clé
+   d'une autre zone qui gagnerait sinon par ordre de passage.
+   Ex. « leg curl » contient « curl » et tombait dans Biceps. */
+const ZONES_EXCEPTIONS=[
+  ["jambes",["leg curl","nordic curl","hamstring curl","curl ischio","curl allongé","curl assis machine"]],
+  ["triceps",["prise serrée","pompes diamant"]],
+  ["dos",["curl marteau au banc"]]
+];
+/* ===== MUSCLES SOLLICITÉS (détail anatomique) =====
+   Table lue de haut en bas : la première correspondance gagne, donc les entrées
+   les plus spécifiques doivent précéder les plus générales ("soulevé de terre
+   roumain" avant "soulevé de terre", "curl marteau" avant "curl").
+   p = muscles moteurs principaux · s = muscles secondaires / stabilisateurs */
+const MUSCLES=[
+  // --- Jambes : dominante genou ---
+  [["leg extension","quadriceps machine","sissy"],["Quadriceps (droit fémoral, vastes)"],[]],
+  [["hack squat","presse à cuisses","presse horizontale","leg press","belt squat","box squat","front squat","overhead squat","zercher"],["Quadriceps","Grand fessier"],["Ischio-jambiers","Adducteurs","Érecteurs du rachis"]],
+  [["squat bulgare","split squat","pistol"],["Quadriceps","Grand fessier"],["Moyen fessier","Ischio-jambiers","Adducteurs"]],
+  [["wall sit","chaise contre le mur","squat isométrique"],["Quadriceps"],["Grand fessier","Gainage"]],
+  [["squat"],["Quadriceps (droit fémoral, vastes)","Grand fessier"],["Ischio-jambiers","Adducteurs","Érecteurs du rachis","Transverse"]],
+  [["fente","lunge","step-up","montées d'escaliers","montée sur marche"],["Quadriceps","Grand fessier"],["Ischio-jambiers","Moyen fessier","Adducteurs"]],
+  // --- Jambes : dominante hanche ---
+  [["soulevé de terre roumain","soulevé de terre jambes tendues","good morning","nordic curl"],["Ischio-jambiers (biceps fémoral, semi-tendineux, semi-membraneux)","Grand fessier"],["Érecteurs du rachis","Grand dorsal"]],
+  [["soulevé de terre","deadlift","rack pull"],["Érecteurs du rachis","Grand fessier","Ischio-jambiers"],["Quadriceps","Trapèzes","Grand dorsal","Avant-bras (fléchisseurs)"]],
+  [["hip thrust","pont fessier","glute bridge","frog pump","reverse hyper"],["Grand fessier"],["Ischio-jambiers","Quadriceps","Transverse"]],
+  [["leg curl","ischio"],["Ischio-jambiers (biceps fémoral, semi-tendineux, semi-membraneux)"],["Jumeaux (gastrocnémiens)"]],
+  [["kickback","donkey kick","fire hydrant","pull-through","glute bridge march"],["Grand fessier"],["Ischio-jambiers","Moyen fessier"]],
+  [["abduction","clamshell","moyen fessier"],["Moyen fessier","Petit fessier"],["Tenseur du fascia lata"]],
+  [["adduction","adducteur","grenouille"],["Adducteurs (long, court, grand)"],["Pectiné","Gracile"]],
+  [["hyperextension","banc lombaire","extension au banc","superman"],["Érecteurs du rachis (ilio-costal, longissimus)"],["Grand fessier","Ischio-jambiers"]],
+  [["kettlebell swing","swing"],["Grand fessier","Ischio-jambiers"],["Érecteurs du rachis","Transverse","Deltoïdes"]],
+  [["mollet","calf","pointe","donkey calf"],["Triceps sural (gastrocnémiens, soléaire)"],["Tibial postérieur"]],
+  // --- Pectoraux ---
+  [["développé incliné","pompes déclinées","écarté incliné","écarté poulie basse"],["Grand pectoral (faisceau claviculaire)","Deltoïde antérieur"],["Triceps brachial"]],
+  [["développé décliné","écarté décliné","dips pectoraux","écarté poulie haute"],["Grand pectoral (faisceau abdominal)"],["Triceps brachial","Deltoïde antérieur"]],
+  [["développé prise serrée","pompes prise serrée","pompes diamant"],["Triceps brachial","Grand pectoral"],["Deltoïde antérieur"]],
+  [["écarté","pec deck","crossover","squeeze press"],["Grand pectoral"],["Deltoïde antérieur","Petit pectoral"]],
+  [["développé couché","chest press","développé machine convergente","landmine press"],["Grand pectoral (faisceau sternal)"],["Deltoïde antérieur","Triceps brachial"]],
+  [["pompe","push-up"],["Grand pectoral","Triceps brachial"],["Deltoïde antérieur","Transverse","Dentelé antérieur"]],
+  [["pull-over"],["Grand dorsal","Grand pectoral"],["Triceps (chef long)","Dentelé antérieur"]],
+  // --- Dos ---
+  [["traction supination","chin-up"],["Grand dorsal","Biceps brachial"],["Grand rond","Brachial antérieur","Trapèze inférieur"]],
+  [["traction","pulldown","tirage vertical","muscle-up"],["Grand dorsal","Grand rond"],["Biceps brachial","Rhomboïdes","Trapèze inférieur","Brachial antérieur"]],
+  [["rowing","tirage horizontal","seal row","inverted row","pendlay","meadows","tirage poulie basse"],["Grand dorsal","Rhomboïdes","Trapèze moyen"],["Biceps brachial","Deltoïde postérieur","Érecteurs du rachis"]],
+  [["face pull","oiseau","reverse fly","reverse pec deck","pull-apart","rotation externe","cuban press"],["Deltoïde postérieur","Trapèze moyen et inférieur","Rhomboïdes"],["Rotateurs (infra-épineux, petit rond)"]],
+  [["shrug","haussement"],["Trapèze supérieur"],["Élévateur de la scapula","Rhomboïdes"]],
+  [["straight-arm pulldown"],["Grand dorsal"],["Triceps (chef long)","Grand rond"]],
+  // --- Épaules ---
+  [["élévations latérales"],["Deltoïde moyen"],["Sus-épineux","Trapèze supérieur"]],
+  [["élévations frontales"],["Deltoïde antérieur"],["Grand pectoral (faisceau claviculaire)"]],
+  [["tirage menton","high pull"],["Deltoïde moyen","Trapèze supérieur"],["Biceps brachial","Rhomboïdes"]],
+  [["développé militaire","développé arnold","overhead press","push press","push jerk","jerk","pike push-up","handstand","développé épaules","développé haltères assis","développé machine épaules","développé unilatéral"],["Deltoïde antérieur et moyen"],["Triceps brachial","Trapèze supérieur","Dentelé antérieur","Gainage"]],
+  // --- Bras ---
+  [["curl marteau","curl prise inversée","reverse curl","zottman","curl poignets inversé","curl inversé"],["Brachio-radial","Brachial antérieur"],["Biceps brachial","Extenseurs du poignet"]],
+  [["curl","biceps","drag curl","spider","21s","pupitre","larry scott","concentration"],["Biceps brachial (courte et longue portion)","Brachial antérieur"],["Brachio-radial"]],
+  [["extension nuque","barre au front","skull","overhead extension","jm press"],["Triceps brachial (chef long)"],["Triceps (chefs latéral et médial)"]],
+  [["triceps","pushdown","kickback","dips triceps","dips barres"],["Triceps brachial (chefs latéral et médial)"],["Anconé","Deltoïde antérieur"]],
+  [["curl poignets","wrist roller","rouleau de poignet","grip","hand gripper","plate pinch","dead hang","barre suspendue"],["Fléchisseurs des doigts et du poignet"],["Brachio-radial"]],
+  [["marche du fermier","farmer","suitcase carry"],["Avant-bras (fléchisseurs)","Trapèzes"],["Transverse","Obliques","Moyen fessier"]],
+  // --- Abdos / gainage ---
+  [["gainage latéral","side bend","carré des lombes"],["Obliques (externe, interne)","Carré des lombes"],["Transverse"]],
+  [["pallof","anti-rotation","woodchopper","russian twist","windshield"],["Obliques (externe, interne)"],["Transverse","Grand droit"]],
+  [["gainage","planche","plank","hollow","dead bug","bird dog","l-sit","dragon flag"],["Transverse de l'abdomen","Grand droit"],["Obliques","Érecteurs du rachis","Deltoïdes"]],
+  [["relevé de jambe","relevés de jambes","relevés de genoux","toes to bar","crunch inversé","v-up"],["Grand droit (partie basse)","Psoas-iliaque"],["Obliques","Transverse"]],
+  [["crunch","sit-up","abdo","roulette","ab wheel"],["Grand droit de l'abdomen"],["Obliques","Transverse"]],
+  [["mountain climber","bear crawl","crab walk"],["Transverse","Grand droit"],["Deltoïdes","Quadriceps","Psoas-iliaque"]],
+  // --- Explosivité / conditionnement ---
+  [["clean","épaulé","snatch","arraché","turkish get-up"],["Grand fessier","Ischio-jambiers","Érecteurs du rachis","Trapèzes"],["Quadriceps","Deltoïdes","Avant-bras","Gainage"]],
+  [["thruster","wall ball"],["Quadriceps","Grand fessier","Deltoïdes"],["Triceps","Érecteurs du rachis","Gainage"]],
+  [["burpee"],["Corps entier"],["Grand pectoral","Quadriceps","Triceps","Gainage"]],
+  [["box jump","broad jump","jump squat","fentes sautées","saut","skater","tuck"],["Quadriceps","Grand fessier","Triceps sural"],["Ischio-jambiers","Gainage"]],
+  [["traîneau","sled","prowler"],["Quadriceps","Grand fessier","Triceps sural"],["Érecteurs du rachis","Deltoïdes"]],
+  [["battle rope","medicine ball slam","rotational throw","chest pass"],["Deltoïdes","Grand dorsal","Obliques"],["Avant-bras","Gainage"]],
+  [["rameur","skierg"],["Quadriceps","Grand dorsal","Grand fessier"],["Biceps","Érecteurs du rachis","Triceps sural"]],
+  [["corde à sauter","double-under"],["Triceps sural"],["Quadriceps","Avant-bras","Gainage"]],
+  [["assault bike","vélo","elliptique","stepmill"],["Quadriceps","Grand fessier"],["Ischio-jambiers","Triceps sural"]],
+  [["sprint","course","tapis","navette","shuttle","jumping jack","montées de genoux","talons-fesses"],["Quadriceps","Ischio-jambiers","Grand fessier","Triceps sural"],["Psoas-iliaque","Gainage"]],
+  // --- Mobilité ---
+  [["étirement","mobilité","cat-cow","chat-vache","chien tête","pigeon","90/90","dislocation","foam roller","auto-massage","respiration","world's greatest"],["Travail de mobilité / souplesse"],[]],
+  // --- Compléments : exercices du catalogue non couverts par les entrées ci-dessus ---
+  [["tirage nuque"],["Grand dorsal","Grand rond"],["Biceps brachial","Rhomboïdes","Trapèze moyen"]],
+  [["extension corde","extension poulie"],["Triceps brachial (chefs latéral et médial)"],["Anconé"]],
+  [["dips entre deux chaises","dips sur le canapé"],["Triceps brachial"],["Deltoïde antérieur","Grand pectoral"]],
+  [["reverse snow angel","y-t-w","y raise","y-raise","extension dorsale au sol","rotation externe élastique","échauffement rotateurs","around the world"],["Trapèze moyen et inférieur","Deltoïde postérieur"],["Rhomboïdes","Rotateurs (infra-épineux, petit rond)"]],
+  [["rotation interne élastique"],["Sous-scapulaire","Grand pectoral"],["Grand dorsal"]],
+  [["ouverture pectoraux"],["Grand pectoral","Deltoïde antérieur"],["Petit pectoral"]],
+  [["cercles de bras","shadow boxing"],["Deltoïdes"],["Trapèzes","Coiffe des rotateurs"]],
+  [["monster walk","marche latérale élastique","activation fessiers"],["Moyen fessier","Petit fessier"],["Tenseur du fascia lata","Grand fessier"]],
+  [["toe touch","flutter kick","scissor kick","heel tap","rotation du buste","rotation buste"],["Grand droit de l'abdomen","Obliques"],["Psoas-iliaque","Transverse"]],
+  [["star jump","inchworm"],["Corps entier"],["Quadriceps","Deltoïdes","Gainage"]],
+  [["chaise + élévation talons"],["Quadriceps","Triceps sural"],["Grand fessier"]],
+  [["thoracic rotation","cercles de hanches","posture de l'enfant"],["Travail de mobilité / souplesse"],[]],
+];
+function musclesExo(nom){
+  const n=normTxt(nom||"");
+  for(const [cles,p,s] of MUSCLES){
+    for(const k of cles){ if(n.includes(normTxt(k))) return {p,s}; }
+  }
+  return null;
+}
+/* Ligne compacte affichée sous le nom de l'exercice dans le programme. */
+function musclesLigne(nom){
+  const m=musclesExo(nom);
+  if(!m) return "";
+  return `<div class="xmusc">
+    <b>${m.p.map(esc).join(" · ")}</b>${m.s.length?`<span> — secondaires : ${m.s.map(esc).join(", ")}</span>`:""}
+  </div>`;
+}
 function exoZone(nom){
   const n=normTxt(nom);
+  for(const [z,keys] of ZONES_EXCEPTIONS){ for(const k of keys){ if(n.includes(normTxt(k))) return z; } }
   for(const [z,keys] of ZONES){ for(const k of keys){ if(n.includes(normTxt(k))) return z; } }
   return "full";
 }
@@ -2657,6 +2786,7 @@ function programme(c,editable){
             ${e.rir?`<span class="xtag">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}
             ${e.ss?`<span class="xtag or">🔗 SS ${esc(e.ss)}</span>`:""}
           </div>
+          ${musclesLigne(e.nom)}
         </div>
       </div>
 
