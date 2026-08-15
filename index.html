@@ -825,7 +825,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.63 — 16/08/2026";
+const APP_VERSION="v11.65 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5057,39 +5057,29 @@ const ORDRE_MUSCLES=[
   "Biceps brachial","Brachial / brachio-radial","Triceps brachial","Avant-bras / grip",
   "Grand droit (abdominaux)","Obliques","Transverse (gainage profond)","Psoas-iliaque"
 ];
-/* Ramène un libellé anatomique précis au groupe sous lequel on le range. */
+/* Groupes volontairement simples, ceux qu'on utilise pour bâtir une séance.
+   Le détail anatomique reste visible sous chaque exercice et dans la recherche. */
 function groupeCanon(muscle){
   const n=normTxt(muscle);
-  if(n.startsWith("quadriceps")) return "Quadriceps";
-  if(n.startsWith("ischio")) return "Ischio-jambiers";
-  if(n.startsWith("grand fessier")) return "Grand fessier";
-  if(n.startsWith("moyen fessier")||n.startsWith("petit fessier")||n.includes("fascia lata")) return "Moyen / petit fessier";
-  if(n.startsWith("adducteurs")||n.includes("pectine")||n.includes("gracile")) return "Adducteurs";
-  if(n.includes("triceps sural")||n.includes("gastrocnemien")||n.includes("soleaire")) return "Mollets (triceps sural)";
-  if(n.includes("tibial")) return "Tibial antérieur";
-  if(n.startsWith("grand pectoral")) return "Pectoraux (grand pectoral)";
-  if(n.startsWith("grand dorsal")) return "Grand dorsal";
-  if(n.startsWith("grand rond")) return "Grand rond";
+  // Jambes et fessiers réunis : on ne cherche pas « adducteurs » séparément
+  if(n.startsWith("quadriceps")||n.startsWith("ischio")||n.includes("fessier")
+     ||n.startsWith("adducteurs")||n.includes("pectine")||n.includes("gracile")
+     ||n.includes("triceps sural")||n.includes("gastrocnemien")||n.includes("soleaire")
+     ||n.includes("tibial")||n.includes("fascia lata")) return "Jambes / fessiers";
+  if(n.startsWith("grand pectoral")) return "Pectoraux";
   if(n.startsWith("trapeze")||n.includes("scapula")) return "Trapèzes";
-  if(n.startsWith("rhomboides")) return "Rhomboïdes";
-  if(n.startsWith("erecteurs")) return "Érecteurs du rachis";
-  if(n.includes("infra-epineux")||n.includes("petit rond")||n.includes("sous-scapulaire")||n.includes("sus-epineux")) return "Coiffe des rotateurs";
-  if(n.includes("deltoide anterieur")) return "Deltoïde antérieur";
-  if(n.includes("deltoide moyen")) return "Deltoïde moyen";
-  if(n.includes("deltoide posterieur")) return "Deltoïde postérieur";
-  // La table emploie parfois « Deltoïdes » sans préciser le faisceau
-  if(n.startsWith("deltoide")) return "Deltoïdes (non précisé)";
-  if(n.startsWith("biceps brachial")) return "Biceps brachial";
-  if(n.startsWith("brachial")||n.startsWith("brachio")) return "Brachial / brachio-radial";
-  if(n.startsWith("triceps brachial")||n.startsWith("ancone")) return "Triceps brachial";
+  if(n.startsWith("grand dorsal")||n.startsWith("grand rond")||n.startsWith("rhomboides")
+     ||n.startsWith("erecteurs")) return "Dos";
+  if(n.startsWith("deltoide")||n.includes("infra-epineux")||n.includes("petit rond")
+     ||n.includes("sous-scapulaire")||n.includes("sus-epineux")) return "Épaules";
+  if(n.startsWith("biceps brachial")||n.startsWith("brachial")||n.startsWith("brachio")) return "Biceps";
+  if(n.startsWith("triceps brachial")||n.startsWith("ancone")) return "Triceps";
   if(n.startsWith("avant-bras")) return "Avant-bras / grip";
-  if(n.includes("grand droit")) return "Grand droit (abdominaux)";
-  if(n.startsWith("obliques")) return "Obliques";
-  if(n.startsWith("transverse")) return "Transverse (gainage profond)";
-  if(n.startsWith("psoas")) return "Psoas-iliaque";
-  if(n.startsWith("chaine complete")||n.startsWith("corps entier")) return "Global / conditionnement";
-  if(n.includes("mobilite")||n.includes("souplesse")||n.includes("etirement")) return "Mobilité / souplesse";
-  if(n.includes("respiration")||n.includes("diaphragme")) return "Respiration / récupération";
+  if(n.includes("grand droit")||n.startsWith("obliques")||n.startsWith("transverse")
+     ||n.startsWith("psoas")||n.includes("carre des lombes")) return "Abdos / gainage";
+  if(n.startsWith("chaine complete")||n.startsWith("corps entier")) return "Cardio / conditionnement";
+  if(n.includes("mobilite")||n.includes("souplesse")||n.includes("etirement")
+     ||n.includes("respiration")) return "Échauffement / mobilité";
   return "Autres";
 }
 /* Catégories qui ne doivent PAS être éclatées par muscle : un assault bike
@@ -5100,8 +5090,15 @@ const CATEGORIES_A_PART={
   "Cardio / HIIT maison":"Cardio / HIIT maison",
   "🔥 HIIT / Intervalles":"HIIT / intervalles",
   "Haltérophilie / Explosivité":"Haltérophilie / explosivité",
-  "Mobilité / Étirements":"Mobilité / étirements"
+  "Mobilité / Étirements":"Échauffement / mobilité"
 };
+/* Un étirement ne doit jamais figurer parmi les exercices de renforcement, même
+   s'il est rangé dans une autre catégorie (les étirements assistés à l'élastique
+   se retrouvaient sinon au milieu des ischio-jambiers). On se fie au nom. */
+function estMobilite(nom){
+  const n=normTxt(nom);
+  return /(^|[^a-z])(etirement|etirer|assouplissement|mobilite|auto-massage|foam roller|respiration|posture de l enfant|chien tete en bas|cat-cow|chat-vache)/.test(n);
+}
 function groupesParMuscle(mode){
   const brut=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
   const par={},principaux={};
@@ -5113,6 +5110,7 @@ function groupesParMuscle(mode){
     const aPart=CATEGORIES_A_PART[categorie];
     liste.forEach(nom=>{
       if(aPart){ ajoute(aPart,nom,true); return; }     // cardio, mobilité… : tels quels
+      if(estMobilite(nom)){ ajoute("Échauffement / mobilité",nom,true); return; }
       const mu=musclesExo(nom);
       const cibles=mu?[...new Set(mu.p.map(groupeCanon))]:["Autres"];
       // Le premier muscle listé est le moteur principal du mouvement
@@ -5136,11 +5134,8 @@ function groupesParMuscle(mode){
    la liste difficile à parcourir. On les préfixe par région pour que l'œil
    retrouve immédiatement la zone cherchée. */
 const REGIONS=[
-  ["🦵 BAS DU CORPS",["Quadriceps","Ischio-jambiers","Grand fessier","Moyen / petit fessier","Adducteurs","Mollets (triceps sural)","Tibial antérieur"]],
-  ["💪 POUSSÉE (haut)",["Pectoraux (grand pectoral)","Deltoïde antérieur","Deltoïde moyen","Deltoïdes (non précisé)","Triceps brachial"]],
-  ["🔙 TIRAGE (haut)",["Grand dorsal","Grand rond","Trapèzes","Rhomboïdes","Deltoïde postérieur","Coiffe des rotateurs","Biceps brachial","Brachial / brachio-radial","Avant-bras / grip"]],
-  ["🧍 TRONC",["Grand droit (abdominaux)","Obliques","Transverse (gainage profond)","Érecteurs du rachis","Psoas-iliaque"]],
-  ["⚡ AUTRES FORMATS",["Cardio / conditionnement","Cardio / HIIT maison","HIIT / intervalles","Haltérophilie / explosivité","Mobilité / étirements"]]
+  ["MUSCULATION",["Pectoraux","Dos","Trapèzes","Épaules","Biceps","Triceps","Avant-bras / grip","Abdos / gainage","Jambes / fessiers"]],
+  ["AUTRES FORMATS",["Échauffement / mobilité","Cardio / conditionnement","Cardio / HIIT maison","HIIT / intervalles","Haltérophilie / explosivité"]]
 ];
 function regionDe(groupe){
   for(const [r,liste] of REGIONS){ if(liste.includes(groupe)) return r; }
@@ -5159,13 +5154,7 @@ function pickerOptionsHtml(mode,filter){
     const f=q?list.filter(e=>normTxt(e).includes(q)):list;
     if(!f.length) return;
     const label=`${regionDe(g)}  ›  ${g}  (${f.length})`;
-    const ligne=e=>{
-      // On n'écrit QUE les autres muscles moteurs : répéter celui du groupe
-      // allongeait chaque ligne sans rien apporter.
-      const mu=musclesExo(e);
-      const autres=mu?mu.p.filter(x=>groupeCanon(x)!==g):[];
-      return `<option value="${esc(e)}">${esc(e+(autres.length?" + "+autres.join(" · "):""))}</option>`;
-    };
+    const ligne=e=>`<option value="${esc(e)}">${esc(e)}</option>`;
     let corps;
     if(q||!nbPrincipaux||nbPrincipaux>=f.length){
       corps=f.map(ligne).join("");
