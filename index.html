@@ -55,6 +55,11 @@
   @media (prefers-reduced-motion:reduce){main{animation:none}}
   .wrap{max-width:520px;margin:0 auto;padding-bottom:92px}
   main{padding:16px 16px 0;animation:fade .3s ease both}
+  /* Rafraîchissement sur place : on coupe toutes les animations d'entrée.
+     Elles ne doivent marquer qu'une véritable arrivée sur un écran, sinon
+     l'interface rejoue une apparition complète à chaque action. */
+  #root.noanim main,#root.noanim .card,#root.noanim .crow,#root.noanim .xcard,
+  #root.noanim .empty,#root.noanim .authcard,#root.noanim .panel{animation:none!important}
   .hd{position:relative;padding:calc(14px + env(safe-area-inset-top)) 18px 16px;
     background:
       repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,transparent 1px 4px),
@@ -767,7 +772,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.56 — 15/08/2026";
+const APP_VERSION="v11.57 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -903,6 +908,12 @@ async function reloadKeepingView(){
   try{
     const {data:rows}=await sb.from("clients").select("*");
     if(!rows) return;
+    // Rien de neuf ? On ne redessine pas. Sans ce test, l'écran était reconstruit
+    // toutes les 8 secondes même sans changement : perte de fluidité, et curseur
+    // ou lecture en cours perturbés pour rien.
+    const empreinte=rows.map(r=>r.id+":"+(r.updated_at||"")).sort().join("|");
+    if(empreinte===DERNIERE_EMPREINTE) return;
+    DERNIERE_EMPREINTE=empreinte;
     const uidNow=S.session&&S.session.user?S.session.user.id:null;
     if(S.isClient){
       const email=(S.session&&S.session.user&&S.session.user.email||"").toLowerCase();
@@ -1058,6 +1069,7 @@ function authScreen(){
 
 /* ===== rendu ===== */
 let VUE_PREC="";
+let DERNIERE_EMPREINTE="";   // signature des données, pour éviter les rendus inutiles
 function render(){
   const root=document.getElementById("root");
   // On garde la position de lecture quand on reste sur le même écran
@@ -1065,6 +1077,11 @@ function render(){
   const memeEcran=(vueActuelle===VUE_PREC);
   const posY=memeEcran?window.scrollY:0;
   VUE_PREC=vueActuelle;
+  // Les cartes ont une animation d'apparition. Sans ce garde-fou, elle se rejoue
+  // intégralement à chaque rendu — donc à chaque frappe, chaque validation de
+  // série, chaque synchro — et toute la page semble « clignoter ». On ne l'anime
+  // que lorsqu'on arrive réellement sur un nouvel écran.
+  root.classList.toggle("noanim",memeEcran);
   if(memeEcran&&posY>0){
     requestAnimationFrame(()=>{ window.scrollTo(0,posY); });
   } else if(!memeEcran){
