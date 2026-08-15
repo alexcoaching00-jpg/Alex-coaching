@@ -444,6 +444,10 @@
   @keyframes tpulse{0%,100%{opacity:1}50%{opacity:.75}}
   /* mode séance */
   #wk{position:fixed;inset:0;z-index:150;background:radial-gradient(900px 600px at 50% -10%, rgba(176,31,31,.15), transparent 60%),var(--ink);display:flex}
+  /* Écran WOD : même habillage que la séance guidée, mais défilable car la liste
+     des exercices reste affichée sous le chrono. */
+  #wod{position:fixed;inset:0;z-index:150;background:radial-gradient(900px 600px at 50% -10%, rgba(76,139,245,.13), transparent 60%),var(--ink);display:flex;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #wod .wk-in{justify-content:flex-start}
   .bigtmr{position:fixed;inset:0;z-index:160;background:radial-gradient(900px 600px at 50% -10%, rgba(176,31,31,.18), transparent 60%),var(--ink);display:flex}
   .bigtmr-in{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(18px + env(safe-area-inset-top)) 20px calc(18px + env(safe-area-inset-bottom));max-width:420px;margin:0 auto;width:100%}
   .wk-in{flex:1;display:flex;flex-direction:column;align-items:center;padding:calc(18px + env(safe-area-inset-top)) 20px calc(18px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;width:100%}
@@ -723,7 +727,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.49 — 14/08/2026";
+const APP_VERSION="v11.50 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -2328,7 +2332,39 @@ const SEANCE_TYPES=[
  ["mobilite","🧘","Mobilité / Récupération"],
  ["mixte","⚡","Mixte"]
 ];
-function seanceType(c,bloc){ return (c.seanceTypes&&c.seanceTypes[bloc])||""; }
+/* ===== FORMATS DE SÉANCE (WOD) =====
+   Le format est encodé dans seanceTypes après une barre verticale :
+   "hiit|amrap:12". Les valeurs existantes n'en contiennent pas, donc rien à migrer.
+   • AMRAP    : le plus de tours possible dans le temps imparti (décompte)
+   • EMOM     : un exercice au départ de chaque minute (décompte par minute)
+   • FOR TIME : un nombre de tours à boucler le plus vite possible (chrono qui monte) */
+const FORMATS=[
+  ["","⏹","Classique (séries / repos)",""],
+  ["amrap","♾️","AMRAP","Durée en minutes"],
+  ["emom","⏱","EMOM","Durée en minutes"],
+  ["fortime","🏁","For Time","Nombre de tours"]
+];
+function seanceFormat(c,bloc){
+  const brut=(c.seanceTypes&&c.seanceTypes[bloc])||"";
+  const part=String(brut).split("|")[1]||"";
+  const [mode,val]=part.split(":");
+  if(!mode) return {mode:"",val:0};
+  return {mode,val:parseInt(val)||0};
+}
+function setSeanceFormat(c,bloc,mode,val){
+  c.seanceTypes=c.seanceTypes||{};
+  const disc=String(c.seanceTypes[bloc]||"").split("|")[0];
+  const suffixe=mode?("|"+mode+":"+(val||0)):"";
+  if(disc||suffixe) c.seanceTypes[bloc]=disc+suffixe; else delete c.seanceTypes[bloc];
+}
+function formatBadge(c,bloc){
+  const f=seanceFormat(c,bloc);
+  if(!f.mode) return "";
+  const d=FORMATS.find(x=>x[0]===f.mode); if(!d) return "";
+  const suff=f.mode==="fortime"?`${f.val} tours`:`${f.val} min`;
+  return `<span class="tag" style="background:rgba(76,139,245,.18);color:#7FB0FF;border:1px solid rgba(76,139,245,.4);font-size:11px;white-space:nowrap">${d[1]} ${d[2]} · ${suff}</span>`;
+}
+function seanceType(c,bloc){ return String((c.seanceTypes&&c.seanceTypes[bloc])||"").split("|")[0]; }
 function seanceTypeBadge(c,bloc){
   const t=SEANCE_TYPES.find(x=>x[0]===seanceType(c,bloc));
   return t?`<span class="tag" style="background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4);font-size:11px;white-space:nowrap">${t[1]} ${t[2]}</span>`:"";
@@ -2759,12 +2795,23 @@ function programme(c,editable){
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
         </span></div>
         ${editable?`<label class="fld" style="margin-bottom:10px"><span>Type de séance</span><select data-act="set-seance-type" data-jour="${esc(b)}"><option value="">— Non précisé —</option>${SEANCE_TYPES.map(t2=>`<option value="${t2[0]}" ${seanceType(c,b)===t2[0]?"selected":""}>${t2[1]} ${t2[2]}</option>`).join("")}</select></label>
+          ${(()=>{
+            const f=seanceFormat(c,b);
+            const d=FORMATS.find(x=>x[0]===f.mode);
+            return `<div class="r2" style="margin-bottom:10px">
+              <label class="fld" style="margin-bottom:0"><span>Format</span><select data-act="set-format" data-jour="${esc(b)}">${FORMATS.map(x=>`<option value="${x[0]}" ${f.mode===x[0]?"selected":""}>${x[1]} ${x[2]}</option>`).join("")}</select></label>
+              ${f.mode?`<label class="fld" style="margin-bottom:0"><span>${esc(d?d[3]:"Valeur")}</span><input type="number" min="1" max="90" inputmode="numeric" data-act="set-format-val" data-jour="${esc(b)}" value="${f.val||""}"></label>`:`<div></div>`}
+            </div>
+            ${f.mode==="amrap"?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">♾️ Le client enchaîne tous les exercices en boucle et compte ses tours pendant ${f.val} min. Les temps de repos sont ignorés.</p>`:""}
+            ${f.mode==="emom"?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">⏱ Un exercice au départ de chaque minute, en tournant dans la liste, pendant ${f.val} min. Le temps restant dans la minute sert de récupération.</p>`:""}
+            ${f.mode==="fortime"?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🏁 ${f.val} tours de tous les exercices, le plus vite possible. Le chrono monte et s'arrête au dernier tour.</p>`:""}`;
+          })()}
           <div class="r2" style="margin-bottom:10px">
             <label class="fld" style="margin-bottom:0"><span>Nombre de tours</span><input type="number" min="0" max="20" inputmode="numeric" placeholder="0 = séries classiques" data-act="set-seance-rounds" data-jour="${esc(b)}" value="${seanceRounds(c,b)||""}"></label>
             <label class="fld" style="margin-bottom:0"><span>Repos entre les tours</span><input data-act="set-tour-repos" data-jour="${esc(b)}" placeholder="2min ou 120" value="${esc(tourRepos(c,b))}"></label>
           </div>
           ${seanceRounds(c,b)>1?`<p class="muted" style="font-size:11.5px;margin:-6px 0 10px">🔁 Mode circuit : chaque exercice se fait une fois, puis on recommence le tour — ${seanceRounds(c,b)} fois au total. Repos de transition entre exercices = celui de chaque exercice ; repos entre les tours = ${esc(tourRepos(c,b)||"60 s par défaut")}.</p>`:""}`
-        :(seanceType(c,b)||seanceRounds(c,b)>1?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
+        :(seanceType(c,b)||seanceRounds(c,b)>1||seanceFormat(c,b).mode?`<div style="margin:-6px 0 10px;display:flex;gap:6px;flex-wrap:wrap">${seanceTypeBadge(c,b)}${formatBadge(c,b)}${seanceRoundsBadge(c,b)}</div>`:"")}`:`<div class="sec-head" style="margin-top:8px"><h2 style="font-size:16px;color:var(--grey)">Autres exercices</h2></div>`}
       ${blocs[b].map(renderCard).join("")}`).join("");
   }
   // Le formulaire va soit en INLINE juste après la carte modifiée, soit en bas en mode "ajout"
@@ -3110,6 +3157,9 @@ function openWorkout(jour){
   const exos=(c.program||[]).filter(e=>(e.bloc||"")===jour);
   if(!exos.length) return;
   stopTimer();
+  // Format AMRAP / EMOM / For Time : moteur dédié, la logique séries/repos ne s'applique pas
+  const f=seanceFormat(c,jour);
+  if(f.mode && f.val>0){ wodStart(c,jour,exos,f); return; }
   const rounds=seanceRounds(c,jour);
   WK.on=true; WK.c=c; WK.jour=jour; WK.exos=exos; WK.idx=0; WK.serie=1; WK.rest=0;
   WK.rounds=rounds>1?rounds:0; WK.round=1; WK.start=Date.now();
@@ -3284,6 +3334,150 @@ function cancelScheduledPush(){
     }
     PUSH_SCHED.id=null;
   }catch(e){}
+}
+/* ===== MOTEUR WOD : AMRAP / EMOM / FOR TIME =====
+   Volontairement séparé du mode guidé classique (WK) : la logique séries/repos
+   ne s'applique pas ici, et les mélanger fragiliserait les deux. */
+const WOD={on:false,c:null,jour:"",mode:"",val:0,exos:[],tours:0,idx:0,minute:0,
+           debut:0,finAt:0,int:null,dernierBip:-1};
+function wodStart(c,jour,exos,f){
+  WOD.on=true; WOD.c=c; WOD.jour=jour; WOD.mode=f.mode; WOD.val=f.val;
+  WOD.exos=exos; WOD.tours=0; WOD.idx=0; WOD.minute=0; WOD.dernierBip=-1;
+  WOD.debut=Date.now();
+  WOD.finAt=(f.mode==="fortime")?0:(Date.now()+f.val*60000);
+  unlockAudio(); garderActif(); wakeOn();
+  let ov=document.getElementById("wod");
+  if(!ov){ ov=document.createElement("div"); ov.id="wod"; document.body.appendChild(ov); }
+  wodRender();
+  if(WOD.int) clearInterval(WOD.int);
+  WOD.int=setInterval(wodTick,200);
+}
+function wodSecondes(){
+  return WOD.mode==="fortime"
+    ? Math.floor((Date.now()-WOD.debut)/1000)              // chrono qui monte
+    : Math.max(0,Math.ceil((WOD.finAt-Date.now())/1000));  // décompte
+}
+function fmtChrono(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function wodTick(){
+  if(!WOD.on) return;
+  const s=wodSecondes();
+  const el=document.getElementById("wod-time");
+  if(el){
+    el.textContent=fmtChrono(s);
+    el.style.color=(WOD.mode!=="fortime"&&s<=10)?"#E0A94A":"var(--white)";
+  }
+  // EMOM : à chaque nouvelle minute, on passe à l'exercice suivant
+  if(WOD.mode==="emom"){
+    const ecoule=Math.floor((Date.now()-WOD.debut)/1000);
+    const min=Math.floor(ecoule/60);
+    if(min!==WOD.minute && min<WOD.val){
+      WOD.minute=min;
+      WOD.idx=min%WOD.exos.length;
+      if(min%WOD.exos.length===0) WOD.tours++;
+      alarm(1); voixGo("Go !");
+      wodRender(); return;
+    }
+    const resteMin=59-(ecoule%60);
+    const rm=document.getElementById("wod-minrest");
+    if(rm) rm.textContent=resteMin+" s";
+  }
+  // Décompte vocal des 3 dernières secondes (une seule fois par seconde)
+  if(WOD.mode!=="fortime" && s<=3 && s>0 && WOD.dernierBip!==s){
+    WOD.dernierBip=s; countdownVoice(s);
+  }
+  if(WOD.mode!=="fortime" && s<=0) wodFinish();
+}
+function wodTourFait(){
+  WOD.tours++;
+  if(WOD.mode==="fortime" && WOD.tours>=WOD.val){ wodFinish(); return; }
+  alarm(1);
+  wodRender();
+}
+function wodRender(){
+  const ov=document.getElementById("wod"); if(!ov||!WOD.on) return;
+  const s=wodSecondes();
+  const d=FORMATS.find(x=>x[0]===WOD.mode)||["","",""];
+  const exoCourant=WOD.exos[WOD.idx];
+  const listeExos=WOD.exos.map((e,i)=>`
+    <div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);
+      ${WOD.mode==="emom"&&i===WOD.idx?"background:rgba(206,42,42,.12);border-radius:8px;padding-left:8px;padding-right:8px":""}">
+      <span style="color:${WOD.mode==="emom"&&i===WOD.idx?"var(--white)":"var(--white2)"};font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.nom)}</span>
+      <span style="color:var(--grey);font-size:13px;flex:0 0 auto">${esc(repsDisplay(e)||e.reps||"—")}${chargeDisplay(e)?" · "+esc(chargeDisplay(e)):""}</span>
+    </div>`).join("");
+  ov.innerHTML=`<div class="wk-in" style="justify-content:flex-start;text-align:center;padding-top:calc(18px + env(safe-area-inset-top))">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:420px;margin-bottom:6px">
+      <span style="color:#7FB0FF;font-family:'Bebas Neue';font-size:19px;letter-spacing:.08em">${d[1]} ${d[2]}</span>
+      <button class="x" data-act="wod-close" style="font-size:22px">×</button>
+    </div>
+    <p style="color:var(--grey);font-size:12.5px;margin:0 0 14px">${esc(WOD.jour)}</p>
+
+    <div id="wod-time" style="font-family:'Bebas Neue';font-size:76px;line-height:1;letter-spacing:.02em;color:var(--white)">${fmtChrono(s)}</div>
+    <p style="color:var(--grey2);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:2px 0 18px">
+      ${WOD.mode==="fortime"?"temps écoulé":"temps restant"}</p>
+
+    ${WOD.mode==="emom"?`
+      <p style="color:var(--grey);font-size:12.5px;margin:0 0 4px">Minute ${Math.min(WOD.minute+1,WOD.val)} / ${WOD.val}</p>
+      <p style="color:var(--white);font-family:'Bebas Neue';font-size:28px;letter-spacing:.03em;margin:0">${exoCourant?esc(exoCourant.nom):"—"}</p>
+      <p style="color:var(--amber);font-size:13px;margin:4px 0 18px">${exoCourant?esc(repsDisplay(exoCourant)||exoCourant.reps||""):""}${exoCourant&&chargeDisplay(exoCourant)?" · "+esc(chargeDisplay(exoCourant)):""}
+        <span style="color:var(--grey2)"> — reste <span id="wod-minrest">—</span></span></p>`:""}
+
+    ${WOD.mode!=="emom"?`
+      <div style="font-family:'Bebas Neue';font-size:40px;color:var(--red);line-height:1">${WOD.tours}${WOD.mode==="fortime"?` <span style="font-size:22px;color:var(--grey)">/ ${WOD.val}</span>`:""}</div>
+      <p style="color:var(--grey2);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:2px 0 16px">${WOD.tours>1?"tours":"tour"}</p>
+      <button class="btn p full" data-act="wod-tour" style="max-width:300px;padding:16px;font-size:17px">✓ Tour terminé</button>`:""}
+
+    <div class="panel" style="max-width:420px;width:100%;margin-top:18px;text-align:left">
+      <div class="ph" style="font-size:12.5px">${WOD.mode==="emom"?"Rotation":"Un tour ="}</div>
+      ${listeExos}
+    </div>
+    <button class="link" data-act="wod-finish" style="margin-top:16px">Terminer maintenant</button>
+  </div>`;
+}
+function wodFinish(){
+  if(WOD.int){ clearInterval(WOD.int); WOD.int=null; }
+  const c=WOD.c, mode=WOD.mode;
+  const dureeS=Math.floor((Date.now()-WOD.debut)/1000);
+  const resultat=mode==="fortime"
+    ? `${WOD.tours}/${WOD.val} tours en ${fmtChrono(dureeS)}`
+    : (mode==="amrap" ? `${WOD.tours} tours en ${WOD.val} min` : `${WOD.val} min · ${WOD.exos.length} exercices en rotation`);
+  const nomFormat=(FORMATS.find(x=>x[0]===mode)||["","",""])[2];
+  c.seances=c.seances||[];
+  c.seances.push({date:today(),fait:true,ressenti:"",note:`${nomFormat} — ${WOD.jour} : ${resultat}`});
+  save();
+  if(S.isClient){
+    const prenom=(c.nom||"Client").split(" ")[0];
+    c.messages=c.messages||[];
+    c.messages.push({from:"client",text:`🏁 ${nomFormat} terminé — ${resultat}`,date:new Date().toISOString(),lu:false});
+    patchField(c,"messages",err=>{
+      if(!err) try{ pushTo(coachEmail(),"✅ "+prenom+" a terminé son "+nomFormat,resultat); }catch(_){}
+    });
+  }
+  const ov=document.getElementById("wod");
+  if(ov) ov.innerHTML=`<div class="wk-in" style="justify-content:center;text-align:center">
+    <div class="fin-badge">🏁</div>
+    <h2 style="font-family:'Bebas Neue';font-size:34px;letter-spacing:.05em;color:var(--white);margin:12px 0 2px">${esc(nomFormat)} terminé</h2>
+    <p style="color:var(--grey);margin-bottom:18px">${esc(WOD.jour)}</p>
+    <div class="fin-stats">
+      <div class="fin-stat"><span class="v" style="color:#E0A94A">${WOD.tours}</span><span class="k">${WOD.mode==="fortime"?"tours bouclés":"tours"}</span></div>
+      <div class="fin-stat"><span class="v">${fmtChrono(dureeS)}</span><span class="k">durée</span></div>
+      <div class="fin-stat"><span class="v">${WOD.exos.length}</span><span class="k">exercices</span></div>
+    </div>
+    <p style="color:var(--grey2);font-size:12.5px;margin:16px 0 8px">Enregistré dans le suivi.</p>
+    <p style="color:var(--amber);font-size:13px;font-style:italic;margin-bottom:22px;max-width:320px">« ${quoteOfDay()} »</p>
+    <button class="btn p full" data-act="wod-close-force" style="max-width:280px">Fermer</button>
+  </div>`;
+  alarm(2,"🏁 "+nomFormat+" terminé",resultat);
+  confetti();
+  WOD.on=false;
+  wakeOff();
+}
+function wodClose(force){
+  if(!force && WOD.on && !confirm("Quitter la séance en cours ?")) return;
+  if(WOD.int){ clearInterval(WOD.int); WOD.int=null; }
+  WOD.on=false;
+  libererActif(); wakeOff();
+  const ov=document.getElementById("wod"); if(ov) ov.remove();
+  render();
 }
 function wkFinish(){
   if(WK.restInt){ clearInterval(WK.restInt); WK.restInt=null; }
@@ -5912,6 +6106,10 @@ document.addEventListener("click",e=>{
       const bb2=document.getElementById("tmr-"+TIMER.exId); if(bb2) bb2.textContent="⏱ "+Math.floor(left2/60)+":"+String(left2%60).padStart(2,"0");
       break; }
     case "start-wk": openWorkout(t.dataset.jour); break;
+    case "wod-tour": wodTourFait(); break;
+    case "wod-finish": if(confirm("Terminer et enregistrer le résultat ?")) wodFinish(); break;
+    case "wod-close": wodClose(false); break;
+    case "wod-close-force": wodClose(true); break;
     case "wk-done": wkSerieDone(); break;
     case "wk-skip": wkSkipRest(); break;
     case "wk-close": closeWorkout(false); break;
@@ -6327,9 +6525,33 @@ document.addEventListener("change",e=>{
   if(stSel){
     const c=sel(); if(!c) return;
     c.seanceTypes=c.seanceTypes||{};
-    const v=stSel.value;
-    if(v) c.seanceTypes[stSel.dataset.jour]=v; else delete c.seanceTypes[stSel.dataset.jour];
+    const jour=stSel.dataset.jour, v=stSel.value;
+    // On conserve le format WOD éventuellement déjà réglé sur cette séance
+    const f=seanceFormat(c,jour);
+    const suffixe=f.mode?("|"+f.mode+":"+f.val):"";
+    if(v||suffixe) c.seanceTypes[jour]=v+suffixe; else delete c.seanceTypes[jour];
     patchField(c,"seanceTypes",err=>toast(err?"Erreur":"Type de séance enregistré"));
+    return;
+  }
+  // Format WOD : AMRAP / EMOM / For Time
+  const fmSel=e.target.closest("[data-act=\"set-format\"]");
+  if(fmSel){
+    const c=sel(); if(!c) return;
+    const jour=fmSel.dataset.jour;
+    const actuel=seanceFormat(c,jour);
+    const defaut={amrap:12,emom:10,fortime:5}[fmSel.value]||0;
+    setSeanceFormat(c,jour,fmSel.value,actuel.val||defaut);
+    patchField(c,"seanceTypes",err=>toast(err?"Erreur":"Format enregistré"));
+    setTimeout(render,0);
+    return;
+  }
+  const fvIn=e.target.closest("[data-act=\"set-format-val\"]");
+  if(fvIn){
+    const c=sel(); if(!c) return;
+    const jour=fvIn.dataset.jour;
+    const f=seanceFormat(c,jour);
+    setSeanceFormat(c,jour,f.mode,Math.max(1,parseInt(fvIn.value)||1));
+    patchField(c,"seanceTypes",err=>toast(err?"Erreur":"Enregistré"));
     return;
   }
   const stTpl=e.target.closest("[data-act=\"set-seance-type-tpl\"]");
