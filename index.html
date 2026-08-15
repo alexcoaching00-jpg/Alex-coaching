@@ -345,6 +345,13 @@
   .cseances{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
   .cseances i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;opacity:.8}
   .cgo{color:#4A3B32;font-size:20px;line-height:1;margin-top:2px}
+  /* Carte en cours de déplacement : soulevée et légèrement agrandie pour qu'on
+     voie clairement laquelle suit le doigt. */
+  .xcard.xdrag{opacity:.96;transform:scale(1.03);box-shadow:0 14px 34px rgba(0,0,0,.6);
+    border-color:var(--red);position:relative;z-index:20;animation:none}
+  /* Pendant le glisser : pas de sélection de texte ni de rebond de page */
+  body.xdragging{user-select:none;-webkit-user-select:none;overscroll-behavior:contain}
+  body.xdragging .xcard:not(.xdrag){opacity:.72}
   .xcard{position:relative;background:linear-gradient(180deg,#221B17,var(--card) 44%);border:1px solid var(--line);
     border-radius:18px;padding:14px;margin-bottom:11px;box-shadow:var(--sh-md);overflow:hidden;
     animation:cardIn .32s cubic-bezier(.22,.9,.28,1) both}
@@ -747,7 +754,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.52 — 15/08/2026";
+const APP_VERSION="v11.53 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -843,6 +850,8 @@ function patchField(c,field,cb){
 // Recharge les données depuis Supabase sans casser l'onglet/vue en cours
 let PENDING=0; // envois en cours : on ne recharge pas pendant
 function isTypingOrRecording(){
+  // Glisser-déposer en cours : un render() remplacerait les cartes en plein déplacement
+  if(typeof DRAG!=="undefined" && DRAG.actif) return true;
   // Sélecteur de photo ouvert : un render() détruirait l'<input file> et l'événement
   // "change" serait perdu au retour de l'app. Rien ne doit re-rendre à ce moment.
   if(S.pickerOuvert) return true;
@@ -1799,10 +1808,15 @@ function musclesExo(nom){
 /* Ligne compacte affichée sous le nom de l'exercice dans le programme. */
 function musclesLigne(nom){
   const m=musclesExo(nom);
-  if(!m) return "";
-  return `<div class="xmusc">
+  if(m) return `<div class="xmusc">
     <b>${m.p.map(esc).join(" · ")}</b>${m.s.length?`<span> — secondaires : ${m.s.map(esc).join(", ")}</span>`:""}
   </div>`;
+  // Nom non répertorié (saisie libre, orthographe différente…) : plutôt que de
+  // n'afficher rien du tout, on retombe sur la zone large déduite du nom. Le point
+  // d'interrogation signale que c'est une estimation, pas une donnée validée.
+  const z=exoZone(nom), lab=ZONE_LABEL[z];
+  if(!lab||z==="full") return "";
+  return `<div class="xmusc"><b>${esc(lab)}</b><span> — groupe estimé d'après le nom</span></div>`;
 }
 function exoZone(nom){
   const n=normTxt(nom);
@@ -2772,7 +2786,7 @@ function programme(c,editable){
     const last3=hist.slice(-3);
     const th=exoThumb(e);
     const stat=(v,k)=>`<div class="xs"><b>${v}</b><i>${k}</i></div>`;
-    return `<div class="xcard">
+    return `<div class="xcard" data-exid="${esc(e.id)}" data-exbloc="${esc(e.bloc||"")}">
       <div class="xtop">
         ${th
           ?`<button type="button" class="xvis" data-act="play-video" data-id="${e.id}">
@@ -4963,6 +4977,7 @@ function tplExoCard(e,i,editing){
         ${e.ss?`<span class="tag" style="font-size:10px;background:rgba(184,134,47,.18);color:var(--amber);border:1px solid rgba(184,134,47,.4)">🔗 SS ${esc(e.ss)}</span>`:""}${e.rir?`<span class="tag ink" style="font-size:10px">${e.rirScale==="rpe"?"RPE":"RIR"} ${esc(e.rir)}</span>`:""}
       </div>
       <div class="exd">${e.series} × ${esc(e.repType==="temps"?(normDuree(e.reps)||e.reps||"—"):repsDisplay(e))}${chargeDisplay(e)?` · ${esc(chargeDisplay(e))}`:""}${e.repos?` · repos ${esc(normDuree(e.repos)||e.repos)}`:""}${(hasVarReps(e)||hasVarCharge(e))?` <span style="color:var(--amber);font-size:11px">🎯</span>`:""}</div>
+      ${musclesLigne(e.nom)}
       ${e.note?`<div class="exnote">${esc(e.note)}</div>`:""}
       ${e.alt?`<div class="exd" style="color:var(--amber);font-size:12.5px">↔ ${esc(e.alt)}</div>`:""}
       ${ytId(e)
@@ -5477,6 +5492,21 @@ async function importBackupData(arr){
 }
 
 
+/* Réordonne les exercices d'une séance selon une liste d'identifiants.
+   Sert au glisser-déposer : on lit l'ordre final affiché puis on l'applique
+   au tableau, sans toucher aux exercices des autres séances. */
+function reordonnerBloc(arr,bloc,idsDansLOrdre){
+  const positions=[];                 // indices occupés par ce bloc dans le tableau global
+  arr.forEach((e,i)=>{ if((e.bloc||"")===(bloc||"")) positions.push(i); });
+  const parId={};
+  arr.forEach(e=>{ if((e.bloc||"")===(bloc||"")) parId[e.id]=e; });
+  // On ne garde que les ids réellement connus, puis on complète avec les oubliés
+  const ordonnes=idsDansLOrdre.map(id=>parId[id]).filter(Boolean);
+  positions.forEach(i=>{ if(!ordonnes.includes(arr[i])) ordonnes.push(arr[i]); });
+  if(ordonnes.length!==positions.length) return false;
+  positions.forEach((pos,k)=>{ arr[pos]=ordonnes[k]; });
+  return true;
+}
 function swapExInBloc(arr,id,dir){
   const item=arr.find(e=>e.id===id); if(!item) return false;
   const bloc=item.bloc||"";
@@ -5529,6 +5559,67 @@ async function deleteSelected(){
     toast("Client supprimé ✓");
   }
 }
+
+/* ===== GLISSER-DÉPOSER DES EXERCICES (appui long) =====
+   iOS ne gère pas le drag-and-drop HTML5 au doigt : on le reconstruit avec les
+   événements tactiles. Appui maintenu ~420 ms sur une carte, puis on déplace le
+   doigt ; la carte survolée cède sa place en direct. Un simple glissement sans
+   pause reste un défilement normal. */
+const DRAG={actif:false,el:null,bloc:"",timer:null,y0:0,x0:0};
+function dragAnnulerAttente(){ if(DRAG.timer){ clearTimeout(DRAG.timer); DRAG.timer=null; } }
+function dragDemarrer(el){
+  DRAG.actif=true; DRAG.el=el; DRAG.bloc=el.dataset.exbloc||"";
+  el.classList.add("xdrag");
+  document.body.classList.add("xdragging");
+  try{ if(navigator.vibrate) navigator.vibrate(30); }catch(_){}
+  toast("Déplace l'exercice, relâche pour valider");
+}
+function dragTerminer(){
+  if(!DRAG.actif){ dragAnnulerAttente(); return; }
+  const el=DRAG.el, bloc=DRAG.bloc;
+  DRAG.actif=false; DRAG.el=null; DRAG.timer=null;
+  if(el) el.classList.remove("xdrag");
+  document.body.classList.remove("xdragging");
+  const c=sel(); if(!c||!el) return;
+  // On lit l'ordre tel qu'il est affiché après le déplacement
+  const ids=[...document.querySelectorAll('.xcard[data-exid]')]
+    .filter(n=>(n.dataset.exbloc||"")===bloc)
+    .map(n=>n.dataset.exid);
+  const cible=S.tplEdit?S.tplEdit.program:c.program;
+  if(!reordonnerBloc(cible,bloc,ids)){ render(); return; }
+  if(S.tplEdit){ render(); return; }
+  save();
+  patchField(c,"program",err=>toast(err?"Erreur d'enregistrement":"Ordre enregistré"));
+  render();
+}
+document.addEventListener("touchstart",e=>{
+  const carte=e.target.closest&&e.target.closest(".xcard[data-exid]");
+  // Pas de glisser depuis un bouton : on ne veut pas gêner ▲▼, ✎, vidéo…
+  if(!carte||e.target.closest("button,a,input,select,textarea")) return;
+  if(S.isClient) return;                    // réordonner reste une action du coach
+  const t=e.touches[0]; DRAG.y0=t.clientY; DRAG.x0=t.clientX;
+  dragAnnulerAttente();
+  DRAG.timer=setTimeout(()=>dragDemarrer(carte),420);
+},{passive:true});
+document.addEventListener("touchmove",e=>{
+  const t=e.touches[0];
+  if(!DRAG.actif){
+    // Mouvement avant la fin de l'appui long : c'est un défilement, on abandonne
+    if(DRAG.timer && (Math.abs(t.clientY-DRAG.y0)>10||Math.abs(t.clientX-DRAG.x0)>10)) dragAnnulerAttente();
+    return;
+  }
+  e.preventDefault();                        // empêche la page de défiler pendant le glisser
+  const sous=document.elementFromPoint(t.clientX,t.clientY);
+  const cible=sous&&sous.closest?sous.closest(".xcard[data-exid]"):null;
+  if(!cible||cible===DRAG.el) return;
+  if((cible.dataset.exbloc||"")!==DRAG.bloc) return;   // pas de transfert entre séances
+  // On insère avant ou après selon le sens du déplacement
+  const r=cible.getBoundingClientRect();
+  const avant=t.clientY<r.top+r.height/2;
+  cible.parentNode.insertBefore(DRAG.el,avant?cible:cible.nextSibling);
+},{passive:false});
+document.addEventListener("touchend",dragTerminer,{passive:true});
+document.addEventListener("touchcancel",()=>{ dragAnnulerAttente(); if(DRAG.actif) dragTerminer(); },{passive:true});
 
 /* ===== events ===== */
 document.addEventListener("click",e=>{
