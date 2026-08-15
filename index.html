@@ -825,7 +825,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.59 — 15/08/2026";
+const APP_VERSION="v11.60 — 15/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1818,6 +1818,11 @@ const ZONES_EXCEPTIONS=[
    roumain" avant "soulevé de terre", "curl marteau" avant "curl").
    p = muscles moteurs principaux · s = muscles secondaires / stabilisateurs */
 const MUSCLES=[
+  // --- Derniers cas : noms sans mot-clé déjà couvert ailleurs ---
+  [["gainage lateral","gainage latéral"],["Obliques","Transverse de l'abdomen"],["Moyen fessier","Deltoïde moyen"]],
+  [["side bend"],["Obliques"],["Carré des lombes"]],
+  [["dead hang","barre suspendue","plate pinch","hand gripper","grip machine","wrist roller","rouleau de poignet"],["Avant-bras (fléchisseurs)"],["Grand dorsal","Trapèzes"]],
+  [["devil press","man maker"],["Corps entier"],[]],
   // --- Ajouts ciblés : mouvements dont le nom ne contient aucun mot-clé déjà couvert ---
   [["tate press","california press"],["Triceps brachial"],["Grand pectoral","Deltoïde antérieur"]],
   [["renegade row","kroc row"],["Grand dorsal","Trapèze moyen"],["Transverse de l'abdomen","Biceps brachial","Obliques"]],
@@ -5012,9 +5017,73 @@ function elasticGroup(){
   const g=EXOS_MAISON.find(x=>x[0]==="Élastique");
   return g?[["Élastique (accessoire)",g[1]]]:[];
 }
+/* ===== CLASSEMENT PAR MUSCLE =====
+   Les groupes ne sont pas saisis à la main : ils sont déduits de la table des
+   muscles. Le classement reste donc toujours cohérent avec ce qui s'affiche
+   sous chaque exercice, et un ajout à la bibliothèque se range tout seul.
+   Un exercice apparaît sous CHACUN de ses muscles moteurs : le squat se trouve
+   aussi bien dans Quadriceps que dans Grand fessier, ce qui correspond à la
+   façon dont on cherche un exercice quand on construit une séance. */
+const ORDRE_MUSCLES=[
+  "Quadriceps","Ischio-jambiers","Grand fessier","Moyen / petit fessier",
+  "Adducteurs","Mollets (triceps sural)","Tibial antérieur",
+  "Pectoraux (grand pectoral)","Grand dorsal","Grand rond","Trapèzes","Rhomboïdes",
+  "Érecteurs du rachis","Coiffe des rotateurs",
+  "Deltoïde antérieur","Deltoïde moyen","Deltoïde postérieur","Deltoïdes (non précisé)",
+  "Biceps brachial","Brachial / brachio-radial","Triceps brachial","Avant-bras / grip",
+  "Grand droit (abdominaux)","Obliques","Transverse (gainage profond)","Psoas-iliaque",
+  "Global / conditionnement","Mobilité / souplesse","Respiration / récupération","Autres"
+];
+/* Ramène un libellé anatomique précis au groupe sous lequel on le range. */
+function groupeCanon(muscle){
+  const n=normTxt(muscle);
+  if(n.startsWith("quadriceps")) return "Quadriceps";
+  if(n.startsWith("ischio")) return "Ischio-jambiers";
+  if(n.startsWith("grand fessier")) return "Grand fessier";
+  if(n.startsWith("moyen fessier")||n.startsWith("petit fessier")||n.includes("fascia lata")) return "Moyen / petit fessier";
+  if(n.startsWith("adducteurs")||n.includes("pectine")||n.includes("gracile")) return "Adducteurs";
+  if(n.includes("triceps sural")||n.includes("gastrocnemien")||n.includes("soleaire")) return "Mollets (triceps sural)";
+  if(n.includes("tibial")) return "Tibial antérieur";
+  if(n.startsWith("grand pectoral")) return "Pectoraux (grand pectoral)";
+  if(n.startsWith("grand dorsal")) return "Grand dorsal";
+  if(n.startsWith("grand rond")) return "Grand rond";
+  if(n.startsWith("trapeze")||n.includes("scapula")) return "Trapèzes";
+  if(n.startsWith("rhomboides")) return "Rhomboïdes";
+  if(n.startsWith("erecteurs")) return "Érecteurs du rachis";
+  if(n.includes("infra-epineux")||n.includes("petit rond")||n.includes("sous-scapulaire")||n.includes("sus-epineux")) return "Coiffe des rotateurs";
+  if(n.includes("deltoide anterieur")) return "Deltoïde antérieur";
+  if(n.includes("deltoide moyen")) return "Deltoïde moyen";
+  if(n.includes("deltoide posterieur")) return "Deltoïde postérieur";
+  // La table emploie parfois « Deltoïdes » sans préciser le faisceau
+  if(n.startsWith("deltoide")) return "Deltoïdes (non précisé)";
+  if(n.startsWith("biceps brachial")) return "Biceps brachial";
+  if(n.startsWith("brachial")||n.startsWith("brachio")) return "Brachial / brachio-radial";
+  if(n.startsWith("triceps brachial")||n.startsWith("ancone")) return "Triceps brachial";
+  if(n.startsWith("avant-bras")) return "Avant-bras / grip";
+  if(n.includes("grand droit")) return "Grand droit (abdominaux)";
+  if(n.startsWith("obliques")) return "Obliques";
+  if(n.startsWith("transverse")) return "Transverse (gainage profond)";
+  if(n.startsWith("psoas")) return "Psoas-iliaque";
+  if(n.startsWith("chaine complete")||n.startsWith("corps entier")) return "Global / conditionnement";
+  if(n.includes("mobilite")||n.includes("souplesse")||n.includes("etirement")) return "Mobilité / souplesse";
+  if(n.includes("respiration")||n.includes("diaphragme")) return "Respiration / récupération";
+  return "Autres";
+}
+function groupesParMuscle(mode){
+  const brut=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
+  const par={};
+  brut.forEach(([,liste])=>liste.forEach(nom=>{
+    const mu=musclesExo(nom);
+    const cibles=mu?[...new Set(mu.p.map(groupeCanon))]:["Autres"];
+    cibles.forEach(g=>{ (par[g]=par[g]||[]).push(nom); });
+  }));
+  // Doublons possibles : un même nom présent dans deux catégories d'origine
+  Object.keys(par).forEach(g=>{ par[g]=[...new Set(par[g])].sort((a,b)=>a.localeCompare(b,"fr")); });
+  return ORDRE_MUSCLES.filter(g=>par[g]&&par[g].length).map(g=>[g,par[g]]);
+}
 function pickerOptionsHtml(mode,filter){
   // Élastique et HIIT sont utiles dans les deux modes : en salle comme à la maison
-  const groups=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
+  const groups=groupesParMuscle(mode);
   const q=normTxt(filter);
   let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
   if(!q){
@@ -5028,14 +5097,14 @@ function pickerOptionsHtml(mode,filter){
   return html;
 }
 function pickerCount(mode,filter){
-  const groups=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
+  const groups=groupesParMuscle(mode);
   const q=normTxt(filter);
   return groups.reduce((t2,g)=>t2+(q?g[1].filter(e=>normTxt(e).includes(q)).length:g[1].length),0);
 }
 /* Résultats à plat, cliquables directement */
 function pickerResults(mode,filter){
   const q=normTxt(filter); if(!q) return [];
-  const groups=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
+  const groups=groupesParMuscle(mode);
   const out=[];
   groups.forEach(([g,list])=>list.forEach(e=>{ if(normTxt(e).includes(q)) out.push({nom:e,grp:g}); }));
   return out.slice(0,60);
