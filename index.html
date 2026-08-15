@@ -825,7 +825,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.65 — 16/08/2026";
+const APP_VERSION="v11.66 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5097,7 +5097,7 @@ const CATEGORIES_A_PART={
    se retrouvaient sinon au milieu des ischio-jambiers). On se fie au nom. */
 function estMobilite(nom){
   const n=normTxt(nom);
-  return /(^|[^a-z])(etirement|etirer|assouplissement|mobilite|auto-massage|foam roller|respiration|posture de l enfant|chien tete en bas|cat-cow|chat-vache)/.test(n);
+  return /(^|[^a-z])(etirement|etirer|assouplissement|mobilite|auto-massage|foam roller|respiration|posture de l enfant|chien tete en bas|cat-cow|chat-vache|echauffement|activation|cercles de|ouverture pectoraux|snow angels|y-t-w|pass-through|dislocation)/.test(n);
 }
 function groupesParMuscle(mode){
   const brut=mode==="maison"?EXOS_MAISON.concat(hiitGroup()):EXOS_GROUPES.concat(elasticGroup(),hiitGroup());
@@ -5128,14 +5128,26 @@ function groupesParMuscle(mode){
     par[g].nbPrincipaux=uniq.filter(n=>p.has(n)).length;
   });
   const ordre=REGIONS.reduce((t,[,l])=>t.concat(l),[]).concat(["Autres"]);
-  return ordre.filter(g=>par[g]&&par[g].length).map(g=>[g,par[g],par[g].nbPrincipaux]);
+  // Section « Élastique » rétablie : le classement par muscle les avait dispersés
+  // et on ne pouvait plus les retrouver d'un bloc. Ils restent AUSSI dans leur
+  // groupe musculaire — c'est un accès supplémentaire, pas un déplacement.
+  const elast=[];
+  brut.forEach(([,liste])=>liste.forEach(nom=>{
+    if(/elastique|mini-band/.test(normTxt(nom))) elast.push(nom);
+  }));
+  const res=ordre.filter(g=>par[g]&&par[g].length).map(g=>[g,par[g],par[g].nbPrincipaux]);
+  if(elast.length){
+    const u=[...new Set(elast)].sort((a,b)=>a.localeCompare(b,"fr"));
+    res.push(["Élastique (accessoire)",u,u.length]);
+  }
+  return res;
 }
 /* Régions : les 29 groupes musculaires s'enchaînaient sans repère, ce qui rendait
    la liste difficile à parcourir. On les préfixe par région pour que l'œil
    retrouve immédiatement la zone cherchée. */
 const REGIONS=[
   ["MUSCULATION",["Pectoraux","Dos","Trapèzes","Épaules","Biceps","Triceps","Avant-bras / grip","Abdos / gainage","Jambes / fessiers"]],
-  ["AUTRES FORMATS",["Échauffement / mobilité","Cardio / conditionnement","Cardio / HIIT maison","HIIT / intervalles","Haltérophilie / explosivité"]]
+  ["AUTRES FORMATS",["Échauffement / mobilité","Cardio / conditionnement","Cardio / HIIT maison","HIIT / intervalles","Haltérophilie / explosivité","Élastique (accessoire)"]]
 ];
 function regionDe(groupe){
   for(const [r,liste] of REGIONS){ if(liste.includes(groupe)) return r; }
