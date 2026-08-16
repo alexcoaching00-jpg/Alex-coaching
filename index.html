@@ -840,7 +840,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.68 — 16/08/2026";
+const APP_VERSION="v11.69 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5072,15 +5072,16 @@ const ORDRE_MUSCLES=[
   "Biceps brachial","Brachial / brachio-radial","Triceps brachial","Avant-bras / grip",
   "Grand droit (abdominaux)","Obliques","Transverse (gainage profond)","Psoas-iliaque"
 ];
-/* Groupes volontairement simples, ceux qu'on utilise pour bâtir une séance.
-   Le détail anatomique reste visible sous chaque exercice et dans la recherche. */
+/* Groupes tels qu'on les nomme en séance. Le bas du corps est détaillé :
+   quadriceps, ischios et fessiers ne se travaillent pas de la même façon. */
 function groupeCanon(muscle){
   const n=normTxt(muscle);
-  // Jambes et fessiers réunis : on ne cherche pas « adducteurs » séparément
-  if(n.startsWith("quadriceps")||n.startsWith("ischio")||n.includes("fessier")
-     ||n.startsWith("adducteurs")||n.includes("pectine")||n.includes("gracile")
-     ||n.includes("triceps sural")||n.includes("gastrocnemien")||n.includes("soleaire")
-     ||n.includes("tibial")||n.includes("fascia lata")) return "Jambes / fessiers";
+  if(n.startsWith("quadriceps")) return "Quadriceps";
+  if(n.startsWith("ischio")) return "Ischio-jambiers";
+  if(n.startsWith("grand fessier")) return "Fessiers";
+  if(n.startsWith("moyen fessier")||n.startsWith("petit fessier")||n.includes("fascia lata")) return "Abducteurs (hanche)";
+  if(n.startsWith("adducteurs")||n.includes("pectine")||n.includes("gracile")) return "Adducteurs";
+  if(n.includes("triceps sural")||n.includes("gastrocnemien")||n.includes("soleaire")||n.includes("tibial")) return "Mollets";
   if(n.startsWith("grand pectoral")) return "Pectoraux";
   if(n.startsWith("trapeze")||n.includes("scapula")) return "Trapèzes";
   if(n.startsWith("grand dorsal")||n.startsWith("grand rond")||n.startsWith("rhomboides")
@@ -5091,7 +5092,7 @@ function groupeCanon(muscle){
   if(n.startsWith("triceps brachial")||n.startsWith("ancone")) return "Triceps";
   if(n.startsWith("avant-bras")) return "Avant-bras / grip";
   if(n.includes("grand droit")||n.startsWith("obliques")||n.startsWith("transverse")
-     ||n.startsWith("psoas")||n.includes("carre des lombes")) return "Abdos / gainage";
+     ||n.startsWith("psoas")||n.includes("carre des lombes")) return "Abdominaux / gainage";
   if(n.startsWith("chaine complete")||n.startsWith("corps entier")) return "Cardio / conditionnement";
   if(n.includes("mobilite")||n.includes("souplesse")||n.includes("etirement")
      ||n.includes("respiration")) return "Échauffement / mobilité";
@@ -5166,7 +5167,9 @@ function groupesParMuscle(mode){
    la liste difficile à parcourir. On les préfixe par région pour que l'œil
    retrouve immédiatement la zone cherchée. */
 const REGIONS=[
-  ["MUSCULATION",["Pectoraux","Dos","Trapèzes","Épaules","Biceps","Triceps","Avant-bras / grip","Abdos / gainage","Jambes / fessiers"]],
+  ["HAUT DU CORPS",["Pectoraux","Dos","Trapèzes","Épaules","Biceps","Triceps","Avant-bras / grip"]],
+  ["TRONC",["Abdominaux / gainage"]],
+  ["BAS DU CORPS",["Quadriceps","Ischio-jambiers","Fessiers","Abducteurs (hanche)","Adducteurs","Mollets"]],
   ["AUTRES FORMATS",["Échauffement / mobilité","Cardio / conditionnement","Cardio / HIIT maison","HIIT / intervalles","Haltérophilie / explosivité","Élastique (accessoire)"]]
 ];
 function regionDe(groupe){
