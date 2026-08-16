@@ -303,6 +303,8 @@
     align-items:center;gap:10px;padding:9px 12px;font-size:12px;font-weight:700;
     letter-spacing:.06em;text-transform:uppercase;color:var(--amber);
     background:#191310;border-bottom:1px solid var(--line)}
+  .exo-sep{padding:5px 12px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--grey2);background:rgba(255,255,255,.025);border-bottom:1px solid var(--line)}
   .exo-vide{padding:14px 12px;font-size:13px;color:var(--grey);line-height:1.5}
   .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
   /* Muscles travaillés, en ambre pour ressortir du nom du groupe */
@@ -871,7 +873,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.73 — 16/08/2026";
+const APP_VERSION="v11.74 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5270,6 +5272,13 @@ function pickerResults(mode,filter){
   return out.slice(0,60);
 }
 
+/* La vue « Tous » représente ~476 lignes et 150 Ko de HTML. La réécrire à chaque
+   rendu coûterait cher pour rien : on ne touche au DOM que si le contenu diffère. */
+function poserListeExo(box,html){
+  if(box.__dernier===html) return;
+  box.__dernier=html;
+  box.innerHTML=html;
+}
 function renderExoResults(wrap){
   if(!wrap) return;
   const fEl=wrap.querySelector("[data-exofilter]");
@@ -5302,13 +5311,35 @@ function renderExoResults(wrap){
       <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
     </button>`;
   };
+
+  // « Tous » : la totalité de la bibliothèque, présentée groupe par groupe,
+  // avec les récents remontés en tête.
+  if(!cherche&&!filtre){
+    const rec=recentExos();
+    let out="";
+    if(rec.length){
+      out+=`<div class="exo-entete">⭐ Récemment utilisés</div>`
+        +rec.map(n=>carte({nom:n,grp:"Récent"})).join("");
+    }
+    groupesFiltres(mode).forEach(([g,liste,nbP])=>{
+      out+=`<div class="exo-entete">${esc(g)} <span style="opacity:.6;font-weight:400">${liste.length}</span></div>`;
+      liste.forEach((n,i)=>{
+        if(nbP&&i===nbP&&nbP<liste.length) out+=`<div class="exo-sep">aussi sollicité</div>`;
+        out+=carte({nom:n,grp:g});
+      });
+    });
+    box.style.display="block";
+    poserListeExo(box,out||`<div class="exo-vide">Aucun exercice dans cette bibliothèque.</div>`);
+    return;
+  }
+
   const vide=cherche
     ? `<div class="exo-vide">Aucun exercice trouvé. Tu peux le saisir librement dans le champ ci-dessous.</div>`
     : `<div class="exo-vide">Choisis un groupe musculaire ci-dessus, ou tape un nom dans la recherche.</div>`;
 
   box.style.display="block";
-  box.innerHTML=`<div class="exo-entete">${esc(titre)}${action}</div>`
-    +(hits.length?hits.map(carte).join(""):vide);
+  poserListeExo(box,`<div class="exo-entete">${esc(titre)}${action}</div>`
+    +(hits.length?hits.map(carte).join(""):vide));
 }
 
 function exoPicker(targetId){
