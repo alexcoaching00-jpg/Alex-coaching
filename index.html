@@ -290,6 +290,12 @@
   .exo-hit{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);color:var(--white);padding:10px 12px;font-size:14px;cursor:pointer;font-family:inherit}
   .exo-hit:last-child{border-bottom:none}
   .exo-hit:active{background:rgba(176,31,31,.25)}
+  /* Barre de filtres par groupe : défilement horizontal, pour que 14 groupes
+     n'occupent pas la moitié de l'écran sur un téléphone. */
+  .exo-filtres{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .exo-filtres::-webkit-scrollbar{display:none}
+  .exo-filtres .chip{flex:0 0 auto;white-space:nowrap;font-size:12.5px;padding:7px 12px}
   .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
   /* Muscles travaillés, en ambre pour ressortir du nom du groupe */
   .exo-hit .exo-mu{display:block;font-size:11.5px;color:#E0A94A;margin-top:2px;line-height:1.35}
@@ -840,7 +846,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.69 — 16/08/2026";
+const APP_VERSION="v11.70 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5176,9 +5182,19 @@ function regionDe(groupe){
   for(const [r,liste] of REGIONS){ if(liste.includes(groupe)) return r; }
   return "⚡ AUTRES FORMATS";
 }
+/* Vue filtrée : si un groupe est sélectionné, on ne renvoie que celui-là.
+   Les trois affichages du sélecteur — liste déroulante, compteur et résultats
+   de recherche — passent par ici, donc le filtre s'applique partout à la fois. */
+function groupesFiltres(mode){
+  const tous=groupesParMuscle(mode);
+  const g=S.exoGroupe||"";
+  if(!g) return tous;
+  const trouve=tous.filter(x=>x[0]===g);
+  return trouve.length?trouve:tous;   // groupe absent dans ce mode : on ne masque pas tout
+}
 function pickerOptionsHtml(mode,filter){
   // Élastique et HIIT sont utiles dans les deux modes : en salle comme à la maison
-  const groups=groupesParMuscle(mode);
+  const groups=groupesFiltres(mode);
   const q=normTxt(filter);
   let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
   if(!q){
@@ -5204,7 +5220,7 @@ function pickerOptionsHtml(mode,filter){
   return html;
 }
 function pickerCount(mode,filter){
-  const groups=groupesParMuscle(mode);
+  const groups=groupesFiltres(mode);
   const q=normTxt(filter);
   // Un exercice figure sous chacun de ses muscles moteurs : on compte les noms
   // distincts, sinon le total afficherait plusieurs fois le même mouvement.
@@ -5215,7 +5231,7 @@ function pickerCount(mode,filter){
 /* Résultats à plat, cliquables directement */
 function pickerResults(mode,filter){
   const q=normTxt(filter); if(!q) return [];
-  const groups=groupesParMuscle(mode);
+  const groups=groupesFiltres(mode);
   const out=[], vus=new Set();
   // Un exercice apparaît sous chacun de ses muscles : on ne le propose qu'une fois
   groups.forEach(([g,list])=>list.forEach(e=>{
@@ -5256,15 +5272,21 @@ function renderExoResults(wrap){
 
 function exoPicker(targetId){
   const mode=S.exoMode||"salle";
+  const sel=S.exoGroupe||"";
+  const groupes=groupesParMuscle(mode);
   return `<div class="exopicker" style="margin-bottom:10px">
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <button type="button" class="chip ${mode==="salle"?"on":""}" data-act="exo-mode" data-mode="salle">🏋️ Salle</button>
       <button type="button" class="chip ${mode==="maison"?"on":""}" data-act="exo-mode" data-mode="maison">🏠 Maison</button>
     </div>
+    <div class="exo-filtres">
+      <button type="button" class="chip ${!sel?"on":""}" data-act="exo-groupe" data-groupe="">Tous</button>
+      ${groupes.map(([g,l])=>`<button type="button" class="chip ${sel===g?"on":""}" data-act="exo-groupe" data-groupe="${esc(g)}">${esc(g)} <span style="opacity:.6">${l.length}</span></button>`).join("")}
+    </div>
     <label class="fld" style="margin-bottom:8px"><span>Rechercher un exercice</span>
       <input type="text" data-exofilter="${targetId}" placeholder="🔎 Ex. squat, fessier, elastique…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <div class="exo-results" style="display:none"></div>
-    <label class="fld exo-browse" style="margin-bottom:0"><span>Choisir dans la liste (<span class="exopicker-count">${pickerCount(mode,"")}</span> exercices)</span>
+    <label class="fld exo-browse" style="margin-bottom:0"><span>${sel?esc(sel)+" — ":"Choisir dans la liste ("}<span class="exopicker-count">${pickerCount(mode,"")}</span>${sel?" exercices":" exercices)"}</span>
     <select data-pick="${targetId}">${pickerOptionsHtml(mode,"")}</select></label>
   </div>`;
 }
@@ -6668,13 +6690,20 @@ document.addEventListener("click",e=>{
       break; }
     case "exo-mode":{
       S.exoMode=t.dataset.mode;
+      // Les groupes diffèrent d'un mode à l'autre : on repart de « Tous »
+      S.exoGroupe="";
+      setTimeout(render,0);
+      break; }
+    case "exo-groupe":{
+      S.exoGroupe=t.dataset.groupe||"";
       const wrap=t.closest(".exopicker"); if(!wrap) break;
-      wrap.querySelectorAll('[data-act="exo-mode"]').forEach(b=>b.classList.toggle("on",b.dataset.mode===S.exoMode));
-      const fEl=wrap.querySelector("[data-exofilter]");
-      const q=fEl?fEl.value:"";
-      const sel2=wrap.querySelector("select");
-      if(sel2) sel2.innerHTML=pickerOptionsHtml(S.exoMode,q);
-      const cnt=wrap.querySelector(".exopicker-count"); if(cnt) cnt.textContent=pickerCount(S.exoMode,q);
+      wrap.querySelectorAll('[data-act="exo-groupe"]').forEach(b=>b.classList.toggle("on",(b.dataset.groupe||"")===S.exoGroupe));
+      const fEl2=wrap.querySelector("[data-exofilter]");
+      const q2=fEl2?fEl2.value:"";
+      const sel3=wrap.querySelector("select");
+      if(sel3) sel3.innerHTML=pickerOptionsHtml(S.exoMode||"salle",q2);
+      const cnt2=wrap.querySelector(".exopicker-count");
+      if(cnt2) cnt2.textContent=pickerCount(S.exoMode||"salle",q2);
       renderExoResults(wrap);
       break; }
     case "timer": startTimer(t.dataset.id, +t.dataset.secs||60, t.dataset.exo||""); break;
