@@ -303,6 +303,7 @@
     align-items:center;gap:10px;padding:9px 12px;font-size:12px;font-weight:700;
     letter-spacing:.06em;text-transform:uppercase;color:var(--amber);
     background:#191310;border-bottom:1px solid var(--line)}
+  .exo-vide{padding:14px 12px;font-size:13px;color:var(--grey);line-height:1.5}
   .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
   /* Muscles travaillés, en ambre pour ressortir du nom du groupe */
   .exo-hit .exo-mu{display:block;font-size:11.5px;color:#E0A94A;margin-top:2px;line-height:1.35}
@@ -870,7 +871,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.72 — 16/08/2026";
+const APP_VERSION="v11.73 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1274,9 +1275,9 @@ function render(){
   }
   if(S.showAdd) modal=addModal();
   root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
-  // Sélecteur d'exercices : si un groupe est filtré, sa liste doit apparaître
-  // immédiatement, sans attendre une frappe ou un clic supplémentaire.
-  if(S.exoGroupe) document.querySelectorAll(".exopicker").forEach(w=>{ try{ renderExoResults(w); }catch(_){} });
+  // Sélecteur d'exercices : la liste est désormais toujours visible (récents,
+  // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
+  document.querySelectorAll(".exopicker").forEach(w=>{ try{ renderExoResults(w); }catch(_){} });
 }
 
 function dashboard(){
@@ -5273,41 +5274,41 @@ function renderExoResults(wrap){
   if(!wrap) return;
   const fEl=wrap.querySelector("[data-exofilter]");
   const box=wrap.querySelector(".exo-results");
-  const browse=wrap.querySelector(".exo-browse");
   if(!fEl||!box) return;
   const q=fEl.value, mode=S.exoMode||"salle";
-  const aFiltre=!!S.exoGroupe;
-  // Recherche texte OU filtre par groupe : dans les deux cas on affiche la liste
-  // directement. Un filtre qui oblige à ouvrir un menu déroulant pour voir le
-  // résultat n'en est pas vraiment un.
-  const hits=normTxt(q)
-    ? pickerResults(mode,q)
-    : (aFiltre?(groupesFiltres(mode)[0]||["",[]])[1].map(n=>({nom:n,grp:S.exoGroupe})):[]);
-  if(!normTxt(q)&&!aFiltre){
-    box.style.display="none"; box.innerHTML="";
-    if(browse) browse.style.display="";
-    return;
+  const cherche=!!normTxt(q), filtre=!!S.exoGroupe;
+
+  // Trois états, une seule liste visible : recherche, groupe filtré, ou récents.
+  let hits, titre, action="";
+  if(cherche){
+    hits=pickerResults(mode,q);
+    titre=hits.length+" résultat"+(hits.length>1?"s":"");
+  } else if(filtre){
+    const g=groupesFiltres(mode)[0]||["",[]];
+    hits=g[1].map(n=>({nom:n,grp:S.exoGroupe}));
+    titre=S.exoGroupe+" — "+hits.length+" exercice"+(hits.length>1?"s":"");
+    action=`<button type="button" data-act="exo-groupe" data-groupe="" class="link" style="font-size:12px">Tout afficher</button>`;
+  } else {
+    // Aucun filtre : on met en avant ce qui sert le plus souvent
+    hits=recentExos().map(n=>({nom:n,grp:"Récent"}));
+    titre="⭐ Récemment utilisés";
   }
-  // Le menu déroulant reste disponible quand aucun groupe n'est filtré
-  if(browse) browse.style.display=aFiltre&&!normTxt(q)?"none":"none";
+
+  const carte=h=>{
+    const mu=musclesExo(h.nom);
+    const ligne=mu?`<span class="exo-mu">${esc(mu.p.join(" · "))}</span>`:"";
+    return `<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:flex-start;gap:10px">
+      <span style="flex:0 0 auto;margin-top:2px">${exoIcon(h.nom,20)}</span>
+      <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
+    </button>`;
+  };
+  const vide=cherche
+    ? `<div class="exo-vide">Aucun exercice trouvé. Tu peux le saisir librement dans le champ ci-dessous.</div>`
+    : `<div class="exo-vide">Choisis un groupe musculaire ci-dessus, ou tape un nom dans la recherche.</div>`;
+
   box.style.display="block";
-  // Repère du nombre d'exercices listés, et moyen de revenir à la liste complète
-  const entete=aFiltre&&!normTxt(q)
-    ? `<div class="exo-entete">${esc(S.exoGroupe)} — ${hits.length} exercice${hits.length>1?"s":""}
-         <button type="button" data-act="exo-groupe" data-groupe="" class="link" style="font-size:12px">Tout afficher</button></div>`
-    : "";
-  box.innerHTML=entete+(hits.length
-    ? hits.map(h=>{
-        // Muscles sollicités sous le nom : évite d'avoir à ouvrir la fiche
-        // pour savoir ce que travaille un exercice qu'on ne connaît pas.
-        const mu=musclesExo(h.nom);
-        const ligne=mu?`<span class="exo-mu">${esc(mu.p.join(" · "))}</span>`:"";
-        return `<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:flex-start;gap:10px">
-          <span style="flex:0 0 auto;margin-top:2px">${exoIcon(h.nom,20)}</span>
-          <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
-        </button>`;
-      }).join("")
-    : `<div style="padding:12px;font-size:13.5px;color:var(--grey)">Aucun exercice trouvé. Tu peux quand même le saisir librement dans le champ ci-dessous.</div>`);
+  box.innerHTML=`<div class="exo-entete">${esc(titre)}${action}</div>`
+    +(hits.length?hits.map(carte).join(""):vide);
 }
 
 function exoPicker(targetId){
@@ -5325,9 +5326,7 @@ function exoPicker(targetId){
     </div>
     <label class="fld" style="margin-bottom:8px"><span>Rechercher un exercice</span>
       <input type="text" data-exofilter="${targetId}" placeholder="🔎 Ex. squat, fessier, elastique…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-    <div class="exo-results" style="display:none"></div>
-    <label class="fld exo-browse" style="margin-bottom:0;${sel?"display:none":""}"><span>${sel?esc(sel)+" — ":"Choisir dans la liste ("}<span class="exopicker-count">${pickerCount(mode,"")}</span>${sel?" exercices":" exercices)"}</span>
-    <select data-pick="${targetId}">${pickerOptionsHtml(mode,"")}</select></label>
+    <div class="exo-results"></div>
   </div>`;
 }
 
