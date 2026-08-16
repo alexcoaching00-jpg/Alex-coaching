@@ -296,6 +296,13 @@
     -webkit-overflow-scrolling:touch;scrollbar-width:none}
   .exo-filtres::-webkit-scrollbar{display:none}
   .exo-filtres .chip{flex:0 0 auto;white-space:nowrap;font-size:12.5px;padding:7px 12px}
+  /* Liste filtrée : hauteur limitée pour rester scrollable dans le formulaire */
+  .exo-results{max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.22)}
+  .exo-entete{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;
+    align-items:center;gap:10px;padding:9px 12px;font-size:12px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--amber);
+    background:#191310;border-bottom:1px solid var(--line)}
   .exo-hit .g{display:block;font-size:11px;color:var(--grey2);margin-top:2px}
   /* Muscles travaillés, en ambre pour ressortir du nom du groupe */
   .exo-hit .exo-mu{display:block;font-size:11.5px;color:#E0A94A;margin-top:2px;line-height:1.35}
@@ -846,7 +853,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.70 — 16/08/2026";
+const APP_VERSION="v11.71 — 16/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1250,6 +1257,9 @@ function render(){
   }
   if(S.showAdd) modal=addModal();
   root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
+  // Sélecteur d'exercices : si un groupe est filtré, sa liste doit apparaître
+  // immédiatement, sans attendre une frappe ou un clic supplémentaire.
+  if(S.exoGroupe) document.querySelectorAll(".exopicker").forEach(w=>{ try{ renderExoResults(w); }catch(_){} });
 }
 
 function dashboard(){
@@ -5193,11 +5203,12 @@ function groupesFiltres(mode){
   return trouve.length?trouve:tous;   // groupe absent dans ce mode : on ne masque pas tout
 }
 function pickerOptionsHtml(mode,filter){
-  // Élastique et HIIT sont utiles dans les deux modes : en salle comme à la maison
   const groups=groupesFiltres(mode);
   const q=normTxt(filter);
   let html=`<option value="">${q?"— Résultats —":"— Parcourir par groupe musculaire —"}</option>`;
-  if(!q){
+  if(!q&&!S.exoGroupe){
+    // Masqué dès qu'un groupe est filtré : les récents appartiennent souvent à
+    // d'autres muscles et polluaient une liste censée être restreinte.
     const rec=recentExos();
     if(rec.length) html+=`<optgroup label="⭐ Récemment utilisés">${rec.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("")}</optgroup>`;
   }
@@ -5248,15 +5259,27 @@ function renderExoResults(wrap){
   const browse=wrap.querySelector(".exo-browse");
   if(!fEl||!box) return;
   const q=fEl.value, mode=S.exoMode||"salle";
-  const hits=pickerResults(mode,q);
-  if(!normTxt(q)){
+  const aFiltre=!!S.exoGroupe;
+  // Recherche texte OU filtre par groupe : dans les deux cas on affiche la liste
+  // directement. Un filtre qui oblige à ouvrir un menu déroulant pour voir le
+  // résultat n'en est pas vraiment un.
+  const hits=normTxt(q)
+    ? pickerResults(mode,q)
+    : (aFiltre?(groupesFiltres(mode)[0]||["",[]])[1].map(n=>({nom:n,grp:S.exoGroupe})):[]);
+  if(!normTxt(q)&&!aFiltre){
     box.style.display="none"; box.innerHTML="";
     if(browse) browse.style.display="";
     return;
   }
-  if(browse) browse.style.display="none";
+  // Le menu déroulant reste disponible quand aucun groupe n'est filtré
+  if(browse) browse.style.display=aFiltre&&!normTxt(q)?"none":"none";
   box.style.display="block";
-  box.innerHTML=hits.length
+  // Repère du nombre d'exercices listés, et moyen de revenir à la liste complète
+  const entete=aFiltre&&!normTxt(q)
+    ? `<div class="exo-entete">${esc(S.exoGroupe)} — ${hits.length} exercice${hits.length>1?"s":""}
+         <button type="button" data-act="exo-groupe" data-groupe="" class="link" style="font-size:12px">Tout afficher</button></div>`
+    : "";
+  box.innerHTML=entete+(hits.length
     ? hits.map(h=>{
         // Muscles sollicités sous le nom : évite d'avoir à ouvrir la fiche
         // pour savoir ce que travaille un exercice qu'on ne connaît pas.
@@ -5267,7 +5290,7 @@ function renderExoResults(wrap){
           <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
         </button>`;
       }).join("")
-    : `<div style="padding:12px;font-size:13.5px;color:var(--grey)">Aucun exercice trouvé. Tu peux quand même le saisir librement dans le champ ci-dessous.</div>`;
+    : `<div style="padding:12px;font-size:13.5px;color:var(--grey)">Aucun exercice trouvé. Tu peux quand même le saisir librement dans le champ ci-dessous.</div>`);
 }
 
 function exoPicker(targetId){
@@ -5286,7 +5309,7 @@ function exoPicker(targetId){
     <label class="fld" style="margin-bottom:8px"><span>Rechercher un exercice</span>
       <input type="text" data-exofilter="${targetId}" placeholder="🔎 Ex. squat, fessier, elastique…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <div class="exo-results" style="display:none"></div>
-    <label class="fld exo-browse" style="margin-bottom:0"><span>${sel?esc(sel)+" — ":"Choisir dans la liste ("}<span class="exopicker-count">${pickerCount(mode,"")}</span>${sel?" exercices":" exercices)"}</span>
+    <label class="fld exo-browse" style="margin-bottom:0;${sel?"display:none":""}"><span>${sel?esc(sel)+" — ":"Choisir dans la liste ("}<span class="exopicker-count">${pickerCount(mode,"")}</span>${sel?" exercices":" exercices)"}</span>
     <select data-pick="${targetId}">${pickerOptionsHtml(mode,"")}</select></label>
   </div>`;
 }
