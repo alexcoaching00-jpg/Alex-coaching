@@ -873,7 +873,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.74 — 16/08/2026";
+const APP_VERSION="v11.75 — 17/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -2186,6 +2186,28 @@ function poseSVG(p,col,gear){
 }
 /* Icône animée : alterne pose A / pose B */
 let ICON_SEQ=0;
+/* ===== BIBLIOTHÈQUE DE VIDÉOS =====
+   Aucune table ni réglage nouveau : on relit les liens déjà saisis dans les
+   programmes des clients et dans les modèles. Avantage, ça se synchronise tout
+   seul entre appareils, puisque ces données le sont déjà. */
+function videoConnue(nom){
+  const cible=normTxt(nom||""); if(!cible) return "";
+  let trouve="";
+  const scan=liste=>(liste||[]).forEach(e=>{
+    if(trouve||!e||!e.video) return;
+    if(normTxt(e.nom)===cible) trouve=String(e.video).trim();
+  });
+  (S.clients||[]).forEach(cl=>scan(cl.program));
+  (S.templates||[]).forEach(tp=>scan(tp.program));
+  return trouve;
+}
+/* Combien d'autres clients ont cet exercice sans lien vidéo (ou avec un autre). */
+function clientsSansVideo(nom,lien,sauf){
+  const cible=normTxt(nom||"");
+  return (S.clients||[]).filter(cl=>
+    cl.id!==sauf && (cl.program||[]).some(e=>normTxt(e.nom)===cible && String(e.video||"").trim()!==lien)
+  );
+}
 function exoIcon(nom,size){
   size=size||44;
   const mv=mouvementDe(nom);
@@ -3095,6 +3117,18 @@ function programme(c,editable){
         ${dEx.nom?`<button class="btn g" style="flex:0 0 auto;padding:0 18px" data-act="edit-ex-cancel">Annuler</button>`:""}
       </div></div>`:"";
   const tplBox=editable?`
+    ${(()=>{
+      // Combien d'exercices de CE programme pourraient récupérer un lien déjà
+      // saisi ailleurs ? On ne propose le bouton que si ça sert à quelque chose.
+      const manquants=(c.program||[]).filter(e=>!String(e.video||"").trim()&&videoConnue(e.nom));
+      if(!manquants.length) return "";
+      return `<div class="panel" style="margin-top:12px;border-color:rgba(224,169,74,.4)">
+        <div class="ph" style="font-size:13px;color:var(--amber)">🎬 Vidéos disponibles</div>
+        <p style="font-size:13px;color:var(--white2);line-height:1.5;margin-bottom:8px">
+          ${manquants.length} exercice${manquants.length>1?"s":""} de ce programme ${manquants.length>1?"ont":"a"} déjà une vidéo enregistrée chez un autre client.</p>
+        <button class="btn g full" data-act="fill-videos">Reprendre ces vidéos</button>
+      </div>`;
+    })()}
     <div class="panel" style="margin-top:12px">
       <div class="ph" style="font-size:14px">Mes modèles de programmes</div>
       ${S.templates.length?`<div class="r2" style="align-items:flex-end;margin-bottom:8px">
@@ -6267,7 +6301,15 @@ document.addEventListener("click",e=>{
       }
       let repsVal1=val("ex-reps");
       if(repType1==="temps") repsVal1=normDuree(repsVal1)||repsVal1;
-      const payload={nom,series:nSer1,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:normDuree(val("ex-repos")),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:(val("ex-video")||"").trim(),repsList:repsList1,chargeList:chargeList1};
+      let videoSaisie=(val("ex-video")||"").trim();
+      let videoAuto=false;
+      if(!videoSaisie){
+        // Lien déjà utilisé pour ce mouvement ailleurs : on le reprend
+        videoSaisie=videoConnue(nom);
+        videoAuto=!!videoSaisie;
+      }
+      const payload={nom,series:nSer1,reps:repsVal1,repType:repType1,charge:val("ex-charge"),repos:normDuree(val("ex-repos")),note:val("ex-note"),alt:val("ex-alt")||"",bloc,rir:val("ex-rir")||"",rirScale:val("ex-scale")||"rir",ss:val("ex-ss")||"",video:videoSaisie,repsList:repsList1,chargeList:chargeList1};
+      if(videoAuto) setTimeout(()=>toast("🎬 Vidéo reprise de ta bibliothèque"),300);
       if(draft&&draft.id){
         const idx=c.program.findIndex(x=>x.id===draft.id);
         if(idx>=0) c.program[idx]={...c.program[idx],...payload};
@@ -6848,6 +6890,35 @@ document.addEventListener("click",e=>{
       ex4.video=lien;
       save(); render();
       toast(exoThumb(ex4)?"Vidéo ajoutée — image affichée ✓":"Lien enregistré (miniature seulement pour YouTube)");
+      // Propagation : évite de recoller le même lien chez chaque client
+      const autres=clientsSansVideo(ex4.nom,lien,c.id);
+      if(autres.length){
+        const noms=autres.slice(0,4).map(x=>(x.nom||"?").split(" ")[0]).join(", ");
+        if(confirm(`${autres.length} autre${autres.length>1?"s":""} client${autres.length>1?"s ont":" a"} « ${ex4.nom} » dans son programme (${noms}${autres.length>4?"…":""}).\n\nAppliquer cette vidéo chez eux aussi ?`)){
+          let n=0;
+          autres.forEach(cl=>{
+            let modifie=false;
+            (cl.program||[]).forEach(e=>{
+              if(normTxt(e.nom)===normTxt(ex4.nom) && String(e.video||"").trim()!==lien){ e.video=lien; modifie=true; n++; }
+            });
+            if(modifie) patchField(cl,"program",()=>{});
+          });
+          toast("🎬 Vidéo appliquée à "+n+" exercice"+(n>1?"s":""));
+          render();
+        }
+      }
+      break; }
+    case "fill-videos":{ if(!c) break;
+      let n=0;
+      (c.program||[]).forEach(e=>{
+        if(String(e.video||"").trim()) return;
+        const v=videoConnue(e.nom);
+        if(v){ e.video=v; n++; }
+      });
+      if(!n){ toast("Aucune vidéo à reprendre"); break; }
+      save();
+      patchField(c,"program",err=>toast(err?"Erreur d'enregistrement":"🎬 "+n+" vidéo"+(n>1?"s":"")+" reprise"+(n>1?"s":"")));
+      render();
       break; }
     case "log-charge":{ if(!c) return;
       const ex=(c.program||[]).find(x=>x.id===t.dataset.id); if(!ex) return;
