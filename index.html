@@ -287,8 +287,16 @@
   .pstat.target .pv{color:var(--red)}
   .tmr{background:var(--ink2);border:1px solid #4A3B32;color:var(--amber);border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Inter'}
   .exo-results{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--ink2);margin-bottom:10px}
-  .exo-hit{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);color:var(--white);padding:10px 12px;font-size:14px;cursor:pointer;font-family:inherit}
-  .exo-hit:last-child{border-bottom:none}
+  /* Ligne d'exercice : le nom sélectionne, le 🎬 associe une vidéo.
+     La bordure passe sur la ligne, plus sur le bouton, sinon elle disparaîtrait
+     entre les deux boutons. */
+  .exo-row{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
+  .exo-row:last-child{border-bottom:none}
+  .exo-hit{display:block;width:100%;text-align:left;background:none;border:none;color:var(--white);padding:10px 12px;font-size:14px;cursor:pointer;font-family:inherit;flex:1;min-width:0}
+  .exo-vid{flex:0 0 auto;background:none;border:none;border-left:1px solid var(--line);
+    padding:0 14px;font-size:16px;cursor:pointer;opacity:.32;filter:grayscale(1)}
+  .exo-vid.on{opacity:1;filter:none}
+  .exo-vid:active{background:rgba(255,255,255,.06)}
   .exo-hit:active{background:rgba(176,31,31,.25)}
   /* Barre de filtres par groupe : défilement horizontal, pour que 14 groupes
      n'occupent pas la moitié de l'écran sur un téléphone. */
@@ -873,7 +881,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.75 — 17/08/2026";
+const APP_VERSION="v11.76 — 17/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -2186,19 +2194,49 @@ function poseSVG(p,col,gear){
 }
 /* Icône animée : alterne pose A / pose B */
 let ICON_SEQ=0;
+/* Nom réservé du modèle qui sert de bibliothèque de vidéos. Passer par un modèle
+   évite de créer une table Supabase : c'est déjà synchronisé entre appareils. */
+const TPL_VIDEOS="🎬 Vidéos (bibliothèque)";
+function estTplVideos(t){ return t && t.nom===TPL_VIDEOS; }
+function bibliVideos(){ return (S.templates||[]).find(estTplVideos)||null; }
+/* Liens rangés dans la bibliothèque, sous forme { nomNormalisé: lien }. */
+function videosBibli(){
+  const t=bibliVideos(), out={};
+  (t&&t.program||[]).forEach(e=>{ if(e&&e.nom&&e.video) out[normTxt(e.nom)]=String(e.video).trim(); });
+  return out;
+}
+/* Enregistre (ou retire) le lien associé à un nom d'exercice. */
+function setVideoBibli(nom,lien,cb){
+  if(!sb) return;
+  const t=bibliVideos();
+  const cible=normTxt(nom);
+  const prog=(t&&t.program?t.program.slice():[]).filter(e=>normTxt(e.nom)!==cible);
+  if(lien) prog.push({id:"v"+Date.now().toString(36),nom,video:lien});
+  if(t){
+    t.program=prog;
+    sb.from("templates").update({program:prog}).eq("id",t.id).then(({error})=>cb&&cb(error));
+  } else {
+    sb.from("templates").insert({nom:TPL_VIDEOS,program:prog}).select().single()
+      .then(({data,error})=>{ if(data) S.templates.push({...data,seanceTypes:{},seanceRounds:{},seanceTourRepos:{}}); cb&&cb(error); });
+  }
+}
 /* ===== BIBLIOTHÈQUE DE VIDÉOS =====
    Aucune table ni réglage nouveau : on relit les liens déjà saisis dans les
    programmes des clients et dans les modèles. Avantage, ça se synchronise tout
    seul entre appareils, puisque ces données le sont déjà. */
 function videoConnue(nom){
   const cible=normTxt(nom||""); if(!cible) return "";
+  // La bibliothèque explicite prime : c'est le lien que tu as choisi pour cet
+  // exercice, il doit l'emporter sur un lien saisi au fil de l'eau chez un client.
+  const bib=videosBibli();
+  if(bib[cible]) return bib[cible];
   let trouve="";
   const scan=liste=>(liste||[]).forEach(e=>{
     if(trouve||!e||!e.video) return;
     if(normTxt(e.nom)===cible) trouve=String(e.video).trim();
   });
   (S.clients||[]).forEach(cl=>scan(cl.program));
-  (S.templates||[]).forEach(tp=>scan(tp.program));
+  (S.templates||[]).forEach(tp=>{ if(!estTplVideos(tp)) scan(tp.program); });
   return trouve;
 }
 /* Combien d'autres clients ont cet exercice sans lien vidéo (ou avec un autre). */
@@ -3131,8 +3169,8 @@ function programme(c,editable){
     })()}
     <div class="panel" style="margin-top:12px">
       <div class="ph" style="font-size:14px">Mes modèles de programmes</div>
-      ${S.templates.length?`<div class="r2" style="align-items:flex-end;margin-bottom:8px">
-        <label class="fld" style="flex:2;margin-bottom:0"><span>Modèle</span><select id="tpl-select">${S.templates.map(t2=>`<option value="${t2.id}">${esc(t2.nom)}</option>`).join("")}</select></label>
+      ${S.templates.filter(t2=>!estTplVideos(t2)).length?`<div class="r2" style="align-items:flex-end;margin-bottom:8px">
+        <label class="fld" style="flex:2;margin-bottom:0"><span>Modèle</span><select id="tpl-select">${S.templates.filter(t2=>!estTplVideos(t2)).map(t2=>`<option value="${t2.id}">${esc(t2.nom)}</option>`).join("")}</select></label>
         <button class="btn g" data-act="tpl-apply" style="flex:1">Appliquer</button>
       </div>
       <button class="link" style="font-size:12px" data-act="tpl-delete">Supprimer le modèle sélectionné</button>`:`<p class="muted" style="font-size:13px">Aucun modèle enregistré.</p>`}
@@ -5340,10 +5378,15 @@ function renderExoResults(wrap){
   const carte=h=>{
     const mu=musclesExo(h.nom);
     const ligne=mu?`<span class="exo-mu">${esc(mu.p.join(" · "))}</span>`:"";
-    return `<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:flex-start;gap:10px">
-      <span style="flex:0 0 auto;margin-top:2px">${exoIcon(h.nom,20)}</span>
-      <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
-    </button>`;
+    const lien=videoConnue(h.nom);
+    return `<div class="exo-row">
+      <button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:flex-start;gap:10px">
+        <span style="flex:0 0 auto;margin-top:2px">${exoIcon(h.nom,20)}</span>
+        <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
+      </button>
+      <button type="button" class="exo-vid ${lien?"on":""}" data-act="lier-video" data-nom="${esc(h.nom)}"
+        title="${lien?"Vidéo associée — appuie pour la changer":"Associer une vidéo à cet exercice"}">🎬</button>
+    </div>`;
   };
 
   // « Tous » : la totalité de la bibliothèque, présentée groupe par groupe,
@@ -6907,6 +6950,22 @@ document.addEventListener("click",e=>{
           render();
         }
       }
+      break; }
+    case "lier-video":{
+      const nomExo=t.dataset.nom||""; if(!nomExo) break;
+      const actuel=videoConnue(nomExo);
+      if(!actuel && confirm(`Chercher une vidéo pour « ${nomExo} » sur YouTube ?\n\nCopie le lien de la bonne vidéo, puis reviens ici pour le coller.`)){
+        window.open("https://www.youtube.com/results?search_query="+encodeURIComponent(nomExo+" technique exécution"),"_blank");
+      }
+      const saisi=prompt(`Lien vidéo pour « ${nomExo} » :\n\n(laisse vide pour retirer l'association)`,actuel||"");
+      if(saisi===null) break;                       // annulé
+      const lien2=saisi.trim();
+      if(lien2 && !/^https?:\/\//i.test(lien2)){ alert("Le lien doit commencer par https://"); break; }
+      setVideoBibli(nomExo,lien2,err=>{
+        if(err){ toast("Erreur d'enregistrement"); return; }
+        toast(lien2?"🎬 Vidéo associée à « "+nomExo+" »":"Association retirée");
+        render();
+      });
       break; }
     case "fill-videos":{ if(!c) break;
       let n=0;
