@@ -881,7 +881,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.77 — 17/08/2026";
+const APP_VERSION="v11.78 — 17/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -977,6 +977,9 @@ function patchField(c,field,cb){
 // Recharge les données depuis Supabase sans casser l'onglet/vue en cours
 let PENDING=0; // envois en cours : on ne recharge pas pendant
 function isTypingOrRecording(){
+  // Bibliothèque de vidéos ouverte : un render() la reconstruirait, ferait perdre
+  // le focus du champ de recherche et remonterait la page en haut.
+  if(S.showVideos) return true;
   // Glisser-déposer en cours : un render() remplacerait les cartes en plein déplacement
   if(typeof DRAG!=="undefined" && DRAG.actif) return true;
   // Sélecteur de photo ouvert : un render() détruirait l'<input file> et l'événement
@@ -1878,6 +1881,11 @@ const ZONES_EXCEPTIONS=[
    roumain" avant "soulevé de terre", "curl marteau" avant "curl").
    p = muscles moteurs principaux · s = muscles secondaires / stabilisateurs */
 const MUSCLES=[
+  // --- Triceps : le chef long croise l'épaule. Bras au-dessus de la tête, il est
+  //     en étirement et devient le moteur principal ; coude au corps ou épaule en
+  //     extension (kickback, pushdown), ce sont les chefs latéral et médial. ---
+  [["au-dessus de la tete","overhead","nuque","derriere la tete","incline triceps"],["Triceps brachial (chef long)"],["Anconé","Deltoïde postérieur"]],
+  [["kickback","pushdown","extension triceps poulie","extension poulie prise inversee","extension triceps corde poulie haute"],["Triceps brachial (chefs latéral et médial)"],["Anconé"]],
   // --- Corrections ciblées, testées : ces noms étaient captés par une règle
   //     trop générale placée plus bas. Ils doivent donc passer en premier. ---
   [["dislocation","mobilite epaules","mobilité épaules","pass-through"],["Travail de mobilité / souplesse"],["Deltoïdes","Coiffe des rotateurs"]],
@@ -5124,7 +5132,7 @@ const EXOS_GROUPES=[
 ["Dos",["Tractions pronation","Tractions supination (chin-up)","Tractions prise neutre","Tractions assistées machine","Tractions lestées","Tirage vertical poulie","Tirage vertical prise serrée","Tirage vertical prise inversée","Tirage nuque (prudence)","Rowing barre","Rowing barre prise inversée","Rowing haltère unilatéral","Rowing poulie basse","Rowing T-bar","Rowing machine assise","Rowing Pendlay","Rowing Meadows","Tirage horizontal machine","Pull-over poulie haute","Pull-over haltère","Shrugs haltères","Shrugs barre","Shrugs poulie","Rack pull","Face pull","Oiseau (reverse fly) haltères","Reverse pec deck","Superman","Extension au banc lombaire","Seal row","Inverted row (barre basse)","Straight-arm pulldown","Rowing avec appui pectoral (chest supported)","Tirage vertical unilatéral poulie","Rowing kettlebell unilatéral","Renegade row","Kroc row","Tirage poulie prise neutre","Shrugs prise inversée","Pull-up prise large lesté"]],
 ["Épaules",["Développé militaire barre","Développé militaire haltères","Développé haltères assis","Développé Arnold","Développé au smith machine","Développé machine épaules","Élévations latérales haltères","Élévations latérales poulie","Élévations latérales machine","Élévations latérales penché (lean-away)","Élévations frontales haltères","Élévations frontales barre","Élévations frontales poulie","Oiseau buste penché","Reverse fly poulie","Tirage menton barre","Tirage menton poulie","Développé unilatéral haltère","Pompes piquées (pike push-up)","Rotation externe élastique","Face pull épaules","Landmine press épaules","Cuban press","Handstand push-up (avancé)","Élévation latérale unilatérale poulie basse","Scaption haltères (plan de la scapula)","Bradford press","Powell raise","Élévation latérale égyptienne","Développé assis dossier incliné","Rotation externe couché haltère"]],
 ["Biceps",["Curl barre droite","Curl barre EZ","Curl haltères alterné","Curl haltères simultané","Curl marteau","Curl marteau à la corde","Curl pupitre (Larry Scott)","Curl incliné haltères","Curl concentration","Curl poulie basse","Curl poulie haute (double biceps)","Curl 21s","Curl spider","Curl prise inversée (reverse curl)","Curl à l'élastique","Drag curl","Zottman curl","Curl bayésien poulie basse","Curl pupitre machine","Curl marteau croisé (cross-body)","Waiter curl","Curl banc incliné unilatéral","Curl isométrique 90°","Curl biceps poulie basse"]],
-["Triceps",["Extension triceps poulie (pushdown)","Extension corde à la poulie","Extension poulie prise inversée","Barre au front (skull crusher)","Barre au front haltères","Extension nuque haltère","Extension nuque poulie","Extension nuque barre EZ","Kickback triceps haltère","Kickback triceps poulie","Dips triceps sur banc","Dips barres parallèles","Développé couché prise serrée","JM press","Pompes diamant","Extension triceps machine","Overhead extension unilatéral","Tate press","California press","Extension corde au-dessus de la tête","Dips sur banc lestés","Pushdown unilatéral poulie","Extension triceps allongé barre EZ","Extension triceps corde poulie haute","Extension triceps corde poulie basse"]],
+["Triceps",["Extension triceps poulie (pushdown)","Extension corde à la poulie","Extension poulie prise inversée","Barre au front (skull crusher)","Barre au front haltères","Extension nuque haltère","Extension nuque poulie","Extension nuque barre EZ","Kickback triceps haltère","Kickback triceps poulie","Dips triceps sur banc","Dips barres parallèles","Développé couché prise serrée","JM press","Pompes diamant","Extension triceps machine","Overhead extension unilatéral","Tate press","California press","Extension corde au-dessus de la tête","Dips sur banc lestés","Pushdown unilatéral poulie","Extension triceps allongé barre EZ","Extension triceps corde poulie haute","Extension triceps corde poulie basse","Extension triceps overhead corde poulie basse","Barre au front au banc incliné","Extension nuque assis à deux mains haltère","Extension triceps poulie penché en avant (overhead)","Extension nuque unilatérale poulie basse"]],
 ["Avant-bras / Grip",["Curl poignets barre","Curl poignets inversé","Marche du fermier","Suitcase carry","Plate pinch","Barre suspendue (dead hang)","Rouleau de poignet (wrist roller)","Curl inversé avant-bras","Grip machine / hand gripper"]],
 ["Abdos / Gainage",["Gainage planche","Gainage latéral","Planche dynamique (shoulder taps)","Planche avec extension","Crunch au sol","Crunch à la poulie","Crunch machine","Crunch inversé","Relevés de jambes suspendu","Relevés de jambes au sol","Relevés de genoux suspendu","Toes to bar","Mountain climbers","Russian twist","Russian twist lesté","Roulette abdos (ab wheel)","Dead bug","Bird dog","Hollow hold","Pallof press","V-ups","Sit-ups","Sit-ups lestés","Woodchopper poulie haute","Woodchopper poulie basse","Dragon flag (avancé)","L-sit","Windshield wipers","Side bend haltère","Gainage sur ballon","Copenhagen side plank","Suitcase hold (anti-inclinaison)","Crunch câble à genoux lesté","Gainage avec charge sur le dos","Relevé de bassin suspendu"]],
 ["Cardio / Conditionnement",["Burpees","Poussée de traîneau (sled push)","Traction de traîneau (sled pull)","Battle ropes","Wall balls","Thruster barre","Thruster haltères","Box jump","Broad jump","Sprint","Sprint en côte","Rameur (ergomètre)","Assault bike","Vélo (ergomètre)","SkiErg","Tapis de course","Tapis de course incliné","Corde à sauter","Corde à sauter double-unders","Montées d'escaliers (stepmill)","Elliptique","Bear crawl","Farmer walk conditionnement","Prowler","Jumping jacks","Shuttle run (navettes)","Turkish get-up"]],
@@ -6191,12 +6199,13 @@ document.addEventListener("mousedown",e=>{
 
 /* ===== events ===== */
 document.addEventListener("click",e=>{
-  // Fermeture de la bibliothèque de vidéos : croix ou clic hors de la fenêtre
+  // Fermeture de la bibliothèque de vidéos : uniquement la croix, ou le fond
+  // hors de la fenêtre. Chercher le conteneur le plus proche fermait la fenêtre
+  // au moindre clic à l'intérieur, y compris dans le champ de recherche.
   if(S.showVideos){
-    const fermer=e.target.closest("[data-close-videos]");
-    if(fermer&&(e.target===fermer||fermer.classList.contains("modal"))){
-      S.showVideos=false; render(); return;
-    }
+    const croix=e.target.closest("button[data-close-videos]");
+    const fond=e.target.classList&&e.target.classList.contains("modal")&&e.target.hasAttribute("data-close-videos");
+    if(croix||fond){ S.showVideos=false; render(); return; }
   }
   unlockAudio();
   const hit=e.target.closest("[data-exohit]");
