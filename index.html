@@ -881,7 +881,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.76 — 17/08/2026";
+const APP_VERSION="v11.77 — 17/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1284,6 +1284,7 @@ function render(){
     })();
   }
   if(S.showAdd) modal=addModal();
+  if(S.showVideos) modal+=videosModal();
   root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
   // Sélecteur d'exercices : la liste est désormais toujours visible (récents,
   // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
@@ -5122,8 +5123,8 @@ const EXOS_GROUPES=[
 ["Pectoraux",["Développé couché barre","Développé couché haltères","Développé incliné barre","Développé incliné haltères","Développé décliné barre","Développé décliné haltères","Développé machine convergente","Développé au smith machine","Développé prise serrée","Écarté couché haltères","Écarté incliné haltères","Écarté décliné haltères","Écarté à la poulie (crossover)","Écarté poulie basse","Écarté poulie haute","Pec deck","Pompes","Pompes lestées","Pompes déclinées","Pompes inclinées","Pompes prise serrée","Dips pectoraux","Pull-over haltère (pectoraux)","Squeeze press haltères","Landmine press","Développé haltères prise neutre","Chest press machine","Écarté au sol (floor fly)","Développé couché prise large","Pompes pseudo-planche","Développé unilatéral poulie","Pompes déficit (mains surélevées)"]],
 ["Dos",["Tractions pronation","Tractions supination (chin-up)","Tractions prise neutre","Tractions assistées machine","Tractions lestées","Tirage vertical poulie","Tirage vertical prise serrée","Tirage vertical prise inversée","Tirage nuque (prudence)","Rowing barre","Rowing barre prise inversée","Rowing haltère unilatéral","Rowing poulie basse","Rowing T-bar","Rowing machine assise","Rowing Pendlay","Rowing Meadows","Tirage horizontal machine","Pull-over poulie haute","Pull-over haltère","Shrugs haltères","Shrugs barre","Shrugs poulie","Rack pull","Face pull","Oiseau (reverse fly) haltères","Reverse pec deck","Superman","Extension au banc lombaire","Seal row","Inverted row (barre basse)","Straight-arm pulldown","Rowing avec appui pectoral (chest supported)","Tirage vertical unilatéral poulie","Rowing kettlebell unilatéral","Renegade row","Kroc row","Tirage poulie prise neutre","Shrugs prise inversée","Pull-up prise large lesté"]],
 ["Épaules",["Développé militaire barre","Développé militaire haltères","Développé haltères assis","Développé Arnold","Développé au smith machine","Développé machine épaules","Élévations latérales haltères","Élévations latérales poulie","Élévations latérales machine","Élévations latérales penché (lean-away)","Élévations frontales haltères","Élévations frontales barre","Élévations frontales poulie","Oiseau buste penché","Reverse fly poulie","Tirage menton barre","Tirage menton poulie","Développé unilatéral haltère","Pompes piquées (pike push-up)","Rotation externe élastique","Face pull épaules","Landmine press épaules","Cuban press","Handstand push-up (avancé)","Élévation latérale unilatérale poulie basse","Scaption haltères (plan de la scapula)","Bradford press","Powell raise","Élévation latérale égyptienne","Développé assis dossier incliné","Rotation externe couché haltère"]],
-["Biceps",["Curl barre droite","Curl barre EZ","Curl haltères alterné","Curl haltères simultané","Curl marteau","Curl marteau à la corde","Curl pupitre (Larry Scott)","Curl incliné haltères","Curl concentration","Curl poulie basse","Curl poulie haute (double biceps)","Curl 21s","Curl spider","Curl prise inversée (reverse curl)","Curl à l'élastique","Drag curl","Zottman curl","Curl bayésien poulie basse","Curl pupitre machine","Curl marteau croisé (cross-body)","Waiter curl","Curl banc incliné unilatéral","Curl isométrique 90°"]],
-["Triceps",["Extension triceps poulie (pushdown)","Extension corde à la poulie","Extension poulie prise inversée","Barre au front (skull crusher)","Barre au front haltères","Extension nuque haltère","Extension nuque poulie","Extension nuque barre EZ","Kickback triceps haltère","Kickback triceps poulie","Dips triceps sur banc","Dips barres parallèles","Développé couché prise serrée","JM press","Pompes diamant","Extension triceps machine","Overhead extension unilatéral","Tate press","California press","Extension corde au-dessus de la tête","Dips sur banc lestés","Pushdown unilatéral poulie","Extension triceps allongé barre EZ"]],
+["Biceps",["Curl barre droite","Curl barre EZ","Curl haltères alterné","Curl haltères simultané","Curl marteau","Curl marteau à la corde","Curl pupitre (Larry Scott)","Curl incliné haltères","Curl concentration","Curl poulie basse","Curl poulie haute (double biceps)","Curl 21s","Curl spider","Curl prise inversée (reverse curl)","Curl à l'élastique","Drag curl","Zottman curl","Curl bayésien poulie basse","Curl pupitre machine","Curl marteau croisé (cross-body)","Waiter curl","Curl banc incliné unilatéral","Curl isométrique 90°","Curl biceps poulie basse"]],
+["Triceps",["Extension triceps poulie (pushdown)","Extension corde à la poulie","Extension poulie prise inversée","Barre au front (skull crusher)","Barre au front haltères","Extension nuque haltère","Extension nuque poulie","Extension nuque barre EZ","Kickback triceps haltère","Kickback triceps poulie","Dips triceps sur banc","Dips barres parallèles","Développé couché prise serrée","JM press","Pompes diamant","Extension triceps machine","Overhead extension unilatéral","Tate press","California press","Extension corde au-dessus de la tête","Dips sur banc lestés","Pushdown unilatéral poulie","Extension triceps allongé barre EZ","Extension triceps corde poulie haute","Extension triceps corde poulie basse"]],
 ["Avant-bras / Grip",["Curl poignets barre","Curl poignets inversé","Marche du fermier","Suitcase carry","Plate pinch","Barre suspendue (dead hang)","Rouleau de poignet (wrist roller)","Curl inversé avant-bras","Grip machine / hand gripper"]],
 ["Abdos / Gainage",["Gainage planche","Gainage latéral","Planche dynamique (shoulder taps)","Planche avec extension","Crunch au sol","Crunch à la poulie","Crunch machine","Crunch inversé","Relevés de jambes suspendu","Relevés de jambes au sol","Relevés de genoux suspendu","Toes to bar","Mountain climbers","Russian twist","Russian twist lesté","Roulette abdos (ab wheel)","Dead bug","Bird dog","Hollow hold","Pallof press","V-ups","Sit-ups","Sit-ups lestés","Woodchopper poulie haute","Woodchopper poulie basse","Dragon flag (avancé)","L-sit","Windshield wipers","Side bend haltère","Gainage sur ballon","Copenhagen side plank","Suitcase hold (anti-inclinaison)","Crunch câble à genoux lesté","Gainage avec charge sur le dos","Relevé de bassin suspendu"]],
 ["Cardio / Conditionnement",["Burpees","Poussée de traîneau (sled push)","Traction de traîneau (sled pull)","Battle ropes","Wall balls","Thruster barre","Thruster haltères","Box jump","Broad jump","Sprint","Sprint en côte","Rameur (ergomètre)","Assault bike","Vélo (ergomètre)","SkiErg","Tapis de course","Tapis de course incliné","Corde à sauter","Corde à sauter double-unders","Montées d'escaliers (stepmill)","Elliptique","Bear crawl","Farmer walk conditionnement","Prowler","Jumping jacks","Shuttle run (navettes)","Turkish get-up"]],
@@ -5379,10 +5380,16 @@ function renderExoResults(wrap){
     const mu=musclesExo(h.nom);
     const ligne=mu?`<span class="exo-mu">${esc(mu.p.join(" · "))}</span>`:"";
     const lien=videoConnue(h.nom);
+    // Dans la bibliothèque de vidéos, toute la ligne sert à associer un lien ;
+    // ailleurs, le nom sélectionne l'exercice et le 🎬 gère la vidéo.
+    const principal=S.showVideos
+      ? `<button type="button" class="exo-hit" data-act="lier-video" data-nom="${esc(h.nom)}" style="display:flex;align-items:flex-start;gap:10px">`
+      : `<button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:flex-start;gap:10px">`;
     return `<div class="exo-row">
-      <button type="button" class="exo-hit" data-exohit="${esc(h.nom)}" data-target="${esc(fEl.dataset.exofilter)}" style="display:flex;align-items:flex-start;gap:10px">
+      ${principal}
         <span style="flex:0 0 auto;margin-top:2px">${exoIcon(h.nom,20)}</span>
-        <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}<span class="g">${esc(h.grp)}</span></span>
+        <span style="flex:1;min-width:0">${esc(h.nom)}${ligne}
+          <span class="g">${lien?"🎬 vidéo associée":esc(h.grp)}</span></span>
       </button>
       <button type="button" class="exo-vid ${lien?"on":""}" data-act="lier-video" data-nom="${esc(h.nom)}"
         title="${lien?"Vidéo associée — appuie pour la changer":"Associer une vidéo à cet exercice"}">🎬</button>
@@ -5419,6 +5426,24 @@ function renderExoResults(wrap){
     +(hits.length?hits.map(carte).join(""):vide));
 }
 
+/* Écran de gestion des vidéos : réutilise le sélecteur d'exercices, mais chaque
+   ligne ouvre l'association au lieu de choisir l'exercice pour un programme. */
+function videosModal(){
+  const bib=videosBibli();
+  const n=Object.keys(bib).length;
+  return `<div class="modal" data-close-videos>
+    <div class="modal-in" style="max-width:520px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px">
+        <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0">🎬 Mes vidéos d'exercices</h3>
+        <button class="x" data-close-videos style="font-size:22px">×</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-bottom:10px">
+        ${n?n+" exercice"+(n>1?"s":"")+" associé"+(n>1?"s":"")+".":"Aucune vidéo associée pour l'instant."}
+        Appuie sur un exercice pour lui associer un lien : il sera repris automatiquement dans tous tes programmes.</p>
+      ${exoPicker("")}
+    </div>
+  </div>`;
+}
 function exoPicker(targetId){
   const mode=S.exoMode||"salle";
   const sel=S.exoGroupe||"";
@@ -5656,6 +5681,19 @@ function programmesView(){
         </div>`).join("")}
       </div>`;})()}
     ${clientsProgs}
+    ${(()=>{
+      // Accès direct à la bibliothèque de vidéos, sans passer par un programme
+      const n=Object.keys(videosBibli()).length;
+      return `<div class="panel" style="margin-top:18px;border-color:rgba(224,169,74,.35)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--white)">🎬 Mes vidéos d'exercices</div>
+            <p class="muted" style="font-size:12.5px;margin-top:2px">${n?n+" exercice"+(n>1?"s":"")+" associé"+(n>1?"s":"")+" — repris automatiquement dans tes programmes":"Associe une vidéo à un exercice : elle sera reprise dans tous tes programmes."}</p>
+          </div>
+          <button class="btn g" style="flex:0 0 auto;padding:9px 14px;font-size:13px" data-act="open-videos">Ouvrir</button>
+        </div>
+      </div>`;
+    })()}
     <div class="sec-head" style="margin-top:18px"><h2 style="font-size:16px">Mes modèles</h2></div>
     ${tps.length?cards:`<div class="panel" style="text-align:center;padding:26px 18px">
       <div style="font-size:38px;margin-bottom:8px">▤</div>
@@ -6153,6 +6191,13 @@ document.addEventListener("mousedown",e=>{
 
 /* ===== events ===== */
 document.addEventListener("click",e=>{
+  // Fermeture de la bibliothèque de vidéos : croix ou clic hors de la fenêtre
+  if(S.showVideos){
+    const fermer=e.target.closest("[data-close-videos]");
+    if(fermer&&(e.target===fermer||fermer.classList.contains("modal"))){
+      S.showVideos=false; render(); return;
+    }
+  }
   unlockAudio();
   const hit=e.target.closest("[data-exohit]");
   if(hit){
@@ -6951,6 +6996,7 @@ document.addEventListener("click",e=>{
         }
       }
       break; }
+    case "open-videos": S.showVideos=true; S.exoGroupe=""; render(); break;
     case "lier-video":{
       const nomExo=t.dataset.nom||""; if(!nomExo) break;
       const actuel=videoConnue(nomExo);
