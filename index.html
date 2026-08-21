@@ -3,6 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Politique de sécurité du contenu : verrouille les origines autorisées.
+     Même si du code malveillant parvenait à s'exécuter, il ne pourrait ni charger
+     un script externe, ni envoyer tes données client vers un serveur tiers.
+     'unsafe-inline' reste nécessaire : tout le code de l'app est dans ce fichier. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com data:;
+  img-src 'self' data: blob: https://img.youtube.com https://api.qrserver.com https://*.supabase.co;
+  media-src 'self' data: blob:;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+  frame-src https://www.youtube.com https://youtube.com;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none';
+  frame-ancestors 'none'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
 <title>Alex Coaching</title>
 <meta name="theme-color" content="#0D0B0A" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -881,7 +899,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.80 — 18/08/2026";
+const APP_VERSION="v11.82 — 18/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
