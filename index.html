@@ -23,7 +23,7 @@
 -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root{--ink:#0D0B0A;--ink2:#1D1714;--base:#12100E;--card:#1C1613;--red:#B01F1F;--red2:#7E1712;--grey:#A39588;--grey2:#6B5F55;--line:#2E2620;--danger:#E53935;--white:#F2EDE7;--white2:#C9BCAF;
+  :root{--ink:#0D0B0A;--ink2:#1D1714;--base:#12100E;--card:#1C1613;--red:#B01F1F;--red-txt:#E05A5A;--red2:#7E1712;--grey:#A39588;--grey2:#8F8175;--line:#2E2620;--danger:#E53935;--white:#F2EDE7;--white2:#C9BCAF;
     --amber:#B8862F;--amber2:#E0A94A;--glow:rgba(176,31,31,.28);
     --edge:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 42%);
     --sh-sm:0 2px 8px rgba(0,0,0,.4);--sh-md:0 8px 24px rgba(0,0,0,.45);--sh-lg:0 18px 46px rgba(0,0,0,.55);}
@@ -74,7 +74,7 @@
   .logo .wmz{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px}
   .logo .wm{font-family:'Bebas Neue';font-size:clamp(15px,4.6vw,20px);letter-spacing:.07em;line-height:.96;color:var(--white);
     text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 0 rgba(0,0,0,.6);display:block}
-  .logo .wm em{display:block;font-style:normal;color:var(--red);letter-spacing:.12em}
+  .logo .wm em{display:block;font-style:normal;color:var(--red-txt);letter-spacing:.12em}
 
   .hd-top{gap:12px}
   .logo .mark-img{width:clamp(30px,9vw,38px);height:clamp(30px,9vw,38px)}
@@ -104,7 +104,7 @@
   .stat .v{font-family:'Bebas Neue';font-size:44px;line-height:.92;letter-spacing:.02em;font-variant-numeric:tabular-nums;
     color:#E8DFD6;
     text-shadow:0 1px 0 rgba(0,0,0,.85),0 -1px 0 rgba(255,255,255,.1);}
-  .stat.accent .v{color:var(--red);text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 22px rgba(176,31,31,.35)}
+  .stat.accent .v{color:var(--red-txt);text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 22px rgba(176,31,31,.35)}
   .stat.or .v{color:var(--amber2);text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 22px rgba(184,134,47,.3)}
   .stat .l{font-size:10px;color:#8B7C6E;margin-top:9px;font-weight:800;text-transform:uppercase;letter-spacing:.13em}
   .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
@@ -115,7 +115,7 @@
   .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--line);position:relative}
   .sec-head::after{content:"";position:absolute;left:0;bottom:-1px;width:34px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--red),var(--amber))}
   .sec-head h2{font-family:'Bebas Neue';font-size:21px;letter-spacing:.07em;color:var(--white)}
-  .link{border:none;background:transparent;color:var(--red);font-weight:700;font-size:14px;cursor:pointer}
+  .link{border:none;background:transparent;color:var(--red-txt);font-weight:700;font-size:14px;cursor:pointer}
   .crow{position:relative;width:100%;text-align:left;background:linear-gradient(180deg,#211A16,var(--card) 46%);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:13px;overflow:hidden;
     transition:border-color .18s,transform .18s,box-shadow .18s;box-shadow:var(--sh-md);animation:cardIn .34s cubic-bezier(.22,.9,.28,1) both}
   .crow::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--red),var(--red2));opacity:.55;transition:opacity .18s}
@@ -183,7 +183,7 @@
   .card::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14) 22%,rgba(255,255,255,.14) 78%,transparent)}
   @keyframes cardIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.card{animation:none}}
-  .exi{font-family:'Bebas Neue';font-size:14px;color:var(--red);letter-spacing:.06em}
+  .exi{font-family:'Bebas Neue';font-size:14px;color:var(--red-txt);letter-spacing:.06em}
   .exn{font-weight:700;font-size:15px;color:var(--white)}
   .exd{font-size:14px;color:var(--grey);margin-top:6px;line-height:1.5}
   .exnote{font-size:14px;color:#FF6B6B;margin-top:8px;font-style:italic;line-height:1.5}
@@ -206,7 +206,7 @@
   nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
   nav button{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button{position:relative}
-  nav button.on{color:var(--red)}
+  nav button.on{color:var(--red-txt)}
   nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:2px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,transparent,var(--red),transparent);box-shadow:0 0 10px var(--glow)}
   nav .ic{font-size:18px;line-height:1;transition:transform .18s}
   nav button.on .ic{transform:translateY(-1px) scale(1.08)}
@@ -231,12 +231,12 @@
   .authcard .lead{color:var(--grey);font-size:14px;margin:2px 0 18px}
   .autherr{background:rgba(229,57,53,.15);color:#FF6B6B;border:1px solid rgba(229,57,53,.3);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
   .switch{text-align:center;margin-top:14px;font-size:13.5px;color:var(--grey)}
-  .switch button{border:none;background:transparent;color:var(--red);font-weight:700;cursor:pointer;font-family:'Inter'}
+  .switch button{border:none;background:transparent;color:var(--red-txt);font-weight:700;cursor:pointer;font-family:'Inter'}
   .logo-img{display:block;width:100%;max-width:220px;margin:0 auto 6px;filter:drop-shadow(0 12px 34px rgba(176,31,31,.5))}
   .auth-tag{text-align:center;font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin:0 0 20px;font-weight:700}
   code{background:var(--ink2);color:var(--white2);padding:1px 5px;border-radius:5px;font-size:13px}
   .sql{white-space:pre-wrap;background:#0A0A0A;color:#666;padding:12px;border-radius:10px;font-size:11px;line-height:1.45;overflow:auto;margin-top:8px;font-family:ui-monospace,Menlo,monospace}
-  details summary{cursor:pointer;font-size:13.5px;color:var(--red);font-weight:700}
+  details summary{cursor:pointer;font-size:13.5px;color:var(--red-txt);font-weight:700}
 
   /* === anti-débordement === */
   .wrap{overflow-x:clip}
@@ -284,7 +284,7 @@
   .pstat .pv{font-family:'Bebas Neue';font-size:22px;letter-spacing:.03em;color:var(--white)}
   .pstat .pl{font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:2px}
   .pstat.delta .pv{color:#4CAF50}.pstat.delta.up .pv{color:var(--amber)}
-  .pstat.target .pv{color:var(--red)}
+  .pstat.target .pv{color:var(--red-txt)}
   .tmr{background:var(--ink2);border:1px solid #4A3B32;color:var(--amber);border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Inter'}
   .exo-results{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--ink2);margin-bottom:10px}
   /* Ligne d'exercice : le nom sélectionne, le 🎬 associe une vidéo.
@@ -384,7 +384,7 @@
      44 px de haut, la taille minimale confortable pour le pouce. */
   .xgrip{font-size:17px;color:var(--grey2);cursor:grab;letter-spacing:2px;
     padding:0 12px;min-height:38px;touch-action:none}
-  .xgrip:active{cursor:grabbing;color:var(--red)}
+  .xgrip:active{cursor:grabbing;color:var(--red-txt)}
   .xcard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .xcard img{-webkit-touch-callout:none;-webkit-user-drag:none;pointer-events:none}
   .xcard.xdrag{opacity:.96;box-shadow:0 18px 40px rgba(0,0,0,.65);
@@ -413,7 +413,7 @@
   .xvis.novid .xplay{display:none}
 
   .xmain{flex:1;min-width:0}
-  .xnum{font-family:'Bebas Neue';font-size:13px;letter-spacing:.14em;color:var(--red);line-height:1;margin-bottom:3px}
+  .xnum{font-family:'Bebas Neue';font-size:13px;letter-spacing:.14em;color:var(--red-txt);line-height:1;margin-bottom:3px}
   .xname{font-size:16.5px;font-weight:700;color:var(--white);line-height:1.25;margin:0;font-family:'Inter',system-ui,sans-serif;letter-spacing:0}
   .xtags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .xtag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;
@@ -881,7 +881,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.79 — 18/08/2026";
+const APP_VERSION="v11.80 — 18/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1461,7 +1461,7 @@ function dashboard(){
       ${rdvSemaine.length?`<div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--line)">
         <div style="font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--grey2);margin-bottom:4px">À venir</div>
         ${rdvSemaine.map(({c,d})=>`<div class="today-line" style="padding:4px 0;border-top:none">
-          <span style="font-size:11.5px;color:var(--red);font-weight:700;flex:0 0 auto;min-width:80px">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</span>
+          <span style="font-size:11.5px;color:var(--red-txt);font-weight:700;flex:0 0 auto;min-width:80px">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</span>
           <span class="nm" style="font-size:13px">${esc(c.nom)}</span>
           <span style="font-size:12.5px;color:var(--amber);font-weight:700">${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
         </div>`).join("")}
@@ -1471,7 +1471,7 @@ function dashboard(){
     ${alertes.length?`
     <div class="todo-hd"><h2>À faire</h2><span class="cnt">${alertes.length}</span></div>
     ${urgents.length?`<div class="todo-grp">
-      <div class="todo-grp-lbl" style="color:var(--red)"><span class="dot" style="background:var(--red);box-shadow:0 0 8px rgba(206,42,42,.6)"></span>Urgent</div>
+      <div class="todo-grp-lbl" style="color:var(--red-txt)"><span class="dot" style="background:var(--red);box-shadow:0 0 8px rgba(206,42,42,.6)"></span>Urgent</div>
       ${urgents.map(a=>renderAlerte(a,"#FF6B6B")).join("")}
     </div>`:""}
     ${attentions.length?`<div class="todo-grp">
@@ -1545,7 +1545,7 @@ function dashboard(){
       <div>
         <div style="padding:10px 0;border-bottom:1px solid var(--line)">
           <div style="font-size:13px;color:var(--white2);font-weight:600;margin-bottom:6px">Volume de l'alarme</div>
-          <input type="range" min="20" max="100" step="10" value="${v}" data-act="vol-alarme" style="width:100%;accent-color:var(--red)">
+          <input type="range" min="20" max="100" step="10" value="${v}" data-act="vol-alarme" style="width:100%;accent-color:var(--red-txt)">
           <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--grey2);margin-top:2px">
             <span>Discret</span><b style="color:var(--white)">${v} %</b><span>Salle bruyante</span></div>
           <p class="muted" style="font-size:11px;margin-top:6px;line-height:1.4">Aperçu joué à chaque réglage. Pense au volume du téléphone et au bouton silence.</p>
@@ -1701,7 +1701,7 @@ function detail(c){
   const unreadN=(c.messages||[]).filter(m=>m.from==='client'&&!m.lu).length;
   const cur=tabs.find(t2=>t2[0]===S.detailTab)||tabs[0];
   const tabbar=`<label class="fld tabsel" style="margin-bottom:14px">
-    <span>Section${unreadN?` · <span style="color:var(--red)">${unreadN} message${unreadN>1?"s":""} non lu${unreadN>1?"s":""}</span>`:""}</span>
+    <span>Section${unreadN?` · <span style="color:var(--red-txt)">${unreadN} message${unreadN>1?"s":""} non lu${unreadN>1?"s":""}</span>`:""}</span>
     <select data-dsel>${tabs.map(([k,l])=>`<option value="${k}" ${S.detailTab===k?"selected":""}>${l}${k==='messages'&&unreadN?` (${unreadN})`:""}</option>`).join("")}</select>
   </label>`;
   let inner=S.detailTab==="infos"?infosTab(c):S.detailTab==="programme"?programme(c,true):S.detailTab==="progres"?progres(c,true):S.detailTab==="messages"?messagesTab(c,true):S.detailTab==="bilan"?bilanTab(c,true):S.detailTab==="tests"?testsTab(c,true):S.detailTab==="nutrition"?nutritionTab(c,true):seancesTab(c,true);
@@ -2355,11 +2355,11 @@ function faqTab(){
   return reglage+`<div class="sec-head"><h2 style="font-size:18px">Questions fréquentes</h2></div>
   <p class="muted" style="font-size:13px;margin-bottom:14px">Les réponses aux questions les plus courantes. Si tu ne trouves pas, écris-moi dans la messagerie.</p>
   ${FAQ.map((sec,si)=>`
-    <div class="sec-head" style="margin-top:6px"><h2 style="font-size:15px;color:var(--red)">${esc(sec[0])}</h2></div>
+    <div class="sec-head" style="margin-top:6px"><h2 style="font-size:15px;color:var(--red-txt)">${esc(sec[0])}</h2></div>
     ${sec[1].map((qa,qi)=>{const key=si+"-"+qi;const open=S.faqOpen===key;
       return `<div class="panel" style="margin-bottom:8px;padding:0;overflow:hidden">
         <button type="button" data-act="faq-toggle" data-key="${key}" style="width:100%;text-align:left;background:none;border:none;color:var(--white);padding:13px 14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center">
-          <span style="flex:1">${esc(qa[0])}</span><span style="color:var(--red);flex:0 0 auto">${open?"−":"+"}</span>
+          <span style="flex:1">${esc(qa[0])}</span><span style="color:var(--red-txt);flex:0 0 auto">${open?"−":"+"}</span>
         </button>
         ${open?`<div style="padding:0 14px 13px;font-size:13.5px;color:var(--white2);line-height:1.6">${esc(qa[1])}</div>`:""}
       </div>`;}).join("")}`).join("")}`;
@@ -2711,7 +2711,7 @@ function showDiagPush(){
       ${!x.ok&&x.fix?`<div style="font-size:12.5px;color:var(--amber);margin-top:5px;line-height:1.5">→ ${esc(x.fix)}</div>`:""}
     </div>`).join("")}
     ${premierEchec
-      ?`<div class="panel" style="margin-top:12px;border-color:rgba(176,31,31,.5)"><div class="ph" style="color:var(--red);font-size:13.5px">À corriger en priorité</div>
+      ?`<div class="panel" style="margin-top:12px;border-color:rgba(176,31,31,.5)"><div class="ph" style="color:var(--red-txt);font-size:13.5px">À corriger en priorité</div>
          <p style="font-size:13.5px;color:var(--white2);line-height:1.55">${esc(premierEchec.fix||premierEchec.txt)}</p></div>`
       :`<div class="panel" style="margin-top:12px;border-color:rgba(76,175,80,.5)"><div class="ph" style="color:#4CAF50;font-size:13.5px">Tout est en place ✓</div>
          <p style="font-size:13px;color:var(--white2)">Ton appareil est enregistré. Si tu ne reçois rien, vérifie que la fonction <b>send-due-pushes</b> est déployée sans « Verify JWT » et que la tâche automatique tourne.</p></div>`}
@@ -2850,7 +2850,7 @@ function questionsTab(c){
         </div>
         <p style="font-size:14.5px;color:var(--white);line-height:1.5">${esc(q.texte)}</p>
         ${q.reponse?`<div style="margin-top:10px;padding:11px 13px;background:linear-gradient(160deg,rgba(206,42,42,.16),rgba(126,23,18,.08));border-left:3px solid var(--red);border-radius:0 12px 12px 0">
-          <div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:4px">Réponse du coach</div>
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--red-txt);margin-bottom:4px">Réponse du coach</div>
           <p style="font-size:14px;color:var(--white2);line-height:1.55">${esc(q.reponse)}</p>
         </div>`:""}
         ${(mien&&!q.repondu)?`<button class="link" style="font-size:12px;padding:0;margin-top:8px" data-act="q-del" data-id="${q.id}">Retirer ma question</button>`:""}
@@ -3132,7 +3132,7 @@ function programme(c,editable){
         const isT=dEx.repType==="temps";
         return `
         <label style="display:flex;align-items:center;gap:9px;margin:2px 0 12px;font-size:13px;color:var(--white2);cursor:pointer">
-          <input type="checkbox" id="ex-varmode" ${varOn?"checked":""} style="width:18px;height:18px;accent-color:var(--red)">
+          <input type="checkbox" id="ex-varmode" ${varOn?"checked":""} style="width:18px;height:18px;accent-color:var(--red-txt)">
           🎯 Reps / charges variables par série
         </label>
         <div id="ex-uniform" style="${varOn?"display:none":""}">
@@ -3207,7 +3207,7 @@ function programme(c,editable){
     list=prog.map(renderCard).join("");
   } else {
     list=blocKeys.map(b=>`
-      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:19px;color:var(--red)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
+      ${b?`<div class="sec-head" style="margin-top:8px;flex-wrap:wrap;gap:6px"><h2 style="font-size:19px;color:var(--red-txt)">${b.length<=2?`Séance ${b}`:b}${(()=>{const v=volumeSeance(c,b);return v.vol?`<span style="display:block;font-size:11px;color:var(--grey2);font-weight:400;letter-spacing:.04em;text-transform:none">${v.n} exos · volume ${v.vol.toLocaleString("fr-FR")} kg</span>`:"";})()}</h2>
         <span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           ${editable?`<button class="link" style="font-size:12.5px" data-act="prog-up" data-jour="${esc(b)}">＋ Progresser</button>`:""}
           <button class="link" style="font-size:13px" data-act="start-wk" data-jour="${esc(b)}">▶ Lancer la séance</button>
@@ -3235,7 +3235,7 @@ function programme(c,editable){
   // Le formulaire va soit en INLINE juste après la carte modifiée, soit en bas en mode "ajout"
   const form=editingId?"":exForm;
   const endedWarn=(editable&&programEnded(c))?`<div class="panel" style="margin-bottom:12px;border-color:rgba(176,31,31,.45);background:linear-gradient(180deg,rgba(176,31,31,.08),transparent)">
-    <div class="ph" style="color:var(--red);font-size:13.5px">🔒 Accès client suspendu</div>
+    <div class="ph" style="color:var(--red-txt);font-size:13.5px">🔒 Accès client suspendu</div>
     <p style="font-size:13px;color:var(--white2);line-height:1.5">Le programme s'est terminé le <b>${frDate(c.programmeFin)}</b> : ${esc((c.nom||"").split(" ")[0])} ne peut plus ouvrir son espace et voit un message l'invitant à te contacter.</p>
     <p class="muted" style="font-size:12px;margin-top:6px">Pour réactiver : change la date de fin ci-dessus (son historique est intact).</p>
   </div>`:"";
@@ -3840,7 +3840,7 @@ function wodRender(){
         <span style="color:var(--grey2)"> — reste <span id="wod-minrest">—</span></span></p>`:""}
 
     ${WOD.mode!=="emom"?`
-      <div style="font-family:'Bebas Neue';font-size:40px;color:var(--red);line-height:1">${WOD.tours}${WOD.mode==="fortime"?` <span style="font-size:22px;color:var(--grey)">/ ${WOD.val}</span>`:""}</div>
+      <div style="font-family:'Bebas Neue';font-size:40px;color:var(--red-txt);line-height:1">${WOD.tours}${WOD.mode==="fortime"?` <span style="font-size:22px;color:var(--grey)">/ ${WOD.val}</span>`:""}</div>
       <p style="color:var(--grey2);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:2px 0 16px">${WOD.tours>1?"tours":"tour"}</p>
       <button class="btn p full" data-act="wod-tour" style="max-width:300px;padding:16px;font-size:17px">✓ Tour terminé</button>`:""}
 
@@ -5001,7 +5001,7 @@ function nutritionTab(c,editable){
       ${ninfo.rythme==="peak"&&ninfo.objectif==="perte"?`<div style="display:block;text-align:center;margin-bottom:10px;background:rgba(176,31,31,.18);color:#FF6B6B;border-radius:999px;font-size:11px;font-weight:700;padding:6px 12px">🔴 PEAK${ninfo.kcalkg?` — ${String(ninfo.kcalkg).replace(".",",")} kcal/kg`:""} : 7 à 14 jours MAXIMUM, fin de préparation uniquement. Avis médical recommandé. Contre-indiqué en cas d'antécédents de troubles alimentaires. Retour au rythme standard immédiatement après l'échéance.</div>`:""}
       ${ninfo.rythme==="seche"&&ninfo.objectif==="perte"?`<div class="badge-warn" style="display:block;text-align:center;margin-bottom:10px">⏳ Sèche extrême${ninfo.kcalkg?` — ${String(ninfo.kcalkg).replace(".",",")} kcal/kg`:""} : 4 à 6 semaines MAX, pour une échéance précise. Suivi rapproché (énergie, sommeil, performance) — retour au rythme standard ensuite.</div>`:""}
       <div style="display:flex;gap:8px;text-align:center">
-        <div style="flex:1"><div style="font-family:'Bebas Neue';font-size:20px;color:var(--red)">${ninfo.prot_g} g</div><div style="font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.06em">Protéines ${ninfo.pctP}%</div><div style="font-size:10px;color:var(--grey2)">${String(ninfo.gkg).replace(".",",")} g/kg</div></div>
+        <div style="flex:1"><div style="font-family:'Bebas Neue';font-size:20px;color:var(--red-txt)">${ninfo.prot_g} g</div><div style="font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.06em">Protéines ${ninfo.pctP}%</div><div style="font-size:10px;color:var(--grey2)">${String(ninfo.gkg).replace(".",",")} g/kg</div></div>
         <div style="flex:1"><div style="font-family:'Bebas Neue';font-size:20px;color:var(--amber)">${ninfo.lip_g} g</div><div style="font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.06em">Lipides ${ninfo.pctL}%</div></div>
         <div style="flex:1"><div style="font-family:'Bebas Neue';font-size:20px;color:#4CAF50">${ninfo.gluc_g} g</div><div style="font-size:10px;color:var(--grey2);text-transform:uppercase;letter-spacing:.06em">Glucides ${ninfo.pctG}%</div></div>
       </div>
@@ -5019,7 +5019,7 @@ function nutritionTab(c,editable){
       </div>
       ${r2.items.map(it=>`<button type="button" class="food-row" data-act="swap-food" data-fid="${esc(it.id)}" style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:8px;font-size:13.5px;color:var(--white2);padding:8px 0;border:none;border-bottom:1px solid var(--line);background:none;text-align:left;font-family:inherit;cursor:pointer">
         <span style="flex:1;min-width:0">${esc(it.label)} ${it.swapped?'<span style="color:#4CAF50;font-size:11px">↔ remplacé</span>':''}</span>
-        <span style="color:var(--grey2);white-space:nowrap">${it.kcal} kcal <span style="color:var(--red);font-size:11px">↔</span></span>
+        <span style="color:var(--grey2);white-space:nowrap">${it.kcal} kcal <span style="color:var(--red-txt);font-size:11px">↔</span></span>
       </button>`).join("")}
     </div>`).join("");
   const totalLine=`<div class="panel" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
@@ -5049,7 +5049,7 @@ function nutritionTab(c,editable){
     ${nutriReperes(ninfo.objectif).map(r2=>`<div style="font-size:13px;color:var(--white2);padding:3px 0;border-bottom:1px solid var(--line)">• ${r2}</div>`).join("")}
     <p class="muted" style="font-size:11px;margin-top:10px">Exemple de journée à titre indicatif (base Mifflin-St Jeor), à adapter selon les goûts — ne remplace pas une consultation diététique.</p>
   </div>`;
-  return form+kcalCard+`<div class="sec-head"><h2 style="font-size:16px;color:var(--red)">Journée type — ${plan.cible} kcal</h2></div>`+menuSel+repasHtml+totalLine+swaps+reperes;
+  return form+kcalCard+`<div class="sec-head"><h2 style="font-size:16px;color:var(--red-txt)">Journée type — ${plan.cible} kcal</h2></div>`+menuSel+repasHtml+totalLine+swaps+reperes;
 }
 
 
@@ -5086,7 +5086,7 @@ function playVideo(nom,id,lien){
           </div>`
         :`<div style="text-align:center;color:var(--white2);font-size:14px;line-height:1.6;max-width:340px">
             Cette vidéo ne peut pas être lue directement dans l'appli.<br>
-            <a href="${esc(lien)}" target="_blank" rel="noopener" style="color:var(--red);font-weight:700">Ouvrir dans le navigateur ›</a>
+            <a href="${esc(lien)}" target="_blank" rel="noopener" style="color:var(--red-txt);font-weight:700">Ouvrir dans le navigateur ›</a>
           </div>`}
     </div>
     ${id?`<div style="text-align:center;margin-top:12px"><a href="${esc(lien)}" target="_blank" rel="noopener" style="color:var(--grey);font-size:12.5px">Ouvrir sur YouTube ›</a></div>`:""}`;
@@ -5524,7 +5524,7 @@ function tplEditor(){
     const safe=b2||"none";
     return `
     <div class="sec-head" style="margin-top:10px;flex-wrap:wrap;gap:6px">
-      <h2 style="font-size:15px;color:var(--red)">${label(b2)} <span style="color:var(--grey2);font-weight:400;font-size:12px">· ${groups[b2].length} exo${groups[b2].length>1?"s":""}</span></h2>
+      <h2 style="font-size:15px;color:var(--red-txt)">${label(b2)} <span style="color:var(--grey2);font-weight:400;font-size:12px">· ${groups[b2].length} exo${groups[b2].length>1?"s":""}</span></h2>
       ${b2?`<span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <select id="dl-${safe}" style="font-size:12px;padding:5px 26px 5px 8px;border-radius:8px;background:var(--ink2);color:var(--white);border:1px solid var(--line)">${others.map(j=>`<option value="${j}">${j.length<=2?"Séance "+j:j}</option>`).join("")}</select>
         <button class="link" style="font-size:12px" data-act="tpl-dup-day" data-from="${esc(b2)}">⧉ Copier vers</button>
@@ -5543,7 +5543,7 @@ function tplEditor(){
     <div class="sec-head"><h2>${t.id?"Modifier le programme":"Nouveau programme"}</h2><button class="link" data-act="tpl-editor-cancel">Annuler</button></div>
     <label class="fld"><span>Nom du programme</span><input id="tpl-nom" placeholder="Ex. Full body débutant — 3 séances" value="${esc(t.nom||"")}"></label>
     <label style="display:flex;align-items:center;gap:9px;margin:-4px 0 14px;font-size:13.5px;color:var(--white2)">
-      <input type="checkbox" id="tpl-maison" ${t.maison?"checked":""} style="width:18px;height:18px;accent-color:var(--red)">
+      <input type="checkbox" id="tpl-maison" ${t.maison?"checked":""} style="width:18px;height:18px;accent-color:var(--red-txt)">
       🏠 Programme maison (sans équipement de salle)
     </label>
     ${t.program.length?groupsHtml:`<p class="muted" style="margin-bottom:12px">Aucun exercice — ajoutez-en ci-dessous en choisissant son jour ou sa séance (A/B/C).</p>`}
@@ -5562,7 +5562,7 @@ function tplEditor(){
         const isT=d.repType==="temps";
         return `
         <label style="display:flex;align-items:center;gap:9px;margin:2px 0 12px;font-size:13px;color:var(--white2);cursor:pointer">
-          <input type="checkbox" id="tex-varmode" ${varOn?"checked":""} style="width:18px;height:18px;accent-color:var(--red)">
+          <input type="checkbox" id="tex-varmode" ${varOn?"checked":""} style="width:18px;height:18px;accent-color:var(--red-txt)">
           🎯 Reps / charges variables par série
         </label>
         <div id="tex-uniform" style="${varOn?"display:none":""}">
@@ -5639,7 +5639,7 @@ function programmesView(){
         </div>
         ${isOpen&&prog.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
           ${blocKeys.map(b=>`<div style="margin-bottom:8px">
-            <div style="font-size:11.5px;color:var(--red);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${b?(b.length<=2?"Séance "+b:b):"Autres exercices"}</div>
+            <div style="font-size:11.5px;color:var(--red-txt);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${b?(b.length<=2?"Séance "+b:b):"Autres exercices"}</div>
             ${blocs[b].map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12.5px">
               <span style="flex:1;min-width:0;color:var(--white2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.nom)}</span>
               <span style="color:var(--grey2);font-size:11.5px;white-space:nowrap">${e.series}×${esc(e.repType==="temps"?(e.reps||"—"):repsDisplay(e))}${chargeDisplay(e)?` · ${esc(chargeDisplay(e))}`:""}${(hasVarReps(e)||hasVarCharge(e))?` <span style="color:var(--amber)">🎯</span>`:""}</span>
@@ -5893,7 +5893,7 @@ function bilanTab(c,editable){
           <span class="cmp-tag cmp-tag-a">Avant · ${frDate(a.date)}</span>
           <span class="cmp-tag cmp-tag-b">Après · ${frDate(b2.date)}</span>
         </div>
-        <input type="range" id="cmp-range" min="0" max="100" value="50" aria-label="Comparer avant et après" style="width:100%;margin-top:12px;accent-color:var(--red)">
+        <input type="range" id="cmp-range" min="0" max="100" value="50" aria-label="Comparer avant et après" style="width:100%;margin-top:12px;accent-color:var(--red-txt)">
         <p class="muted" style="font-size:11.5px;text-align:center;margin-top:4px">Glisse pour comparer</p>
       </div>`;})():"")
     +photosTab(c,editable);
@@ -6621,7 +6621,7 @@ document.addEventListener("click",e=>{
           <button class="x" data-close-faq style="font-size:24px">×</button>
         </div>
         ${FAQ.map(sec=>`<div style="margin-bottom:14px">
-          <div style="font-size:14px;font-weight:800;color:var(--red);margin-bottom:6px">${esc(sec[0])}</div>
+          <div style="font-size:14px;font-weight:800;color:var(--red-txt);margin-bottom:6px">${esc(sec[0])}</div>
           ${sec[1].map(qa=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:7px">
             <div style="font-size:13.5px;font-weight:700;color:var(--white);margin-bottom:4px">${esc(qa[0])}</div>
             <div style="font-size:13px;color:var(--white2);line-height:1.55">${esc(qa[1])}</div>
@@ -7141,9 +7141,9 @@ document.addEventListener("click",e=>{
       ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:center;justify-content:center;padding:22px";
       ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:340px;width:100%">
         <h3 style="font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;color:var(--white);margin-bottom:12px">📲 Installer l'appli</h3>
-        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:10px"><b style="color:var(--red)">iPhone / iPad</b> — Dans Safari : bouton <b>Partager</b> (carré avec flèche) → <b>« Sur l'écran d'accueil »</b> → Ajouter.</p>
-        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:10px"><b style="color:var(--red)">Android (téléphone/tablette)</b> — Dans Chrome : menu <b>⋮</b> → <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »).</p>
-        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:14px"><b style="color:var(--red)">PC (Chrome / Edge)</b> — Une petite icône <b>⊕ Installer</b> apparaît à droite de la barre d'adresse : clique dessus. Sinon : menu <b>⋮</b> → <b>« Installer Alex Coaching… »</b>.</p>
+        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:10px"><b style="color:var(--red-txt)">iPhone / iPad</b> — Dans Safari : bouton <b>Partager</b> (carré avec flèche) → <b>« Sur l'écran d'accueil »</b> → Ajouter.</p>
+        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:10px"><b style="color:var(--red-txt)">Android (téléphone/tablette)</b> — Dans Chrome : menu <b>⋮</b> → <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »).</p>
+        <p style="font-size:13.5px;color:var(--white2);line-height:1.55;margin-bottom:14px"><b style="color:var(--red-txt)">PC (Chrome / Edge)</b> — Une petite icône <b>⊕ Installer</b> apparaît à droite de la barre d'adresse : clique dessus. Sinon : menu <b>⋮</b> → <b>« Installer Alex Coaching… »</b>.</p>
         <p style="font-size:12.5px;color:var(--grey);margin-bottom:16px">L'appli s'ouvre alors dans sa propre fenêtre, sans barre d'adresse ni onglets — comme une vraie application installée.</p>
         <button class="btn p full" data-close-install>Compris</button>
       </div>`;
