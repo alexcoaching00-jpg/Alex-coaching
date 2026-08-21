@@ -881,7 +881,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.78 — 17/08/2026";
+const APP_VERSION="v11.79 — 18/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -5448,6 +5448,17 @@ function videosModal(){
       <p class="muted" style="font-size:12.5px;margin-bottom:10px">
         ${n?n+" exercice"+(n>1?"s":"")+" associé"+(n>1?"s":"")+".":"Aucune vidéo associée pour l'instant."}
         Appuie sur un exercice pour lui associer un lien : il sera repris automatiquement dans tous tes programmes.</p>
+      ${(()=>{
+        // Les programmes créés AVANT l'association ne se mettent pas à jour seuls
+        const manquants=(S.clients||[]).reduce((t,cl)=>
+          t+(cl.program||[]).filter(e=>!String(e.video||"").trim()&&videoConnue(e.nom)).length,0);
+        if(!manquants) return "";
+        return `<div class="panel" style="margin-bottom:10px;border-color:rgba(224,169,74,.4)">
+          <p style="font-size:13px;color:var(--white2);line-height:1.5;margin-bottom:8px">
+            ${manquants} exercice${manquants>1?"s":""} de tes programmes existants ${manquants>1?"peuvent":"peut"} récupérer une vidéo déjà associée.</p>
+          <button class="btn g full" data-act="fill-videos-all">Appliquer à tous mes programmes</button>
+        </div>`;
+      })()}
       ${exoPicker("")}
     </div>
   </div>`;
@@ -7005,6 +7016,21 @@ document.addEventListener("click",e=>{
         }
       }
       break; }
+    case "fill-videos-all":{
+      let n=0, clients=0;
+      (S.clients||[]).forEach(cl=>{
+        let modifie=false;
+        (cl.program||[]).forEach(e=>{
+          if(String(e.video||"").trim()) return;
+          const v=videoConnue(e.nom);
+          if(v){ e.video=v; n++; modifie=true; }
+        });
+        if(modifie){ clients++; patchField(cl,"program",()=>{}); }
+      });
+      save();
+      toast(n?("🎬 "+n+" vidéo"+(n>1?"s":"")+" appliquée"+(n>1?"s":"")+" chez "+clients+" client"+(clients>1?"s":"")):"Rien à appliquer");
+      render();
+      break; }
     case "open-videos": S.showVideos=true; S.exoGroupe=""; render(); break;
     case "lier-video":{
       const nomExo=t.dataset.nom||""; if(!nomExo) break;
@@ -7018,7 +7044,25 @@ document.addEventListener("click",e=>{
       if(lien2 && !/^https?:\/\//i.test(lien2)){ alert("Le lien doit commencer par https://"); break; }
       setVideoBibli(nomExo,lien2,err=>{
         if(err){ toast("Erreur d'enregistrement"); return; }
-        toast(lien2?"🎬 Vidéo associée à « "+nomExo+" »":"Association retirée");
+        if(!lien2){ toast("Association retirée"); render(); return; }
+        toast("🎬 Vidéo associée à « "+nomExo+" »");
+        // Les programmes déjà créés ne se mettent pas à jour tout seuls :
+        // on propose explicitement d'y appliquer le lien.
+        const aMaj=clientsSansVideo(nomExo,lien2,null);
+        if(aMaj.length){
+          const noms=aMaj.slice(0,4).map(x=>(x.nom||"?").split(" ")[0]).join(", ");
+          if(confirm(`${aMaj.length} programme${aMaj.length>1?"s":""} contien${aMaj.length>1?"nent":"t"} déjà « ${nomExo} » (${noms}${aMaj.length>4?"…":""}).\n\nY appliquer cette vidéo aussi ?`)){
+            let n=0;
+            aMaj.forEach(cl=>{
+              let modifie=false;
+              (cl.program||[]).forEach(e=>{
+                if(normTxt(e.nom)===normTxt(nomExo) && String(e.video||"").trim()!==lien2){ e.video=lien2; modifie=true; n++; }
+              });
+              if(modifie) patchField(cl,"program",()=>{});
+            });
+            toast("🎬 Appliquée à "+n+" exercice"+(n>1?"s":""));
+          }
+        }
         render();
       });
       break; }
