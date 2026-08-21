@@ -899,7 +899,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.82 — 18/08/2026";
+const APP_VERSION="v11.83 — 21/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -2696,7 +2696,10 @@ async function diagPush(){
       const reg=await navigator.serviceWorker.ready;
       const j=(await reg.pushManager.getSubscription()).toJSON();
       const mail=((S.session.user&&S.session.user.email)||"").toLowerCase();
-      const {error}=await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:mail});
+      // user_id est la colonne sur laquelle repose la règle DELETE côté Supabase.
+      // Sans elle, l'abonnement ne peut jamais être supprimé par son propriétaire.
+      const uid=(S.session.user&&S.session.user.id)||null;
+      const {error}=await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:mail,user_id:uid});
       if(error){
         if(/duplicate|unique/i.test(error.message||"")){ dbOk=true; dbMsg="déjà enregistré ✓"; }
         else dbMsg="refusé par Supabase : "+error.message;
@@ -7755,7 +7758,8 @@ async function subscribeToPush(){
     // Upsert : si l'endpoint existe on met à jour les clés/email, sinon on insère
     const {data:existing}=await sb.from("push_subscriptions").select("id").eq("endpoint",j.endpoint);
     if(!existing||!existing.length){
-      const {error}=await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:myMail});
+      const myUid=(S.session&&S.session.user&&S.session.user.id)||null;
+      const {error}=await sb.from("push_subscriptions").insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,email:myMail,user_id:myUid});
       if(error) console.warn("[Push] Insert:",error);
     } else {
       // Assure que l'email associé est à jour (ex. si le compte a changé)
