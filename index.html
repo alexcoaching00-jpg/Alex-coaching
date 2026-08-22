@@ -893,13 +893,63 @@ window.supabase={
         return {data:d,error:null};
       }catch(e){ return {data:null,error:{message:'Réseau indisponible'}}; }
     }
-    return {auth, rpc, from:(table)=>qb(table)};
+    /* ===== STOCKAGE DE FICHIERS =====
+       Les photos et vocaux étaient encodés en base64 dans la fiche client, donc
+       retéléchargés en entier à chaque synchronisation. Ils passent désormais par
+       le stockage Supabase : la fiche ne contient plus qu'un chemin.
+       Le bucket est PRIVÉ — il s'agit de photos corporelles et de données de
+       santé — d'où des URL signées à durée limitée plutôt qu'un lien public. */
+    const storage={
+      async upload(bucket,chemin,blob,contentType){
+        try{
+          const r=await fetch(`${base}/storage/v1/object/${bucket}/${chemin}`,{
+            method:'POST',
+            headers:{
+              'apikey':key,
+              'Authorization':'Bearer '+((_session&&_session.access_token)||key),
+              'Content-Type':contentType||blob.type||'application/octet-stream',
+              'x-upsert':'true'
+            },
+            body:blob
+          });
+          if(!r.ok){
+            const d=await r.json().catch(()=>null);
+            return {data:null,error:{message:(d&&(d.message||d.error))||('Envoi refusé ('+r.status+')')}};
+          }
+          return {data:{path:chemin},error:null};
+        }catch(e){ return {data:null,error:{message:'Réseau indisponible'}}; }
+      },
+      /* URL temporaire pour lire un fichier privé. 7 jours : assez long pour que
+         le cache du navigateur travaille, assez court pour qu'un lien qui fuite
+         ne reste pas valable indéfiniment. */
+      async signedUrl(bucket,chemin,secondes){
+        try{
+          const r=await fetch(`${base}/storage/v1/object/sign/${bucket}/${chemin}`,{
+            method:'POST',headers:headers(),
+            body:JSON.stringify({expiresIn:secondes||604800})
+          });
+          const d=await r.json().catch(()=>null);
+          if(!r.ok||!d||!d.signedURL) return {data:null,error:{message:'Lien indisponible'}};
+          return {data:{signedUrl:base+'/storage/v1'+d.signedURL.replace('/object','/object')},error:null};
+        }catch(e){ return {data:null,error:{message:'Réseau indisponible'}}; }
+      },
+      async remove(bucket,chemins){
+        try{
+          const r=await fetch(`${base}/storage/v1/object/${bucket}`,{
+            method:'DELETE',headers:headers(),
+            body:JSON.stringify({prefixes:chemins})
+          });
+          return {error:r.ok?null:{message:'Suppression refusée'}};
+        }catch(e){ return {error:{message:'Réseau indisponible'}}; }
+      }
+    };
+    return {auth, rpc, storage, from:(table)=>qb(table)};
   }
 };
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.84 — 21/08/2026";
+const APP_VERSION="v11.85 — 22/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -947,6 +997,67 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const msgWhen=iso=>{const d=new Date(iso);if(isNaN(d))return iso||"";return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit"})+" · "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});};
 const frDate=iso=>{if(!iso)return"";const[y,m,d]=iso.split("-");return `${d}/${m}/${y.slice(2)}`;};
+/* ===== MÉDIAS : STOCKAGE PLUTÔT QUE BASE64 =====
+   Une photo pèse ~150 Ko, un vocal ~500 Ko. Stockés en base64 dans la fiche
+   client, ils étaient retéléchargés intégralement à chaque synchronisation.
+   Désormais la fiche ne contient qu'un chemin, et le fichier vit dans le
+   bucket privé « medias ».
+   Compatibilité : les anciens messages en base64 continuent de s'afficher. */
+const BUCKET_MEDIAS="medias";
+const URL_CACHE={};        // chemin -> { url, expire }
+
+function estCheminStockage(v){ return typeof v==="string" && v.startsWith("sb:"); }
+
+/* dataURL -> Blob, sans passer par fetch (plus fiable sur iOS) */
+function dataUrlVersBlob(dataUrl){
+  const [entete,donnees]=String(dataUrl).split(",");
+  const type=(entete.match(/data:([^;]+)/)||[])[1]||"application/octet-stream";
+  const bin=atob(donnees);
+  const buf=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+  return new Blob([buf],{type});
+}
+
+/* Envoie un média, renvoie le chemin à stocker (préfixé « sb: »).
+   En cas d'échec on renvoie null : l'appelant retombe sur le base64, pour ne
+   jamais perdre le message d'un client à cause du réseau. */
+async function envoyerMedia(dataUrl,extension){
+  try{
+    if(!sb||!S.session||!S.session.user) return null;
+    const uid=S.session.user.id;
+    const nom=Date.now().toString(36)+Math.random().toString(36).slice(2,8)+"."+(extension||"bin");
+    const chemin=uid+"/"+nom;
+    const {error}=await sb.storage.upload(BUCKET_MEDIAS,chemin,dataUrlVersBlob(dataUrl));
+    if(error) return null;
+    return "sb:"+chemin;
+  }catch(e){ return null; }
+}
+
+/* Résout un média en URL affichable. Renvoie tel quel si c'est du base64. */
+async function urlMedia(v){
+  if(!estCheminStockage(v)) return v||"";
+  const chemin=v.slice(3);
+  const c=URL_CACHE[chemin];
+  if(c && c.expire>Date.now()) return c.url;
+  const {data}=await sb.storage.signedUrl(BUCKET_MEDIAS,chemin);
+  if(!data) return "";
+  URL_CACHE[chemin]={url:data.signedUrl,expire:Date.now()+6*24*3600*1000};
+  return data.signedUrl;
+}
+
+/* Le rendu HTML est synchrone, la signature des liens ne peut pas l'être :
+   on remplace les src après coup. */
+function resoudreMedias(){
+  document.querySelectorAll("[data-media]:not([data-media-ok])").forEach(async el=>{
+    const v=el.getAttribute("data-media");
+    el.setAttribute("data-media-ok","1");
+    const u=await urlMedia(v);
+    if(!u) return;
+    if(el.tagName==="IMG"||el.tagName==="AUDIO") el.src=u;
+    else el.style.backgroundImage="url('"+u+"')";
+  });
+}
+
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
 const sel=()=>S.clients.find(c=>c.id===S.selectedId)||null;
@@ -1309,6 +1420,9 @@ function render(){
   root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
   // Sélecteur d'exercices : la liste est désormais toujours visible (récents,
   // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
+  // Médias stockés : le rendu est synchrone, la signature des liens ne l'est pas.
+  // On les résout juste après avoir posé le HTML.
+  try{ resoudreMedias(); }catch(_){}
   document.querySelectorAll(".exopicker").forEach(w=>{ try{ renderExoResults(w); }catch(_){} });
 }
 
@@ -4521,7 +4635,16 @@ async function toggleVoice(role){
       reader.onload=ev=>{
         const c=sel(); if(!c) return;
         c.messages=c.messages||[];
-        c.messages.push({from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach",dur:Math.round(dureeMs/1000)});
+        const msgVoc={from:REC.role,audio:ev.target.result,date:new Date().toISOString(),lu:REC.role==="coach",dur:Math.round(dureeMs/1000)};
+        c.messages.push(msgVoc);
+        // Le vocal part vers le stockage : c'est le média le plus lourd (~500 Ko).
+        // Si l'envoi échoue, le base64 déjà en place reste utilisable.
+        envoyerMedia(ev.target.result,"webm").then(chemin=>{
+          if(!chemin) return;
+          msgVoc.audio=chemin;
+          patchField(c,"messages",()=>{});
+          render();
+        });
         // La notification part UNIQUEMENT une fois l'envoi confirmé. Un vocal pèse
         // plusieurs centaines de Ko : la push arrivait avant la fin de l'écriture,
         // le destinataire ouvrait l'app et le message n'était pas encore en base.
@@ -4708,9 +4831,9 @@ function messagesTab(c,isCoach){
         return sep+`<div class="msg ${m.from==='coach'?'coach':'client'}${suite?" suite":""}">
         ${btnSuppr}
         ${m.audio?`<div class="voice-msg">
-          <audio controls preload="auto" src="${audioSrcFor(m.audio)}" style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" ondurationchange="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
+          <audio controls preload="auto" ${estCheminStockage(m.audio)?`data-media="${esc(m.audio)}"`:`src="${audioSrcFor(m.audio)}"`} style="width:100%;height:38px" onloadedmetadata="fixAudioDuration(this)" ondurationchange="fixAudioDuration(this)" onplay="fixAudioDuration(this)"></audio>
           <span class="voice-dur">${m.dur?Math.floor(m.dur/60)+":"+String(Math.round(m.dur%60)).padStart(2,"0"):"🎤"}</span>
-        </div>`:m.image?`<img src="${m.image}" data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">${m.text?`<div style="margin-top:6px">${esc(m.text)}</div>`:""}`:(m.text?esc(m.text):`<span style="color:var(--grey2);font-style:italic;font-size:12.5px">🎤 Vocal indisponible</span>`)}
+        </div>`:m.image?`<img ${estCheminStockage(m.image)?`data-media="${esc(m.image)}"`:`src="${esc(m.image)}"`} data-act="view-img" alt="Photo" style="max-width:100%;border-radius:10px;cursor:pointer;display:block">${m.text?`<div style="margin-top:6px">${esc(m.text)}</div>`:""}`:(m.text?esc(m.text):`<span style="color:var(--grey2);font-style:italic;font-size:12.5px">🎤 Vocal indisponible</span>`)}
         <div class="mt">${msgWhen(m.date)}${m.from==='coach'?`<span class="mt-lu">${m.lu===false?"":"✓"}</span>`:""}</div>
       </div>`;}).join("")
     : vide("✉","Pas encore de message","Écris le premier message ci-dessous.");
@@ -5925,7 +6048,7 @@ function photosTab(c,editable){
   const photos=(c.photos||[]);
   const carte=(p,i)=>`
     <div class="photo-item">
-      <img src="${p.url}" alt="Bilan ${i+1}" loading="lazy">
+      <img ${estCheminStockage(p.url)?`data-media="${esc(p.url)}"`:`src="${esc(p.url)}"`} alt="Bilan ${i+1}" loading="lazy">
       ${editable?`<button class="photo-del" data-act="del-photo" data-idx="${i}">×</button>`:""}
       <div class="photo-label">${esc(p.label||frDate(p.date))}</div>
     </div>`;
@@ -6504,23 +6627,35 @@ document.addEventListener("click",e=>{
       const cli=S.clients[0]||{};
       const mail=((S.session&&S.session.user&&S.session.user.email)||"").toLowerCase();
       const prenom=((cli.nom||"").split(" ")[0])||"Un membre";
-      const coachId=cli.coach_id||cli.coachId||null;
-      const row={client_email:mail,prenom,texte:txt,publique:!S.qPrivee,repondu:false};
-      if(coachId) row.coach_id=coachId;
-      sb.from("questions").insert(row).then(({error})=>{
-        if(error){ alert("Envoi impossible : "+error.message); return; }
-        const ta=document.getElementById("q-texte"); if(ta) ta.value="";
-        toast("Question envoyée ✓");
-        pushTo(coachEmail(),"❓ Nouvelle question",prenom+" : "+txt.slice(0,90));
-        chargerQuestions();
-      });
+      // Le rattachement au coach conditionne TOUT côté base : sans coach_id, le
+      // coach ne peut ni répondre ni supprimer, et l'échec est silencieux.
+      const envoyer=coachId=>{
+        if(!coachId){ alert("Impossible d'identifier ton coach.\n\nPréviens-le : sa fiche client doit contenir ton adresse e-mail."); return; }
+        const row={client_email:mail,prenom,texte:txt,publique:!S.qPrivee,repondu:false,coach_id:coachId};
+        sb.from("questions").insert(row).select().then(({data,error})=>{
+          if(error){ alert("Envoi impossible : "+error.message); return; }
+          if(!data||!data.length){ alert("Question non enregistrée (règle d'accès)."); return; }
+          const ta=document.getElementById("q-texte"); if(ta) ta.value="";
+          toast("Question envoyée ✓");
+          pushTo(coachEmail(),"❓ Nouvelle question",prenom+" : "+txt.slice(0,90));
+          chargerQuestions();
+        });
+      };
+      const dejaConnu=cli.coach_id||cli.coachId||null;
+      if(dejaConnu) envoyer(dejaConnu);
+      else sb.from("clients").select("coach_id").ilike("client_email",mail).limit(1)
+             .then(({data})=>envoyer((data&&data[0]&&data[0].coach_id)||null));
       break; }
     case "q-rep":{
       const q=(S.questions||[]).find(x=>x.id===t.dataset.id); if(!q) break;
       const rep=(prompt(`Réponse à « ${q.texte.slice(0,70)}${q.texte.length>70?"…":""} »`,q.reponse||"")||"").trim();
       if(!rep) break;
-      sb.from("questions").update({reponse:rep,repondu:true,answered_at:new Date().toISOString()}).eq("id",q.id).then(({error})=>{
+      // .select() renvoie les lignes réellement touchées : une règle RLS qui bloque
+      // ne produit AUCUNE erreur, la requête réussit sans rien modifier. Sans ce
+      // contrôle, l'app affichait « Réponse envoyée » alors que rien n'était enregistré.
+      sb.from("questions").update({reponse:rep,repondu:true,answered_at:new Date().toISOString()}).eq("id",q.id).select().then(({data,error})=>{
         if(error){ alert("Erreur : "+error.message); return; }
+        if(!data||!data.length){ alert("Réponse non enregistrée.\n\nLa base a refusé la modification (règle d'accès). Cette question n'est pas rattachée à ton compte coach."); return; }
         toast(q.publique?"Réponse publiée ✓":"Réponse envoyée ✓");
         pushTo(q.client_email,"💬 Réponse de ton coach",rep.slice(0,110));
         chargerQuestions();
@@ -6530,8 +6665,9 @@ document.addEventListener("click",e=>{
       const q=(S.questions||[]).find(x=>x.id===t.dataset.id); if(!q) break;
       const nv=!q.publique;
       if(nv&&!confirm(`Publier cette question pour tous tes clients ?\n\nSeul le prénom « ${q.prenom||"—"} » sera visible, jamais le nom complet ni l'adresse e-mail.`)) break;
-      sb.from("questions").update({publique:nv}).eq("id",q.id).then(({error})=>{
+      sb.from("questions").update({publique:nv}).eq("id",q.id).select().then(({data,error})=>{
         if(error){ alert("Erreur : "+error.message); return; }
+        if(!data||!data.length){ alert("Modification refusée par la base (règle d'accès)."); return; }
         toast(nv?"Publiée pour tous ✓":"Rendue privée ✓");
         chargerQuestions();
       });
@@ -6539,8 +6675,9 @@ document.addEventListener("click",e=>{
     case "q-del":{
       const q=(S.questions||[]).find(x=>x.id===t.dataset.id); if(!q) break;
       if(!confirm("Supprimer définitivement cette question ?")) break;
-      sb.from("questions").delete().eq("id",q.id).then(({error})=>{
+      sb.from("questions").delete().eq("id",q.id).select().then(({data,error})=>{
         if(error){ alert("Suppression impossible : "+error.message); return; }
+        if(!data||!data.length){ alert("Suppression refusée par la base (règle d'accès).\n\nCette question n'est pas rattachée à ton compte."); return; }
         toast("Supprimée"); chargerQuestions();
       });
       break; }
@@ -7599,6 +7736,9 @@ document.addEventListener("change",e=>{
       }
       // La photo est simplement mise en attente : elle partira avec le bouton Envoyer,
       // accompagnée d'un texte si tu en écris un.
+      // Envoi vers le stockage ; en cas d'échec on garde le base64 pour ne
+      // pas empêcher l'envoi du message.
+      envoyerMedia(uri,"jpg").then(chemin=>{ S.msgPhoto=chemin||uri; render(); });
       S.msgPhoto=uri;
       render();
       const ta=document.getElementById("msg-text"); if(ta) ta.focus();
@@ -7637,7 +7777,9 @@ document.addEventListener("change",e=>{
       let type="suivi";
       const rep=prompt("Cette photo, c'est :\n\n1 = AVANT (photo de départ)\n2 = APRÈS (photo actuelle)\n3 = Suivi (ni l'un ni l'autre)","2");
       if(rep==="1") type="avant"; else if(rep==="2") type="apres";
-      c.photos.push({url:dataUrl,date:new Date().toISOString().slice(0,10),label:"",type});
+      const photoBilan={url:dataUrl,date:new Date().toISOString().slice(0,10),label:"",type};
+      c.photos.push(photoBilan);
+      envoyerMedia(dataUrl,"jpg").then(chemin=>{ if(chemin){ photoBilan.url=chemin; patchField(c,"photos",()=>{}); } });
       patchField(c,"photos");
       if(S.isClient){
         const prenom=(c.nom||"Client").split(" ")[0];
