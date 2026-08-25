@@ -71,7 +71,10 @@
   button{font-family:inherit}50%{transform:scale(1.05);filter:brightness(1.15)}}50%{opacity:1}}
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){main{animation:none}}
-  .wrap{max-width:520px;margin:0 auto;padding-bottom:92px}
+  /* L'espace réservé en bas doit couvrir la barre fixe ET la zone sûre de
+     l'iPhone (bande du trait d'accueil, ~34 px). Sans elle, le bas du contenu
+     — bouton Envoyer, dernier message — passait sous la barre. */
+  .wrap{max-width:520px;margin:0 auto;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
   main{padding:16px 16px 0;animation:fade .3s ease both}
   /* Rafraîchissement sur place : on coupe toutes les animations d'entrée.
      Elles ne doivent marquer qu'une véritable arrivée sur un écran, sinon
@@ -982,7 +985,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.90 — 25/08/2026";
+const APP_VERSION="v11.91 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
