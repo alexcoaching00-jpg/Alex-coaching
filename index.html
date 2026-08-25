@@ -258,6 +258,11 @@
     overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
     scrollbar-width:none}
   nav::-webkit-scrollbar{display:none}
+  /* Barre client uniquement : onglets élargis pour en afficher cinq à l'écran.
+     La barre coach n'en a que six et tient déjà entièrement — l'élargir la
+     ferait déborder inutilement, d'où le ciblage par classe. */
+  nav.nav-client button{min-width:calc((100vw - 16px) / 5);padding:4px 4px}
+  @media (min-width:540px){ nav.nav-client button{min-width:calc((520px - 16px) / 5)} }
   nav button{flex:1 0 auto;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;white-space:nowrap;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button{position:relative}
   nav button.on{color:var(--red-txt)}
@@ -997,7 +1002,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.92 — 25/08/2026";
+const APP_VERSION="v11.93 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1455,11 +1460,11 @@ function render(){
       // Tous les onglets dans la barre, qui défile horizontalement : neuf entrées
       // ne tiennent pas sur la largeur d'un iPhone.
       const onglets=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],
-                     ["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutrition","🍎"],
+                     ["messages","Msg","✉"],["nutrition","Nutrition","🍎"],["bilan","Bilan","◫"],
                      ["tests","Tests","📋"],["questions","Questions","❓"],["faq","Aide","💡"]];
       return onglets.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
     })();
-    root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div></div>`;
+    root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav class="nav-client">${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div></div>`;
     return;
   }
 
@@ -1484,14 +1489,14 @@ function render(){
       // Tous les onglets dans la barre, qui défile horizontalement : neuf entrées
       // ne tiennent pas sur la largeur d'un iPhone.
       const onglets=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],
-                     ["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutrition","🍎"],
+                     ["messages","Msg","✉"],["nutrition","Nutrition","🍎"],["bilan","Bilan","◫"],
                      ["tests","Tests","📋"],["questions","Questions","❓"],["faq","Aide","💡"]];
       return onglets.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
     })();
   }
   if(S.showAdd) modal=addModal();
   if(S.showVideos) modal+=videosModal();
-  root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
+  root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav class="${S.role==="coach"?"":"nav-client"}">${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
   // Sélecteur d'exercices : la liste est désormais toujours visible (récents,
   // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
   // Médias stockés : le rendu est synchrone, la signature des liens ne l'est pas.
