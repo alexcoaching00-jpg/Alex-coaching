@@ -221,6 +221,33 @@
   .cbanner .obj{font-family:'Bebas Neue';font-size:20px;margin-top:4px;letter-spacing:.04em}
   .chartbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 12px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
   .chart-empty{border-radius:14px;padding:20px;text-align:center;background:var(--ink2);color:var(--grey);border:1px dashed var(--line);font-size:14px}
+  /* ===== MENU « PLUS » =====
+     Ancré juste au-dessus de la barre de navigation, aligné à droite comme le
+     bouton qui l'ouvre. Hauteur bornée et défilement : avec cinq entrées et
+     leurs descriptions, l'ancien menu débordait de l'écran sur petit iPhone. */
+  .plus-fond{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.55)}
+  .plus-menu{position:fixed;z-index:46;right:10px;left:auto;
+    bottom:calc(60px + env(safe-area-inset-bottom));
+    width:min(310px,calc(100vw - 20px));
+    max-height:min(62vh,420px);overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 18px 44px rgba(0,0,0,.65);padding:6px;
+    animation:plusIn .16s ease-out both}
+  /* Centré si l'écran est large : la barre est limitée à 520 px */
+  @media (min-width:540px){ .plus-menu{right:calc(50vw - 250px)} }
+  @keyframes plusIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){ .plus-menu{animation:none} }
+  .plus-item{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    background:none;border:none;border-radius:11px;padding:11px 12px;cursor:pointer;
+    color:var(--white);font-family:inherit}
+  .plus-item + .plus-item{border-top:1px solid rgba(255,255,255,.05)}
+  .plus-item.on{background:rgba(206,42,42,.16)}
+  .plus-item:active{background:rgba(255,255,255,.07)}
+  .pi-ic{flex:0 0 auto;font-size:19px;width:24px;text-align:center}
+  .pi-txt{flex:1;min-width:0;display:block}
+  .pi-txt b{display:block;font-size:14px;font-weight:700}
+  .pi-txt span{display:block;font-size:11.5px;color:var(--grey2);line-height:1.35;margin-top:1px}
+  .pi-ok{flex:0 0 auto;color:var(--red-txt);font-weight:700}
   nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
   nav button{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button{position:relative}
@@ -949,7 +976,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.85 — 22/08/2026";
+const APP_VERSION="v11.86 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1327,6 +1354,30 @@ function loaderHTML(txt){
     <div class="loadtxt">${esc(txt||"CHARGEMENT")}</div>
   </div>`;
 }
+/* Menu « Plus » de l'espace client.
+   Piloté par l'état plutôt que créé à la volée : il ne peut donc pas survivre
+   à un rafraîchissement ni rester ouvert sur un écran qui a changé.
+   Hauteur bornée et défilement : avec cinq entrées et leurs descriptions, le
+   contenu dépassait l'écran sur les petits iPhone. */
+const PLUS_ITEMS=[
+  ["bilan","◫","Bilan & mesures","Tes mensurations, ton IMC et tes photos"],
+  ["nutrition","🍎","Nutrition","Ton plan alimentaire et tes repères"],
+  ["tests","📋","Tests physiques","Tes résultats aux tests et ta progression"],
+  ["questions","❓","Questions","Pose une question à ton coach"],
+  ["faq","💡","Aide","Réponses aux questions fréquentes"]
+];
+function plusMenu(){
+  if(!S.plusOpen) return "";
+  return `<div class="plus-fond" data-close-plus></div>
+    <div class="plus-menu" role="menu">
+      ${PLUS_ITEMS.map(([k,ic,titre,sous])=>`
+        <button type="button" class="plus-item ${S.clientTab===k?"on":""}" data-goto="${k}">
+          <span class="pi-ic">${ic}</span>
+          <span class="pi-txt"><b>${esc(titre)}</b><span>${esc(sous)}</span></span>
+          ${S.clientTab===k?`<span class="pi-ok">✓</span>`:""}
+        </button>`).join("")}
+    </div>`;
+}
 function render(){
   const root=document.getElementById("root");
   // On garde la position de lecture quand on reste sur le même écran
@@ -1386,7 +1437,7 @@ function render(){
       return principaux.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("")
         +`<button data-act="client-plus" class="${dansAutres?'on':''}"><span class="ic">⋯</span>Plus</button>`;
     })();
-    root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div></div>`;
+    root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div></div>`;
     return;
   }
 
@@ -1417,7 +1468,7 @@ function render(){
   }
   if(S.showAdd) modal=addModal();
   if(S.showVideos) modal+=videosModal();
-  root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav><div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
+  root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div>${modal}</div>`;
   // Sélecteur d'exercices : la liste est désormais toujours visible (récents,
   // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
   // Médias stockés : le rendu est synchrone, la signature des liens ne l'est pas.
@@ -6354,6 +6405,17 @@ document.addEventListener("mousedown",e=>{
 
 /* ===== events ===== */
 document.addEventListener("click",e=>{
+  // Menu « Plus » : sélection d'une entrée, ou fermeture au clic à l'extérieur
+  if(S.plusOpen){
+    const choix=e.target.closest&&e.target.closest("[data-goto]");
+    if(choix){ S.clientTab=choix.dataset.goto; S.plusOpen=false; render(); return; }
+    if(!e.target.closest||!e.target.closest(".plus-menu")){
+      if(!e.target.closest||!e.target.closest('[data-act="client-plus"]')){
+        S.plusOpen=false; render();
+        // On ne bloque pas le clic : il peut viser un autre onglet de la barre
+      }
+    }
+  }
   // Fermeture de la bibliothèque de vidéos : uniquement la croix, ou le fond
   // hors de la fenêtre. Chercher le conteneur le plus proche fermait la fenêtre
   // au moindre clic à l'intérieur, y compris dans le champ de recherche.
@@ -6467,33 +6529,8 @@ document.addEventListener("click",e=>{
       break; }
     case "role": S.role=t.dataset.role; if(S.role==="client"&&!S.selectedId&&S.clients[0]) S.selectedId=S.clients[0].id; render(); break;
     case "nav": S.view=t.dataset.view; if(S.view==="questions") chargerQuestions(); render(); break;
-    case "client-plus":{
-      const items=[["bilan","◫","Bilan & mesures","Tes mensurations, ton IMC et tes photos"],
-                   ["nutrition","🍎","Nutrition","Ton plan alimentaire et tes repères"],
-                   ["tests","📋","Tests physiques","Tes résultats aux tests et ta progression"],
-                   ["questions","❓","Questions","Pose une question à ton coach"],
-                   ["faq","💡","Aide","Réponses aux questions fréquentes"]];
-      const ov=document.createElement("div");
-      ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px";
-      ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:420px;width:100%;margin-bottom:calc(64px + env(safe-area-inset-bottom))">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h3 style="font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:var(--white);margin:0">Plus</h3>
-          <button class="x" data-close-plus style="font-size:22px">×</button>
-        </div>
-        ${items.map(([k,ic,titre,sous])=>`<button type="button" class="btn ${S.clientTab===k?"p":"g"} full" style="margin-bottom:8px;text-align:left;padding:13px 14px;display:flex;gap:12px;align-items:center" data-goto="${k}">
-          <span style="font-size:20px;flex:0 0 auto">${ic}</span>
-          <span style="flex:1;min-width:0"><span style="display:block;font-size:14.5px;font-weight:700">${titre}</span>
-          <span style="display:block;font-size:12px;color:${S.clientTab===k?"rgba(255,255,255,.8)":"var(--grey2)"};white-space:normal;line-height:1.35;margin-top:1px">${sous}</span></span>
-        </button>`).join("")}
-      </div>`;
-      ov.addEventListener("click",ev=>{
-        if(ev.target===ov||ev.target.closest("[data-close-plus]")){ ov.remove(); return; }
-        const b2=ev.target.closest("[data-goto]"); if(!b2) return;
-        S.clientTab=b2.dataset.goto; ov.remove(); render();
-      });
-      document.body.appendChild(ov);
-      break; }
-    case "nav-client": S.clientTab=t.dataset.ctab;
+    case "client-plus": S.plusOpen=!S.plusOpen; render(); break;
+    case "nav-client": S.clientTab=t.dataset.ctab; S.plusOpen=false;
       render();
       if(t.dataset.ctab==="messages"){ reloadKeepingView(); }
       break;
