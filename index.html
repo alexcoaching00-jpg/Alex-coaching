@@ -144,6 +144,29 @@
   .offres-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:20px}
   @media (max-width:900px){ .offres-grid{grid-template-columns:repeat(2,1fr)} }
   @media (max-width:640px){ .offres-grid{grid-template-columns:1fr} }
+
+  /* -- carrousel -- */
+  .carousel{position:relative; max-width:640px; margin:0 auto}
+  .carousel-track{overflow:hidden; border-radius:18px}
+  .carousel-slides{display:flex; transition:transform .45s cubic-bezier(.65,0,.35,1)}
+  .carousel-slides .offre-card{flex:0 0 100%; margin:0}
+  .carousel-arrow{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%; border:1px solid var(--line);
+    background:rgba(28,22,19,.9); color:var(--white); font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:border-color .15s, background .15s;
+    z-index:5;
+  }
+  .carousel-arrow:hover{border-color:var(--red2); background:var(--card)}
+  .carousel-arrow.prev{left:-56px}
+  .carousel-arrow.next{right:-56px}
+  @media (max-width:760px){
+    .carousel-arrow.prev{left:4px}
+    .carousel-arrow.next{right:4px}
+  }
+  .carousel-dots{display:flex; justify-content:center; gap:9px; margin-top:22px}
+  .carousel-dot{width:9px; height:9px; border-radius:50%; background:var(--line); border:0; cursor:pointer; padding:0; transition:background .15s, transform .15s}
+  .carousel-dot.active{background:var(--redbright); transform:scale(1.25)}
   .offre-card{
     background:var(--card); border:1px solid var(--line); border-radius:20px;
     padding:32px 26px; transition:transform .2s, box-shadow .2s, border-color .2s;
@@ -359,37 +382,44 @@
       <h2>Quatre façons de s'entraîner</h2>
       <p>Même exigence, même suivi personnalisé — à toi de choisir le format qui te motive.</p>
     </div>
-    <div class="offres-grid">
-      <div class="offre-card reveal">
-        <div class="offre-num">FORMULE 01</div>
-        <h3>Individuel</h3>
-        <p>Un accompagnement 100% personnalisé, en tête-à-tête. Technique corrigée en direct, programme ajusté séance après séance selon tes progrès et tes sensations.</p>
-        <div class="foot">Suivi le plus complet</div>
+    <div class="carousel reveal">
+      <button class="carousel-arrow prev" id="offresPrev" aria-label="Formule précédente">‹</button>
+      <button class="carousel-arrow next" id="offresNext" aria-label="Formule suivante">›</button>
+      <div class="carousel-track">
+        <div class="carousel-slides" id="offresSlides">
+          <div class="offre-card">
+            <div class="offre-num">FORMULE 01</div>
+            <h3>Individuel</h3>
+            <p>Un accompagnement 100% personnalisé, en tête-à-tête. Technique corrigée en direct, programme ajusté séance après séance selon tes progrès et tes sensations.</p>
+            <div class="foot">Suivi le plus complet</div>
+          </div>
+          <div class="offre-card">
+            <div class="offre-num">FORMULE 02</div>
+            <h3>Duo</h3>
+            <p>À deux, avec un proche, un(e) ami(e) ou un(e) collègue. Même niveau d'exigence et de suivi, mais l'énergie — et le tarif — se partagent.</p>
+            <div class="foot">Idéal à deux</div>
+          </div>
+          <div class="offre-card">
+            <div class="offre-num">FORMULE 03</div>
+            <h3>Small group</h3>
+            <p>5 personnes maximum, jamais plus. L'émulation du collectif, sans perdre l'attention individuelle sur ta technique et tes objectifs.</p>
+            <div class="foot">5 personnes max</div>
+          </div>
+          <div class="offre-card">
+            <div class="offre-num">FORMULE 04</div>
+            <h3>En ligne</h3>
+            <p>Où que tu sois en France. Programme personnalisé, ajusté chaque semaine, suivi par message et appel selon tes progrès et tes retours.</p>
+            <div class="foot">Partout en France</div>
+          </div>
+          <div class="offre-card">
+            <div class="offre-num">FORMULE 05</div>
+            <h3>Présentiel + suivi en ligne</h3>
+            <p>Le meilleur des deux mondes : 4 séances individuelles en présentiel avec moi chaque mois, complétées par une programmation et un suivi hebdomadaire à distance entre les séances pour rester régulier.</p>
+            <div class="foot">4 séances en présentiel / mois + suivi</div>
+          </div>
+        </div>
       </div>
-      <div class="offre-card reveal">
-        <div class="offre-num">FORMULE 02</div>
-        <h3>Duo</h3>
-        <p>À deux, avec un proche, un(e) ami(e) ou un(e) collègue. Même niveau d'exigence et de suivi, mais l'énergie — et le tarif — se partagent.</p>
-        <div class="foot">Idéal à deux</div>
-      </div>
-      <div class="offre-card reveal">
-        <div class="offre-num">FORMULE 03</div>
-        <h3>Small group</h3>
-        <p>5 personnes maximum, jamais plus. L'émulation du collectif, sans perdre l'attention individuelle sur ta technique et tes objectifs.</p>
-        <div class="foot">5 personnes max</div>
-      </div>
-      <div class="offre-card reveal">
-        <div class="offre-num">FORMULE 04</div>
-        <h3>En ligne</h3>
-        <p>Où que tu sois en France. Programme personnalisé, ajusté chaque semaine, suivi par message et appel selon tes progrès et tes retours.</p>
-        <div class="foot">Partout en France</div>
-      </div>
-      <div class="offre-card reveal">
-        <div class="offre-num">FORMULE 05</div>
-        <h3>Présentiel + suivi en ligne</h3>
-        <p>Le meilleur des deux mondes : 4 séances individuelles en présentiel avec moi chaque mois, complétées par une programmation et un suivi hebdomadaire à distance entre les séances pour rester régulier.</p>
-        <div class="foot">4 séances en présentiel / mois + suivi</div>
-      </div>
+      <div class="carousel-dots" id="offresDots"></div>
     </div>
   </div>
 </section>
@@ -728,6 +758,44 @@
     }
     submitBtn.disabled = false;
   });
+
+  // -- carrousel Offres --
+  (function(){
+    const track = document.getElementById('offresSlides');
+    const dotsWrap = document.getElementById('offresDots');
+    const prevBtn = document.getElementById('offresPrev');
+    const nextBtn = document.getElementById('offresNext');
+    if (!track) return;
+    const slides = Array.from(track.children);
+    let index = 0;
+
+    slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', 'Aller à la formule ' + (i + 1));
+      dot.addEventListener('click', () => goTo(i));
+      dotsWrap.appendChild(dot);
+    });
+    const dots = Array.from(dotsWrap.children);
+
+    function goTo(i){
+      index = (i + slides.length) % slides.length;
+      track.style.transform = `translateX(-${index * 100}%)`;
+      dots.forEach((d, di) => d.classList.toggle('active', di === index));
+    }
+    prevBtn.addEventListener('click', () => goTo(index - 1));
+    nextBtn.addEventListener('click', () => goTo(index + 1));
+
+    // swipe tactile
+    let startX = null;
+    track.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
+    track.addEventListener('touchend', e => {
+      if (startX === null) return;
+      const diff = e.changedTouches[0].clientX - startX;
+      if (Math.abs(diff) > 40) goTo(index + (diff < 0 ? 1 : -1));
+      startX = null;
+    }, {passive:true});
+  })();
 </script>
 
 </body>
