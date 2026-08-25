@@ -1002,7 +1002,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.94 — 25/08/2026";
+const APP_VERSION="v11.95 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1465,6 +1465,7 @@ function render(){
       return onglets.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
     })();
     root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav class="nav-client">${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div></div>`;
+    apresRendu();
     return;
   }
 
@@ -1502,8 +1503,16 @@ function render(){
   // Médias stockés : le rendu est synchrone, la signature des liens ne l'est pas.
   // On les résout juste après avoir posé le HTML.
   // Barre défilante : on ne bouge la barre que si l'onglet actif est hors de vue.
-  // Un centrage systématique décalait la barre même sur le premier onglet, et
-  // coupait le début de la liste.
+  apresRendu();
+}
+
+/* Traitements communs à TOUS les chemins de rendu.
+   Ils étaient écrits à la fin de render(), mais le rendu de l'espace client se
+   termine par un return anticipé : ils n'y étaient donc jamais exécutés, et la
+   barre défilante repartait au début à chaque changement d'onglet. */
+function apresRendu(){
+  // La barre ne bouge que si l'onglet actif est hors de vue : un centrage
+  // systématique décalerait la barre même sur le premier onglet.
   try{
     const barre=document.querySelector("nav");
     const actif=barre&&barre.querySelector("button.on");
