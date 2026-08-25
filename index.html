@@ -248,8 +248,17 @@
   .pi-txt b{display:block;font-size:14px;font-weight:700}
   .pi-txt span{display:block;font-size:11.5px;color:var(--grey2);line-height:1.35;margin-top:1px}
   .pi-ok{flex:0 0 auto;color:var(--red-txt);font-weight:700}
-  nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
-  nav button{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
+  /* Barre de navigation défilante : neuf onglets ne tiennent pas sur la largeur
+     d'un iPhone. Le défilement horizontal évite de rogner les libellés ou de
+     cacher des entrées derrière un menu. */
+  nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;scroll-behavior:smooth}
+  nav::-webkit-scrollbar{display:none}
+  /* Dégradé sur le bord droit : indique qu'il y a d'autres onglets à droite */
+  nav::after{content:"";position:sticky;right:0;flex:0 0 18px;align-self:stretch;
+    background:linear-gradient(90deg,transparent,var(--ink));pointer-events:none}max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  nav button{flex:0 0 auto;min-width:76px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button{position:relative}
   nav button.on{color:var(--red-txt)}
   nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:2px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,transparent,var(--red),transparent);box-shadow:0 0 10px var(--glow)}
@@ -976,7 +985,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.86 — 25/08/2026";
+const APP_VERSION="v11.87 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1431,11 +1440,12 @@ function render(){
       ${S.clients.length>0?`<div class="pick"><label>Vous êtes</label><select data-act="pick-client">${S.clients.map(cl=>`<option value="${cl.id}" ${cl.id===S.selectedId?'selected':''}>${esc(cl.nom)}</option>`).join("")}</select></div>`:`<p class="sub">Espace client</p>`}</header>`;
     const body=clientSpace(cc);
     const nav=(()=>{
-      const principaux=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"]];
-      const autres=["bilan","nutrition","tests","faq"];
-      const dansAutres=autres.includes(S.clientTab);
-      return principaux.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("")
-        +`<button data-act="client-plus" class="${dansAutres?'on':''}"><span class="ic">⋯</span>Plus</button>`;
+      // Tous les onglets dans la barre, qui défile horizontalement : neuf entrées
+      // ne tiennent pas sur la largeur d'un iPhone.
+      const onglets=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],
+                     ["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutrition","🍎"],
+                     ["tests","Tests","📋"],["questions","Questions","❓"],["faq","Aide","💡"]];
+      return onglets.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
     })();
     root.innerHTML=`<div class="wrap">${head}<main>${body}</main><nav>${nav}</nav>${plusMenu()}<div id="toast" class="toast" style="display:none"></div></div>`;
     return;
@@ -1459,11 +1469,12 @@ function render(){
       return `<button data-act="nav" data-view="${k}" class="${(S.view===k||(k==='clients'&&S.view==='detail'))?'on':''}"><span class="ic" style="position:relative;display:inline-block">${i}${n2?`<span class="nav-dot">${n2>9?"9+":n2}</span>`:""}</span>${l}</button>`;}).join("");
   }else{
     nav=(()=>{
-      const principaux=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],["messages","Msg","✉"]];
-      const autres=["bilan","nutrition","tests","faq"];
-      const dansAutres=autres.includes(S.clientTab);
-      return principaux.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("")
-        +`<button data-act="client-plus" class="${dansAutres?'on':''}"><span class="ic">⋯</span>Plus</button>`;
+      // Tous les onglets dans la barre, qui défile horizontalement : neuf entrées
+      // ne tiennent pas sur la largeur d'un iPhone.
+      const onglets=[["programme","Programme","▤"],["progres","Progrès","◔"],["seances","Séances","✓"],
+                     ["messages","Msg","✉"],["bilan","Bilan","◫"],["nutrition","Nutrition","🍎"],
+                     ["tests","Tests","📋"],["questions","Questions","❓"],["faq","Aide","💡"]];
+      return onglets.map(([k,l,i])=>`<button data-act="nav-client" data-ctab="${k}" class="${S.clientTab===k?'on':''}"><span class="ic">${i}</span>${l}</button>`).join("");
     })();
   }
   if(S.showAdd) modal=addModal();
@@ -1473,6 +1484,12 @@ function render(){
   // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
   // Médias stockés : le rendu est synchrone, la signature des liens ne l'est pas.
   // On les résout juste après avoir posé le HTML.
+  // Barre défilante : l'onglet actif doit être visible, sinon on peut se
+  // retrouver sur « Aide » avec la barre affichant encore « Programme ».
+  try{
+    const actif=document.querySelector("nav button.on");
+    if(actif&&actif.scrollIntoView) actif.scrollIntoView({inline:"center",block:"nearest"});
+  }catch(_){}
   try{ resoudreMedias(); }catch(_){}
   document.querySelectorAll(".exopicker").forEach(w=>{ try{ renderExoResults(w); }catch(_){} });
 }
