@@ -1002,7 +1002,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.93 — 25/08/2026";
+const APP_VERSION="v11.94 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -6502,13 +6502,15 @@ document.addEventListener("click",e=>{
         if(error){ S.authErr=error.message; render(); return; }
         S.recoverMode=false; S.setPwMode=false; S.authErr="";
         toast(wasFirst?"Mot de passe enregistré ✓":"Mot de passe mis à jour ✓");
-        loadData();
+        // loadData() n'a jamais existé : l'appel levait une erreur et interrompait
+        // la suite du traitement juste après la définition du mot de passe.
+        loadClients();
       });
       break; }
     case "skip-pw":{
       S.setPwMode=false; S.authErr="";
       toast("Tu pourras le définir plus tard depuis « Mot de passe oublié »");
-      loadData();
+      loadClients();
       break; }
     case "change-pw":{
       const p1=(prompt("Nouveau mot de passe (6 caractères minimum) :")||"").trim();
@@ -7549,7 +7551,7 @@ document.addEventListener("click",e=>{
       bk.clients.forEach(cl=>{
         sb.from("clients").update(clientToRow(cl)).eq("id",cl.id).then(({error})=>{
           error?ko++:ok2++;
-          if(--reste===0){ toast(ko?`${ok2} restaurés, ${ko} en erreur`:`${ok2} client(s) restaurés ✓`); loadData&&loadData(); }
+          if(--reste===0){ toast(ko?`${ok2} restaurés, ${ko} en erreur`:`${ok2} client(s) restaurés ✓`); loadClients(); }
         });
       });
       break; }
