@@ -253,11 +253,8 @@
      cacher des entrées derrière un menu. */
   nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;background:var(--ink);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));
     overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
-    scrollbar-width:none;scroll-behavior:smooth}
+    scrollbar-width:none}
   nav::-webkit-scrollbar{display:none}
-  /* Dégradé sur le bord droit : indique qu'il y a d'autres onglets à droite */
-  nav::after{content:"";position:sticky;right:0;flex:0 0 18px;align-self:stretch;
-    background:linear-gradient(90deg,transparent,var(--ink));pointer-events:none}
   nav button{flex:0 0 auto;min-width:76px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button{position:relative}
   nav button.on{color:var(--red-txt)}
@@ -985,7 +982,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.88 — 25/08/2026";
+const APP_VERSION="v11.89 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
@@ -1484,11 +1481,18 @@ function render(){
   // groupe filtré ou résultats), il faut donc la peupler après chaque rendu.
   // Médias stockés : le rendu est synchrone, la signature des liens ne l'est pas.
   // On les résout juste après avoir posé le HTML.
-  // Barre défilante : l'onglet actif doit être visible, sinon on peut se
-  // retrouver sur « Aide » avec la barre affichant encore « Programme ».
+  // Barre défilante : on ne bouge la barre que si l'onglet actif est hors de vue.
+  // Un centrage systématique décalait la barre même sur le premier onglet, et
+  // coupait le début de la liste.
   try{
-    const actif=document.querySelector("nav button.on");
-    if(actif&&actif.scrollIntoView) actif.scrollIntoView({inline:"center",block:"nearest"});
+    const barre=document.querySelector("nav");
+    const actif=barre&&barre.querySelector("button.on");
+    if(barre&&actif){
+      const g=actif.offsetLeft, d=g+actif.offsetWidth;
+      const vue=barre.scrollLeft, fin=vue+barre.clientWidth;
+      if(g<vue+6) barre.scrollLeft=Math.max(0,g-6);
+      else if(d>fin-6) barre.scrollLeft=d-barre.clientWidth+6;
+    }
   }catch(_){}
   try{ resoudreMedias(); }catch(_){}
   document.querySelectorAll(".exopicker").forEach(w=>{ try{ renderExoResults(w); }catch(_){} });
