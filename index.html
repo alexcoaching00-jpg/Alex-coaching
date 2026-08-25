@@ -255,7 +255,7 @@
     overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
     scrollbar-width:none}
   nav::-webkit-scrollbar{display:none}
-  nav button{flex:0 0 auto;min-width:76px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
+  nav button{flex:1 0 auto;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;white-space:nowrap;color:var(--grey2);font-family:'Inter';font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;transition:color .15s}
   nav button{position:relative}
   nav button.on{color:var(--red-txt)}
   nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:2px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,transparent,var(--red),transparent);box-shadow:0 0 10px var(--glow)}
@@ -982,7 +982,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.89 — 25/08/2026";
+const APP_VERSION="v11.90 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
