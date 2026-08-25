@@ -675,7 +675,15 @@
   .photo-add:hover{border-color:var(--red)}
   .photo-label{font-size:11px;color:var(--grey);margin-top:4px;text-align:center}
   /* messages */
-  .msg-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;max-height:58vh;min-height:220px;overflow-y:auto;
+  .msg-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;overflow-y:auto;
+    /* Hauteur calculée à partir de la place réellement disponible : en-tête,
+       zone de saisie, boutons, barre du bas et zone sûre de l'iPhone. Une valeur
+       fixe comme 58vh débordait sur tous les modèles — de 45 px sur un grand
+       iPhone à 156 px sur un SE — et cachait le bouton Envoyer sous la barre.
+       dvh suit la hauteur réelle quand les barres du navigateur bougent. */
+    min-height:180px;
+    max-height:calc(100vh - 436px - env(safe-area-inset-bottom));
+    max-height:calc(100dvh - 436px - env(safe-area-inset-bottom));
     padding:14px 12px;background:linear-gradient(180deg,rgba(13,11,10,.55),rgba(28,22,19,.35));border:1px solid var(--line);border-radius:18px;
     scroll-behavior:smooth}
   .msg-list::-webkit-scrollbar{width:5px}
@@ -695,7 +703,11 @@
   @keyframes msgIn{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){.msg{animation:none}}
   .msg .mt{font-size:10px;opacity:.6;margin-top:3px;text-align:right}
-  .msg-input{display:flex;gap:8px;align-items:flex-end}
+  /* Filet de sécurité : quoi qu'il arrive, la zone de saisie reste au-dessus
+     de la barre de navigation et ne peut pas passer dessous. */
+  .msg-input{display:flex;gap:8px;align-items:flex-end;
+    position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));
+    background:var(--base);padding-top:8px;z-index:5}
   .msg-input textarea{flex:1 1 auto;min-width:0;width:100%;background:linear-gradient(180deg,#191411,var(--ink2));border:1px solid var(--line);border-radius:14px;color:var(--white);
     padding:12px 14px;font-size:16px;font-family:inherit;resize:none;max-height:140px;line-height:1.45;outline:none;
     box-shadow:inset 0 1px 3px rgba(0,0,0,.35);transition:border-color .16s,box-shadow .16s}
@@ -985,7 +997,7 @@ window.supabase={
 </script>
 <script>
 "use strict";
-const APP_VERSION="v11.91 — 25/08/2026";
+const APP_VERSION="v11.92 — 25/08/2026";
 const BOOT_TS=Date.now();   // instant de lancement : sert a n'auto-recharger qu'au demarrage
 const SUPA_URL="https://xjmelkqtropownhfmuuh.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbWVsa3F0cm9wb3duaGZtdXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDI3MTYsImV4cCI6MjA5OTI3ODcxNn0.mYoJx96xZ9SBaGky9EN8_MoTuSy7BY5D_aGB7JIFQyg";
